@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bridge by CAPLink — Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --ink:#1B2A45; --ink-soft:#3C4B68; --paper:#F6F3EC; --paper-raised:#FFFDF8;
+    --brass:#A87C2A; --brass-soft:#E9D9B8; --moss:#4C6B54; --moss-soft:#DCE6DD;
+    --slate:#6B7280; --rule:#DDD6C7; --danger:#A6452F; --danger-soft:#F3E3DE;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3,h4,.display{ font-family:'Fraunces',serif; font-weight:600; letter-spacing:-0.01em; color:var(--ink); margin:0; }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  a{ color:inherit; }
+
+  header{ position:sticky; top:0; background:rgba(246,243,236,0.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--rule); z-index:40; }
+  header .inner{ max-width:1040px; margin:0 auto; padding:16px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .wordmark{ font-family:'Fraunces',serif; font-weight:600; font-size:21px; display:flex; align-items:baseline; gap:8px; }
+  .wordmark .tag{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--slate); text-transform:uppercase; letter-spacing:0.05em; }
+  .who{ display:flex; align-items:center; gap:12px; font-size:13px; }
+  .who .role-tag{ font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--brass); }
+
+  main{ max-width:1040px; margin:0 auto; padding:32px 20px 100px; }
+
+  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--brass); font-weight:500; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .eyebrow::before{ content:""; width:18px; height:1px; background:var(--brass); }
+
+  .card{ background:var(--paper-raised); border:1px solid var(--rule); border-radius:6px; padding:22px 24px; margin-bottom:18px; }
+  .card h3.title{ font-size:17px; margin-bottom:2px; }
+  .card h4.section{ font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--slate); font-weight:600; margin:0 0 14px; }
+  .muted{ color:var(--slate); font-size:13px; }
+
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:640px){ .grid{ grid-template-columns:1fr; } }
+
+  .chip{ display:inline-block; background:var(--paper); border:1px solid var(--rule); color:var(--ink-soft); padding:3px 11px; border-radius:100px; font-size:11.5px; margin:2px 4px 2px 0; }
+  .chip.reason{ background:var(--moss-soft); color:var(--moss); border-color:var(--moss-soft); font-weight:600; }
+
+  .badge{ display:inline-block; padding:3px 10px; border-radius:100px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; }
+  .badge.good{ background:var(--moss-soft); color:var(--moss); }
+  .badge.warn{ background:var(--brass-soft); color:var(--brass); }
+  .badge.bad{ background:var(--danger-soft); color:var(--danger); }
+
+  .score-track{ background:var(--paper); border:1px solid var(--rule); border-radius:100px; height:7px; overflow:hidden; margin:8px 0 4px; }
+  .score-track > div{ background:var(--brass); height:100%; }
+
+  button{ font-family:'Inter',sans-serif; display:inline-flex; align-items:center; gap:6px; background:var(--ink); color:var(--paper-raised); border:1px solid var(--ink); padding:10px 18px; border-radius:3px; cursor:pointer; font-size:13.5px; font-weight:600; }
+  button:hover{ opacity:0.88; }
+  button.ghost{ background:transparent; color:var(--ink); border:1px solid var(--rule); }
+  button.danger{ background:var(--danger); border-color:var(--danger); }
+  button.small{ padding:6px 12px; font-size:12px; }
+  button:disabled{ opacity:0.45; cursor:not-allowed; }
+  button.logout{ background:transparent; color:var(--ink-soft); border:1px solid var(--rule); padding:6px 12px; font-size:12px; }
+
+  input, select, textarea{
+    width:100%; padding:10px 12px; border:1px solid var(--rule); border-radius:3px;
+    font-family:'Inter',sans-serif; font-size:13.5px; background:var(--paper); color:var(--ink);
+  }
+  textarea{ min-height:64px; resize:vertical; }
+  label{ display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); margin-bottom:5px; text-transform:uppercase; letter-spacing:0.03em; }
+  .field{ margin-bottom:14px; }
+
+  .tabs{ display:flex; gap:4px; margin-bottom:18px; }
+  .tabs button{ background:var(--paper-raised); color:var(--ink-soft); border:1px solid var(--rule); }
+  .tabs button.active{ background:var(--ink); color:var(--paper-raised); border-color:var(--ink); }
+
+  .item-card{ border:1px solid var(--rule); border-radius:5px; padding:16px 18px; margin-bottom:12px; background:var(--paper-raised); }
+  .item-card h4{ font-size:15.5px; margin:0 0 4px; }
+
+  /* ledger-card — echoes the landing page's partner-agreement visual */
+  .ledger-card{ background:var(--paper-raised); border:1px solid var(--rule); border-radius:6px; padding:22px 24px; margin-bottom:14px; }
+  .ledger-card .lc-head{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid var(--rule); padding-bottom:12px; margin-bottom:12px; }
+  .ledger-card .lc-title{ font-family:'Fraunces',serif; font-size:15px; font-weight:600; }
+  .lc-row{ display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dashed var(--rule); font-size:13px; gap:12px; flex-wrap:wrap; }
+  .lc-row:last-child{ border-bottom:none; }
+  .permit-track{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .permit-pill{ font-size:11px; padding:4px 10px; border-radius:100px; border:1px solid var(--rule); color:var(--slate); }
+  .permit-pill.allow{ background:var(--moss-soft); color:var(--moss); border-color:var(--moss-soft); font-weight:600; }
+
+  .toast-wrap{ position:fixed; bottom:22px; right:22px; display:flex; flex-direction:column; gap:8px; z-index:100; max-width:360px; }
+  .toast{ background:var(--ink); color:var(--paper-raised); padding:11px 16px; border-radius:4px; font-size:13px; box-shadow:0 10px 30px rgba(27,42,69,0.25); }
+  .toast.error{ background:var(--danger); }
+  .toast.success{ background:var(--moss); }
+
+  .login-wrap{ max-width:440px; margin:40px auto 0; }
+  .quick-login{ display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+  .quick-login button{ text-align:left; padding:13px 15px; justify-content:flex-start; }
+  .quick-login button small{ display:block; font-weight:400; opacity:0.75; font-family:'IBM Plex Mono',monospace; font-size:11px; margin-top:2px; }
+  .divider{ text-align:center; color:var(--slate); font-size:11.5px; margin:18px 0; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:0.04em; }
+
+  code.idval{ background:var(--paper); border:1px solid var(--rule); padding:1px 7px; border-radius:3px; font-size:11px; font-family:'IBM Plex Mono',monospace; }
+  details summary{ cursor:pointer; font-size:13px; color:var(--brass); font-weight:600; margin:10px 0; }
+  .band-checks{ display:flex; flex-wrap:wrap; gap:8px 6px; }
+  .band-check{ display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:400; text-transform:none; letter-spacing:normal; color:var(--ink-soft); margin:0; background:var(--paper); border:1px solid var(--rule); border-radius:100px; padding:5px 12px 5px 10px; }
+  .band-check input{ width:auto; margin:0; }
+
+  .banner{ font-size:11.5px; color:var(--slate); text-align:center; padding:8px 0; border-bottom:1px solid var(--rule); background:var(--paper); }
+</style>
+</head>
+<body>
+
+<div class="banner">Reference demo UI for <strong>Bridge by CAPLink</strong> — calls the live API directly, not the finished product</div>
+<header>
+  <div class="inner">
+    <a href="index.html" style="text-decoration:none" class="wordmark">Bridge <span class="tag">by CAPLink</span></a>
+    <div class="who" id="who"></div>
+  </div>
+</header>
+
+<main id="app"></main>
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+const API = "/api/v1";
+
+const BANDS = ["foundation_year","year_1","year_2","year_3","year_4_plus","postgrad_taught","postgrad_research","recent_alumni"];
+const CATEGORIES = ["data_analytics","software_engineering","marketing","design","research","finance","operations","other"];
+const AGREEMENT_STATUSES = ["pending","approved","rejected","suspended"];
+const APPLICATION_STATUSES = ["submitted","shortlisted","interviewing","offered","accepted","declined","rejected","withdrawn"];
+
+function badgeClass(status) {
+  if (["open","approved","accepted","paid","active","good"].includes(status)) return "good";
+  if (["rejected","declined","suspended","disputed"].includes(status)) return "bad";
+  return "warn"; // pending, submitted, pending_review, offered, shortlisted, interviewing
+}
+
+const state = {
+  token: null, refreshToken: null, role: null, userId: null, universityId: null,
+  registerTab: "login",
+};
+
+function decodeJwt(token) {
+  const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+  const json = decodeURIComponent(atob(b64).split("").map(c => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join(""));
+  return JSON.parse(json);
+}
+
+function toast(message, type) {
+  const wrap = document.getElementById("toasts");
+  const el = document.createElement("div");
+  el.className = "toast" + (type ? " " + type : "");
+  el.textContent = message;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 5000);
+}
+
+async function api(path, { method = "GET", body, auth = true } = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (auth && state.token) headers["Authorization"] = "Bearer " + state.token;
+  const res = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  let data = null;
+  try { data = await res.json(); } catch (e) { /* no body */ }
+  if (!res.ok) {
+    const detail = data && data.detail ? (typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail)) : res.statusText;
+    throw new Error(detail);
+  }
+  return data;
+}
+
+function setSession(tokens) {
+  state.token = tokens.access_token;
+  state.refreshToken = tokens.refresh_token;
+  const claims = decodeJwt(tokens.access_token);
+  state.role = claims.role;
+  state.userId = claims.sub;
+  state.universityId = claims.university_id || null;
+}
+
+function logout() {
+  Object.assign(state, { token: null, refreshToken: null, role: null, userId: null, universityId: null });
+  render();
+}
+
+async function quickLogin(email, password) {
+  try {
+    const tokens = await api("/auth/login", { method: "POST", body: { email, password }, auth: false });
+    setSession(tokens);
+    toast("Logged in as " + email, "success");
+    render();
+  } catch (e) { toast("Login failed: " + e.message, "error"); }
+}
+
+// ---------- rendering ----------
+
+function el(html) {
+  const t = document.createElement("template");
+  t.innerHTML = html.trim();
+  return t.content;
+}
+
+function render() {
+  const who = document.getElementById("who");
+  const app = document.getElementById("app");
+  if (!state.token) {
+    who.innerHTML = "";
+    app.innerHTML = "";
+    app.appendChild(renderLogin());
+    return;
+  }
+  who.innerHTML = `<span class="role-tag">${state.role.replace(/_/g," ")}</span><button class="logout" data-action="logout">Log out</button>`;
+  app.innerHTML = "";
+  if (state.role === "student") renderStudent(app);
+  else if (state.role === "business") renderBusiness(app);
+  else if (state.role === "university_admin") renderAdmin(app);
+  else app.appendChild(el(`<div class="card">No demo screen built for role "${state.role}" yet — try <a href="/docs">/docs</a> instead.</div>`));
+}
+
+function renderLogin() {
+  const wrap = el(`
+    <div class="login-wrap">
+      <div class="eyebrow">Sign in</div>
+      <div class="tabs" id="login-tabs">
+        <button data-tab="login" class="${state.registerTab === "login" ? "active" : ""}">Log in</button>
+        <button data-tab="register-student" class="${state.registerTab === "register-student" ? "active" : "ghost"}">New student</button>
+        <button data-tab="register-business" class="${state.registerTab === "register-business" ? "active" : "ghost"}">New business</button>
+      </div>
+      <div id="login-body"></div>
+    </div>
+  `);
+  wrap.getElementById("login-tabs").addEventListener("click", (ev) => {
+    const btn = ev.target.closest("button[data-tab]");
+    if (!btn) return;
+    state.registerTab = btn.dataset.tab;
+    render();
+  });
+  const body = wrap.getElementById("login-body");
+
+  if (state.registerTab === "login") {
+    body.appendChild(el(`
+      <div class="card">
+        <h4 class="section">Seeded demo accounts</h4>
+        <div class="quick-login">
+          <button data-quick="aisha.rahman@manchester.ac.uk|ChangeMe123!">Student — Aisha Rahman<small>aisha.rahman@manchester.ac.uk</small></button>
+          <button data-quick="hello@datacraft-analytics.com|ChangeMe123!">Business — DataCraft Analytics<small>hello@datacraft-analytics.com</small></button>
+          <button data-quick="admin@manchester.ac.uk|ChangeMe123!">University admin — Manchester<small>admin@manchester.ac.uk</small></button>
+        </div>
+        <div class="divider">or sign in manually</div>
+        <div class="field"><label>Email</label><input id="li-email"></div>
+        <div class="field"><label>Password</label><input id="li-pass" type="password"></div>
+        <button data-action="manual-login" style="width:100%; justify-content:center">Log in</button>
+        <p class="muted" style="margin-top:12px">All seeded passwords are <code class="idval">ChangeMe123!</code>. Run <code class="idval">python -m scripts.seed_demo_data</code> first if these don't work.</p>
+      </div>
+    `));
+    body.querySelector('[data-action="manual-login"]').addEventListener("click", () => {
+      quickLogin(document.getElementById("li-email").value, document.getElementById("li-pass").value);
+    });
+    body.querySelectorAll("[data-quick]").forEach(b => b.addEventListener("click", () => {
+      const [email, pass] = b.dataset.quick.split("|");
+      quickLogin(email, pass);
+    }));
+  } else if (state.registerTab === "register-student") {
+    body.appendChild(el(`
+      <div class="card">
+        <h4 class="section">Register a student</h4>
+        <p class="muted">Email must end in the university's domain (seeded demo university is <code class="idval">manchester</code>, domain <code class="idval">manchester.ac.uk</code>).</p>
+        <div class="field"><label>Email</label><input id="rs-email" placeholder="you@manchester.ac.uk"></div>
+        <div class="field"><label>Password</label><input id="rs-pass" type="password" value="ChangeMe123!"></div>
+        <div class="field"><label>Full name</label><input id="rs-name"></div>
+        <div class="field"><label>University slug</label><input id="rs-slug" value="manchester"></div>
+        <div class="field"><label>Degree title</label><input id="rs-degree" value="BSc Computer Science"></div>
+        <div class="field"><label>Band</label><select id="rs-band">${BANDS.map(b => `<option value="${b}">${b.replace(/_/g," ")}</option>`).join("")}</select></div>
+        <button data-action="register-student" style="width:100%; justify-content:center">Register</button>
+      </div>
+    `));
+    body.querySelector('[data-action="register-student"]').addEventListener("click", async () => {
+      try {
+        const tokens = await api("/auth/register/student", { method: "POST", auth: false, body: {
+          email: document.getElementById("rs-email").value,
+          password: document.getElementById("rs-pass").value,
+          full_name: document.getElementById("rs-name").value,
+          university_slug: document.getElementById("rs-slug").value,
+          degree_title: document.getElementById("rs-degree").value,
+          band: document.getElementById("rs-band").value,
+        }});
+        setSession(tokens);
+        toast("Registered and logged in", "success");
+        render();
+      } catch (e) { toast("Registration failed: " + e.message, "error"); }
+    });
+  } else if (state.registerTab === "register-business") {
+    body.appendChild(el(`
+      <div class="card">
+        <h4 class="section">Register a business</h4>
+        <p class="muted">A brand-new business has <strong>zero</strong> visibility of any student until a university approves it — try posting a project right after registering to see it get rejected.</p>
+        <div class="field"><label>Email</label><input id="rb-email"></div>
+        <div class="field"><label>Password</label><input id="rb-pass" type="password" value="ChangeMe123!"></div>
+        <div class="field"><label>Contact full name</label><input id="rb-name"></div>
+        <div class="field"><label>Company name</label><input id="rb-company"></div>
+        <button data-action="register-business" style="width:100%; justify-content:center">Register</button>
+      </div>
+    `));
+    body.querySelector('[data-action="register-business"]').addEventListener("click", async () => {
+      try {
+        const tokens = await api("/auth/register/business", { method: "POST", auth: false, body: {
+          email: document.getElementById("rb-email").value,
+          password: document.getElementById("rb-pass").value,
+          full_name: document.getElementById("rb-name").value,
+          company_name: document.getElementById("rb-company").value,
+        }});
+        setSession(tokens);
+        toast("Registered and logged in", "success");
+        render();
+      } catch (e) { toast("Registration failed: " + e.message, "error"); }
+    });
+  }
+  return wrap;
+}
+
+// ---------- student ----------
+
+async function renderStudent(app) {
+  app.appendChild(el(`<div class="card" id="student-profile">Loading profile…</div>`));
+  app.appendChild(el(`<div class="card"><h4 class="section">Suggested projects</h4><div id="student-feed">Loading feed…</div></div>`));
+  app.appendChild(renderContractUtilityPanel("student"));
+
+  try {
+    const profile = await api("/students/me");
+    document.getElementById("student-profile").outerHTML = renderStudentProfileCard(profile);
+    document.getElementById("edit-skills-btn").addEventListener("click", () => openEditProfile(profile));
+  } catch (e) { toast("Couldn't load profile: " + e.message, "error"); }
+
+  try {
+    const feed = await api("/projects/feed?page=1&page_size=20");
+    document.getElementById("student-feed").innerHTML = feed.length
+      ? feed.map(renderProjectMatchCard).join("")
+      : `<p class="muted">No open projects visible to you right now — check your university/band with an admin.</p>`;
+    document.querySelectorAll("[data-apply]").forEach(btn => btn.addEventListener("click", () => applyToProject(btn.dataset.apply, btn.dataset.title)));
+  } catch (e) { document.getElementById("student-feed").innerHTML = `<p class="muted">Couldn't load feed: ${e.message}</p>`; }
+}
+
+function renderStudentProfileCard(p) {
+  return `
+    <div class="card">
+      <div class="eyebrow">Your profile</div>
+      <h3 class="title">${p.degree_title}</h3>
+      <p class="muted">${p.band.replace(/_/g," ")} · ★ ${p.average_rating.toFixed(1)} (${p.completed_projects_count} completed) · on-time ${(p.on_time_rate*100).toFixed(0)}%</p>
+      <div style="margin:10px 0">${p.skills.map(s => `<span class="chip">${s}</span>`).join("")}</div>
+      <p class="muted">Rate expectation: £${p.hourly_rate_expectation_gbp ?? "—"}/hr · ${p.weekly_hours_available ?? "—"}h/week available</p>
+      <button class="ghost small" id="edit-skills-btn" style="margin-top:10px">Edit skills / rate</button>
+    </div>
+  `;
+}
+
+function openEditProfile(profile) {
+  const app = document.getElementById("app");
+  const modal = el(`
+    <div class="card" id="edit-modal">
+      <h4 class="section">Edit profile</h4>
+      <div class="field"><label>Skills (comma separated)</label><input id="em-skills" value="${profile.skills.join(", ")}"></div>
+      <div class="field"><label>Hourly rate expectation (£)</label><input id="em-rate" type="number" value="${profile.hourly_rate_expectation_gbp ?? ""}"></div>
+      <div class="field"><label>Weekly hours available</label><input id="em-hours" type="number" value="${profile.weekly_hours_available ?? ""}"></div>
+      <div class="row">
+        <button data-action="save-profile">Save &amp; refresh feed</button>
+        <button class="ghost" data-action="cancel-edit">Cancel</button>
+      </div>
+    </div>
+  `);
+  app.insertBefore(modal, app.children[1]);
+  document.querySelector('[data-action="cancel-edit"]').addEventListener("click", () => document.getElementById("edit-modal").remove());
+  document.querySelector('[data-action="save-profile"]').addEventListener("click", async () => {
+    try {
+      await api("/students/me", { method: "PATCH", body: {
+        skills: document.getElementById("em-skills").value.split(",").map(s => s.trim()).filter(Boolean),
+        hourly_rate_expectation_gbp: Number(document.getElementById("em-rate").value) || null,
+        weekly_hours_available: Number(document.getElementById("em-hours").value) || null,
+      }});
+      toast("Profile updated — match scores will reflect this now", "success");
+      render();
+    } catch (e) { toast("Update failed: " + e.message, "error"); }
+  });
+}
+
+function renderProjectMatchCard(p) {
+  const pct = Math.round(p.match_score * 100);
+  return `
+    <div class="item-card">
+      <h4>${p.title} <span class="badge ${badgeClass(p.status)}">${p.status.replace(/_/g," ")}</span></h4>
+      <p class="muted">${p.category.replace(/_/g," ")} · £${p.hourly_rate_gbp}/hr · ${p.duration_label} · ${p.is_remote ? "remote" : (p.location_label || "on-site")}</p>
+      <p style="font-size:13px">${p.description}</p>
+      <div class="score-track"><div style="width:${pct}%"></div></div>
+      <p class="muted" style="margin:2px 0 8px">${pct}% match</p>
+      <div>${p.match_reasons.map(r => `<span class="chip reason">${r}</span>`).join("")}</div>
+      <div style="margin-top:12px"><button class="small" data-apply="${p.id}" data-title="${p.title.replace(/"/g,'&quot;')}">Apply</button></div>
+    </div>
+  `;
+}
+
+async function applyToProject(projectId, title) {
+  const coverNote = prompt(`Cover note for "${title}" (optional):`, "Happy to get started right away.");
+  if (coverNote === null) return;
+  try {
+    const application = await api("/applications", { method: "POST", body: { project_id: projectId, cover_note: coverNote } });
+    toast(`Applied! Match score ${(application.match_score_at_application*100).toFixed(0)}%. Application id: ${application.id}`, "success");
+  } catch (e) { toast("Application failed: " + e.message, "error"); }
+}
+
+// ---------- business ----------
+
+async function renderBusiness(app) {
+  app.appendChild(el(`<div class="card" id="business-profile">Loading profile…</div>`));
+  app.appendChild(renderPostProjectForm());
+  app.appendChild(renderRequestAccessForm());
+  app.appendChild(el(`<div class="card"><h4 class="section">My projects</h4><div id="business-projects">Loading…</div></div>`));
+  app.appendChild(renderContractUtilityPanel("business"));
+
+  try {
+    const profile = await api("/businesses/me");
+    document.getElementById("business-profile").outerHTML = `
+      <div class="card">
+        <div class="eyebrow">Your profile</div>
+        <h3 class="title">${profile.company_name}</h3>
+        <p class="muted">${profile.industry || "—"} · trust tier: ${profile.global_trust_tier.replace(/_/g," ")} · ★ ${profile.average_rating.toFixed(1)} (${profile.completed_projects_count} completed)</p>
+      </div>`;
+  } catch (e) { toast("Couldn't load profile: " + e.message, "error"); }
+
+  await loadMyProjects();
+}
+
+function renderPostProjectForm() {
+  return el(`
+    <div class="card">
+      <h4 class="section">Post a new project</h4>
+      <p class="muted">Requires an <strong>approved</strong> agreement with the target university covering this category and every selected band — otherwise you'll see the safeguarding rejection reason right here.</p>
+      <div class="grid">
+        <div class="field"><label>Title</label><input id="pp-title" value="Landing page copy review"></div>
+        <div class="field"><label>Category</label><select id="pp-category">${CATEGORIES.map(c => `<option value="${c}">${c.replace(/_/g," ")}</option>`).join("")}</select></div>
+        <div class="field"><label>Duration label</label><input id="pp-duration" value="1 week"></div>
+        <div class="field"><label>Hourly rate (£)</label><input id="pp-rate" type="number" value="18"></div>
+        <div class="field"><label>Required skills (comma separated)</label><input id="pp-skills" value="Python, SQL"></div>
+        <div class="field"><label>Target university slug</label><input id="pp-slug" value="manchester"></div>
+      </div>
+      <div class="field"><label>Description</label><textarea id="pp-desc">Short paid project, remote, flexible hours.</textarea></div>
+      <div class="field"><label>Target bands</label><div class="band-checks">${BANDS.map(b => `<label class="band-check"><input type="checkbox" class="pp-band" value="${b}"> ${b.replace(/_/g," ")}</label>`).join("")}</div></div>
+      <button data-action="post-project">Post project</button>
+    </div>
+  `);
+}
+
+async function wirePostProjectForm() {
+  const btn = document.querySelector('[data-action="post-project"]');
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    try {
+      const slug = document.getElementById("pp-slug").value.trim();
+      const uni = await api(`/universities/${slug}/public`, { auth: false });
+      const bands = Array.from(document.querySelectorAll(".pp-band:checked")).map(cb => cb.value);
+      const project = await api("/projects", { method: "POST", body: {
+        title: document.getElementById("pp-title").value,
+        description: document.getElementById("pp-desc").value,
+        category: document.getElementById("pp-category").value,
+        required_skills: document.getElementById("pp-skills").value.split(",").map(s => s.trim()).filter(Boolean),
+        duration_label: document.getElementById("pp-duration").value,
+        hourly_rate_gbp: Number(document.getElementById("pp-rate").value),
+        target_university_ids: [uni.id],
+        target_bands: bands,
+      }});
+      toast(`Project posted: "${project.title}" (status: ${project.status})`, "success");
+      await loadMyProjects();
+    } catch (e) { toast("Couldn't post project: " + e.message, "error"); }
+  });
+}
+
+function renderRequestAccessForm() {
+  return el(`
+    <div class="card">
+      <h4 class="section">Request access to a university</h4>
+      <p class="muted">A brand-new business needs this before it can post anything. Starts <span class="badge warn">pending</span> until a university admin reviews and approves it.</p>
+      <div class="row">
+        <input id="ra-slug" placeholder="university slug, e.g. manchester" value="manchester" style="max-width:260px">
+        <button class="ghost" data-action="request-access">Request access</button>
+      </div>
+    </div>
+  `);
+}
+
+async function wireRequestAccessForm() {
+  const btn = document.querySelector('[data-action="request-access"]');
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    try {
+      const slug = document.getElementById("ra-slug").value.trim();
+      const uni = await api(`/universities/${slug}/public`, { auth: false });
+      const me = await api("/businesses/me");
+      const agreement = await api(`/universities/${uni.id}/business-agreements`, { method: "POST", body: { business_id: me.id } });
+      toast(`Access requested — agreement ${agreement.id} is now "${agreement.status}". A university admin needs to approve it.`, "success");
+    } catch (e) { toast("Request failed: " + e.message, "error"); }
+  });
+}
+
+async function loadMyProjects() {
+  const container = document.getElementById("business-projects");
+  try {
+    const projects = await api("/projects/mine");
+    container.innerHTML = projects.length
+      ? projects.map(p => `
+        <div class="item-card">
+          <h4>${p.title} <span class="badge ${badgeClass(p.status)}">${p.status.replace(/_/g," ")}</span></h4>
+          <p class="muted">${p.category.replace(/_/g," ")} · £${p.hourly_rate_gbp}/hr · ${p.duration_label}</p>
+          <p class="muted">id: <code class="idval">${p.id}</code></p>
+          <button class="small ghost" data-view-applicants="${p.id}">View applicants</button>
+          <div class="applicants" id="applicants-${p.id}"></div>
+        </div>
+      `).join("")
+      : `<p class="muted">No projects yet — post one above. (The seeded demo project should appear here once logged in as DataCraft Analytics.)</p>`;
+    container.querySelectorAll("[data-view-applicants]").forEach(b => b.addEventListener("click", () => loadApplicants(b.dataset.viewApplicants)));
+  } catch (e) {
+    container.innerHTML = `<p class="muted">Couldn't load projects: ${e.message}</p>`;
+  }
+  wirePostProjectForm();
+  wireRequestAccessForm();
+}
+
+async function loadApplicants(projectId) {
+  const container = document.getElementById("applicants-" + projectId);
+  container.innerHTML = "<p class='muted'>Loading applicants…</p>";
+  try {
+    const applicants = await api(`/projects/${projectId}/applications`);
+    container.innerHTML = applicants.length
+      ? applicants.map(a => `
+        <div class="item-card">
+          <h4>${a.full_name} <span class="badge ${badgeClass(a.status)}">${a.status}</span></h4>
+          <p class="muted">${a.degree_title} · match ${a.match_score_at_application != null ? Math.round(a.match_score_at_application*100) + "%" : "—"} · proposed £${a.proposed_rate_gbp ?? "—"}/hr</p>
+          <p style="font-size:13px">${a.cover_note || ""}</p>
+          <p class="muted">application id: <code class="idval">${a.application_id}</code></p>
+          <div class="row">
+            <select class="app-status-select" data-app="${a.application_id}">
+              ${APPLICATION_STATUSES.map(s => `<option value="${s}" ${s === a.status ? "selected" : ""}>${s}</option>`).join("")}
+            </select>
+            <button class="small ghost" data-set-status="${a.application_id}">Update status</button>
+            <button class="small" data-create-contract="${a.application_id}">Create contract</button>
+          </div>
+        </div>
+      `).join("")
+      : `<p class="muted">No one has applied to this project yet.</p>`;
+    container.querySelectorAll("[data-set-status]").forEach(b => b.addEventListener("click", async () => {
+      const select = container.querySelector(`.app-status-select[data-app="${b.dataset.setStatus}"]`);
+      try {
+        await api(`/applications/${b.dataset.setStatus}`, { method: "PATCH", body: { status: select.value } });
+        toast("Application status updated to " + select.value, "success");
+        loadApplicants(projectId);
+      } catch (e) { toast("Update failed: " + e.message, "error"); }
+    }));
+    container.querySelectorAll("[data-create-contract]").forEach(b => b.addEventListener("click", () => openContractForm(b.dataset.createContract, projectId)));
+  } catch (e) {
+    container.innerHTML = `<p class="muted">Couldn't load applicants: ${e.message}</p>`;
+  }
+}
+
+function openContractForm(applicationId, projectId) {
+  const container = document.getElementById("applicants-" + projectId);
+  const form = el(`
+    <div class="card" style="background:var(--paper)">
+      <h4 class="section">New contract for application ${applicationId}</h4>
+      <div class="grid">
+        <div class="field"><label>Milestone 1 description</label><input class="cf-m1-desc" value="First half of the work"></div>
+        <div class="field"><label>Milestone 1 payment (£)</label><input class="cf-m1-amt" type="number" value="80"></div>
+        <div class="field"><label>Milestone 2 description</label><input class="cf-m2-desc" value="Final delivery"></div>
+        <div class="field"><label>Milestone 2 payment (£)</label><input class="cf-m2-amt" type="number" value="120"></div>
+      </div>
+      <button data-action="submit-contract">Create contract</button>
+    </div>
+  `);
+  container.appendChild(form);
+  container.querySelector('[data-action="submit-contract"]').addEventListener("click", async () => {
+    try {
+      const contract = await api("/contracts", { method: "POST", body: {
+        application_id: applicationId,
+        milestones: [
+          { description: container.querySelector(".cf-m1-desc").value, payment_amount_gbp: Number(container.querySelector(".cf-m1-amt").value) },
+          { description: container.querySelector(".cf-m2-desc").value, payment_amount_gbp: Number(container.querySelector(".cf-m2-amt").value) },
+        ],
+      }});
+      toast(`Contract created: ${contract.id} (milestones: ${contract.milestones.map(m => m.id).join(", ")}) — use the Contracts &amp; Milestones panel below to accept terms and pay.`, "success");
+      loadApplicants(projectId);
+    } catch (e) { toast("Contract creation failed: " + e.message, "error"); }
+  });
+}
+
+// ---------- shared: contracts / milestones / ratings utility panel ----------
+
+function renderContractUtilityPanel(role) {
+  return el(`
+    <div class="card">
+      <h4 class="section">Contracts, milestones &amp; ratings</h4>
+      <p class="muted">There's no "my contracts" list endpoint yet, so paste in the ids shown when a contract is created (business side) to drive the rest of the lifecycle from either side.</p>
+      <div class="grid">
+        <div>
+          <div class="field"><label>Contract id</label><input id="cu-contract-id"></div>
+          <button class="small ghost" data-action="accept-terms">Accept IP/NDA terms</button>
+        </div>
+        <div>
+          <div class="field"><label>Milestone id</label><input id="cu-milestone-id"></div>
+          <div class="row">
+            ${role === "student" ? `<button class="small ghost" data-action="submit-milestone">Submit milestone</button>` : `<button class="small ghost" data-action="pay-milestone">Approve &amp; pay</button>`}
+          </div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:12px"><label>Contract id (for rating)</label><input id="cu-rating-contract-id"></div>
+      <div class="grid">
+        <div class="field"><label>Overall score (1-5)</label><input id="cu-rating-score" type="number" min="1" max="5" value="5"></div>
+        <div class="field"><label>Comment (private)</label><input id="cu-rating-comment"></div>
+      </div>
+      <button class="small" data-action="submit-rating">Submit rating</button>
+    </div>
+  `);
+}
+
+document.addEventListener("click", async (ev) => {
+  const action = ev.target.dataset && ev.target.dataset.action;
+  if (!action) return;
+  if (action === "logout") return logout();
+
+  if (action === "accept-terms") {
+    const id = document.getElementById("cu-contract-id").value.trim();
+    try { await api(`/contracts/${id}/accept-terms`, { method: "POST" }); toast("Terms accepted", "success"); }
+    catch (e) { toast("Failed: " + e.message, "error"); }
+  }
+  if (action === "submit-milestone") {
+    const id = document.getElementById("cu-milestone-id").value.trim();
+    try { await api(`/contracts/milestones/${id}/submit`, { method: "POST" }); toast("Milestone submitted", "success"); }
+    catch (e) { toast("Failed: " + e.message, "error"); }
+  }
+  if (action === "pay-milestone") {
+    const id = document.getElementById("cu-milestone-id").value.trim();
+    try { await api(`/contracts/milestones/${id}/approve-and-pay`, { method: "POST" }); toast("Milestone approved & paid", "success"); }
+    catch (e) { toast("Failed: " + e.message, "error"); }
+  }
+  if (action === "submit-rating") {
+    const contract_id = document.getElementById("cu-rating-contract-id").value.trim();
+    const overall_score = Number(document.getElementById("cu-rating-score").value);
+    const private_comment = document.getElementById("cu-rating-comment").value;
+    try {
+      const rating = await api("/ratings", { method: "POST", body: { contract_id, overall_score, private_comment } });
+      toast(`Rating submitted (released: ${rating.is_released})`, "success");
+    } catch (e) { toast("Failed: " + e.message, "error"); }
+  }
+});
+
+// ---------- university admin ----------
+
+async function renderAdmin(app) {
+  app.appendChild(el(`<div class="card"><h4 class="section">Business partnership agreements</h4><p class="muted">University id (from your login): <code class="idval">${state.universityId}</code></p><div id="admin-agreements">Loading…</div></div>`));
+  await loadAgreements();
+}
+
+async function loadAgreements() {
+  const container = document.getElementById("admin-agreements");
+  try {
+    const agreements = await api(`/universities/${state.universityId}/business-agreements`);
+    container.innerHTML = agreements.length
+      ? agreements.map(renderAgreementCard).join("")
+      : `<p class="muted">No agreements yet — have a business request access first.</p>`;
+    agreements.forEach(a => wireAgreementForm(a));
+  } catch (e) { container.innerHTML = `<p class="muted">Couldn't load agreements: ${e.message}</p>`; }
+}
+
+function renderAgreementCard(a) {
+  const bandRows = BANDS.map(b => `
+    <div class="lc-row"><span>${b.replace(/_/g," ")}</span>
+      <span class="permit-pill ${a.allowed_bands.includes(b) ? "allow" : ""}">${a.allowed_bands.includes(b) ? "Permitted" : "Not permitted"}</span>
+    </div>`).join("");
+  return `
+    <div class="ledger-card" id="agreement-${a.id}">
+      <div class="lc-head">
+        <span class="lc-title">Business <code class="idval">${a.business_id}</code></span>
+        <span class="badge ${badgeClass(a.status)}">${a.status}</span>
+      </div>
+      ${bandRows}
+      <div class="lc-row"><span>Category access</span><span class="permit-track">${
+        a.allowed_categories.length
+          ? a.allowed_categories.map(c => `<span class="permit-pill allow">${c.replace(/_/g," ")}</span>`).join("")
+          : `<span class="permit-pill">None yet</span>`
+      }</span></div>
+      <details>
+        <summary>Manage this agreement</summary>
+        <div class="field"><label>Status</label><select class="ag-status">${AGREEMENT_STATUSES.map(s => `<option value="${s}" ${s === a.status ? "selected" : ""}>${s}</option>`).join("")}</select></div>
+        <div class="field"><label>Allowed bands</label><div class="band-checks">${BANDS.map(b => `<label class="band-check"><input type="checkbox" class="ag-band" value="${b}" ${a.allowed_bands.includes(b) ? "checked" : ""}> ${b.replace(/_/g," ")}</label>`).join("")}</div></div>
+        <div class="field"><label>Allowed categories</label><div class="band-checks">${CATEGORIES.map(c => `<label class="band-check"><input type="checkbox" class="ag-category" value="${c}" ${a.allowed_categories.includes(c) ? "checked" : ""}> ${c.replace(/_/g," ")}</label>`).join("")}</div></div>
+        <button class="small" data-save-agreement="${a.id}">Save decision</button>
+      </details>
+    </div>
+  `;
+}
+
+function wireAgreementForm(a) {
+  const cardEl = document.getElementById("agreement-" + a.id);
+  const btn = cardEl.querySelector(`[data-save-agreement="${a.id}"]`);
+  btn.addEventListener("click", async () => {
+    try {
+      const status = cardEl.querySelector(".ag-status").value;
+      const allowed_bands = Array.from(cardEl.querySelectorAll(".ag-band:checked")).map(cb => cb.value);
+      const allowed_categories = Array.from(cardEl.querySelectorAll(".ag-category:checked")).map(cb => cb.value);
+      await api(`/universities/${state.universityId}/business-agreements/${a.id}`, {
+        method: "PATCH", body: { status, allowed_bands, allowed_categories },
+      });
+      toast("Agreement updated", "success");
+      loadAgreements();
+    } catch (e) { toast("Save failed: " + e.message, "error"); }
+  });
+}
+
+render();
+</script>
+</body>
+</html>

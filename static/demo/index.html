@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bridge by CAPLink</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --navy:#0B2454; --navy-soft:#2D4759; --teal:#0B90A8; --teal-soft:#DCEEF1;
+    --paper:#FAFBFC; --paper-raised:#FFFFFF; --slate:#6B7280; --rule:#E3E7EC;
+    --danger:#A6452F; --danger-soft:#F3E3DE;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{ margin:0; background:var(--paper); color:var(--navy); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3,.display{ font-family:'Fraunces',serif; font-weight:600; letter-spacing:-0.01em; color:var(--navy); margin:0; }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  a{ color:inherit; }
+  .wrap{ max-width:1080px; margin:0 auto; padding:0 24px; }
+  section{ padding:76px 0; }
+  @media (max-width:720px){ section{ padding:48px 0; } }
+
+  nav{ position:sticky; top:0; background:rgba(250,251,252,0.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--rule); z-index:40; }
+  nav .wrap{ display:flex; align-items:center; justify-content:space-between; padding:14px 24px; }
+  .wordmark{ font-family:'Fraunces',serif; font-weight:600; font-size:20px; display:flex; align-items:baseline; gap:8px; text-decoration:none; color:var(--navy); }
+  .wordmark .tag{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--slate); text-transform:uppercase; letter-spacing:0.05em; }
+  .nav-links{ display:flex; gap:26px; font-size:13.5px; font-weight:600; }
+  .nav-links a{ color:var(--navy-soft); text-decoration:none; }
+  .nav-links a:hover{ color:var(--teal); }
+  .nav-cta{ background:var(--navy); color:#fff; padding:9px 18px; border-radius:4px; font-size:13.5px; font-weight:600; text-decoration:none; }
+  .nav-cta:hover{ background:var(--teal); }
+  @media (max-width:760px){ .nav-links{ display:none; } }
+
+  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--teal); font-weight:500; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .eyebrow::before{ content:""; width:22px; height:1px; background:var(--teal); }
+
+  .hero{ padding-top:64px; padding-bottom:56px; }
+  .hero-grid{ display:grid; grid-template-columns:1.05fr 0.95fr; gap:48px; align-items:center; }
+  @media (max-width:860px){ .hero-grid{ grid-template-columns:1fr; } }
+  .hero h1{ font-size:clamp(32px,4.6vw,48px); line-height:1.1; margin-bottom:20px; }
+  .hero h1 em{ font-style:normal; color:var(--teal); }
+  .hero p.lede{ font-size:16.5px; color:var(--navy-soft); line-height:1.6; max-width:480px; margin-bottom:30px; }
+  .cta-row{ display:flex; gap:14px; flex-wrap:wrap; }
+  .btn{ display:inline-flex; align-items:center; gap:8px; padding:13px 24px; border-radius:4px; font-weight:600; font-size:14px; border:1px solid var(--navy); text-decoration:none; }
+  .btn.primary{ background:var(--navy); color:#fff; }
+  .btn.primary:hover{ background:var(--teal); border-color:var(--teal); }
+  .btn.ghost{ background:transparent; color:var(--navy); }
+  .btn.ghost:hover{ border-color:var(--teal); color:var(--teal); }
+  .hero-visual{ display:flex; justify-content:center; }
+  .hero-visual img{ width:100%; max-width:440px; filter:drop-shadow(0 24px 48px rgba(11,36,84,0.16)); }
+
+  .trust-bar{ padding:26px 0; border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); }
+  .trust-bar .wrap{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:20px; }
+  .trust-item{ font-size:12.5px; color:var(--slate); font-weight:600; max-width:230px; line-height:1.5; }
+  .trust-item .num{ display:block; font-family:'IBM Plex Mono',monospace; color:var(--navy); font-size:14px; margin-bottom:4px; }
+
+  .section-head{ max-width:640px; margin-bottom:40px; }
+  .section-head h2{ font-size:30px; line-height:1.18; margin-bottom:14px; }
+  .section-head p{ color:var(--slate); font-size:15px; line-height:1.6; }
+
+  .split{ display:grid; grid-template-columns:1fr 1fr; gap:44px; }
+  @media (max-width:820px){ .split{ grid-template-columns:1fr; } }
+  .concern-card{ background:var(--paper-raised); border:1px solid var(--rule); border-left:3px solid var(--rule); border-radius:4px; padding:20px 22px; margin-bottom:14px; }
+  .concern-card.resolved{ border-left-color:var(--teal); }
+  .concern-card .k{ font-size:11px; text-transform:uppercase; letter-spacing:0.05em; font-weight:700; color:var(--slate); margin-bottom:8px; }
+  .concern-card.resolved .k{ color:var(--teal); }
+  .concern-card p{ font-size:14px; color:var(--navy-soft); margin:0; line-height:1.55; }
+
+  .feature-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:6px; overflow:hidden; }
+  @media (max-width:820px){ .feature-grid{ grid-template-columns:1fr; } }
+  .feature{ background:var(--paper-raised); padding:28px 24px; }
+  .feature .f-num{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--teal); margin-bottom:12px; }
+  .feature h3{ font-size:16.5px; margin-bottom:9px; }
+  .feature p{ font-size:13.5px; color:var(--slate); line-height:1.55; margin:0; }
+
+  .role-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+  @media (max-width:820px){ .role-grid{ grid-template-columns:1fr; } }
+  .role-card{ background:var(--paper-raised); border:1px solid var(--rule); border-radius:6px; padding:26px; display:flex; flex-direction:column; }
+  .role-card .r-icon{ width:34px; height:34px; border-radius:8px; background:var(--teal-soft); color:var(--teal); display:flex; align-items:center; justify-content:center; font-weight:700; font-family:'Fraunces',serif; margin-bottom:16px; }
+  .role-card h3{ font-size:16px; margin-bottom:8px; }
+  .role-card p{ font-size:13.5px; color:var(--slate); line-height:1.55; margin:0 0 18px; flex:1; }
+  .role-card a{ font-size:13px; font-weight:600; color:var(--teal); text-decoration:none; }
+  .role-card a:hover{ text-decoration:underline; }
+
+  .honesty-card{ background:var(--paper-raised); border:1px solid var(--rule); border-radius:6px; padding:28px 30px; }
+  .honesty-grid{ display:grid; grid-template-columns:1fr 1fr; gap:30px; margin-top:18px; }
+  @media (max-width:720px){ .honesty-grid{ grid-template-columns:1fr; } }
+  .honesty-grid h4{ font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--slate); margin:0 0 10px; }
+  .honesty-grid ul{ margin:0; padding-left:18px; font-size:13.5px; color:var(--navy-soft); line-height:1.7; }
+  .honesty-grid .good h4{ color:var(--teal); }
+
+  .cta-block{ background:var(--navy); color:#fff; border-radius:8px; padding:48px; text-align:center; }
+  .cta-block h2{ color:#fff; font-size:28px; margin-bottom:12px; }
+  .cta-block p{ color:#C7D2E3; font-size:14.5px; max-width:520px; margin:0 auto 26px; line-height:1.6; }
+  .cta-block .btn.primary{ background:var(--teal); border-color:var(--teal); }
+  .cta-block .btn.primary:hover{ background:#fff; color:var(--navy); border-color:#fff; }
+  .cta-block .btn.ghost{ color:#fff; border-color:rgba(255,255,255,0.4); }
+  .cta-block .btn.ghost:hover{ border-color:#fff; color:#fff; }
+  .seed-note{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#9FB0CB; margin-top:22px; }
+
+  footer{ border-top:1px solid var(--rule); padding:36px 0; }
+  footer .wrap{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; font-size:12.5px; color:var(--slate); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a href="index.html" class="wordmark">Bridge <span class="tag">by CAPLink</span></a>
+    <div class="nav-links">
+      <a href="#safeguarding">Safeguarding</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#roles">For each role</a>
+    </div>
+    <a href="app.html" class="nav-cta">Login</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Licensed institutional platform · reference demo</div>
+      <h1>A safer <em>bridge</em> between students and paid work.</h1>
+      <p class="lede">Bridge connects a university's students with vetted businesses for paid projects and internships — with the careers team deciding exactly which employers can reach which year groups, before anyone can make contact.</p>
+      <div class="cta-row">
+        <a href="app.html" class="btn primary">Login</a>
+        <a href="#how-it-works" class="btn ghost">See how it works</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <img src="assets/bridge-logo.png" alt="Bridge by CAPLink — trusted access, paid experience, real impact">
+    </div>
+  </div>
+</section>
+
+<div class="trust-bar">
+  <div class="wrap">
+    <div class="trust-item"><span class="num">Zero</span>student visibility for a business until its university approves it</div>
+    <div class="trust-item"><span class="num">Per band, per category</span>access is scoped by year group and project type</div>
+    <div class="trust-item"><span class="num">Escrow</span>students are paid on milestone approval, not on trust</div>
+    <div class="trust-item"><span class="num">Blind</span>ratings stay hidden until both sides have submitted</div>
+  </div>
+</div>
+
+<section id="safeguarding">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Why careers teams choose Bridge</div>
+      <h2>Every open marketplace asks you to trust it.<br>Bridge lets a university set the terms.</h2>
+      <p>Open marketplaces expose every student to every employer, regardless of year group, relevance, or how well that business has actually been vetted. Bridge flips that around: a business has no visibility of any student until the student's university explicitly says so.</p>
+    </div>
+
+    <div class="split">
+      <div>
+        <div class="concern-card">
+          <div class="k">Without a safeguarding gate</div>
+          <p>A first-year is discoverable by any registered business, including ones the university has never reviewed.</p>
+        </div>
+        <div class="concern-card">
+          <div class="k">Without a safeguarding gate</div>
+          <p>A business can post roles wildly outside a student's course relevance — an unrelated sales gig pitched to an engineering cohort.</p>
+        </div>
+        <div class="concern-card">
+          <div class="k">Without a safeguarding gate</div>
+          <p>Students can be lured off-platform into informal, unprotected payment arrangements before any contract exists.</p>
+        </div>
+      </div>
+      <div>
+        <div class="concern-card resolved">
+          <div class="k">With Bridge</div>
+          <p>Each business is approved per year-band by the university's careers team — first-years can be restricted to trusted, education-focused partners, or excluded entirely.</p>
+        </div>
+        <div class="concern-card resolved">
+          <div class="k">With Bridge</div>
+          <p>Businesses are approved per project category too — a marketing agency can be cleared for marketing work only, never engineering placements.</p>
+        </div>
+        <div class="concern-card resolved">
+          <div class="k">With Bridge</div>
+          <p>Messages are automatically scanned pre-contract for phone numbers, external emails, and "pay you directly" language, and flagged for review.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how-it-works">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">The lifecycle</div>
+      <h2>From approval to payout, every step is logged.</h2>
+      <p>The same rules apply whether a student is browsing on the web or on their phone — nothing about access or safeguarding changes by device.</p>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature">
+        <div class="f-num">01</div>
+        <h3>Safeguarding gate</h3>
+        <p>No business reaches a student until an approved agreement exists, scoped to specific year-bands and project categories.</p>
+      </div>
+      <div class="feature">
+        <div class="f-num">02</div>
+        <h3>Explainable matching</h3>
+        <p>Every recommendation — to a student or a business — ships with plain-English reasons, and is logged to train future versions of the matching engine.</p>
+      </div>
+      <div class="feature">
+        <div class="f-num">03</div>
+        <h3>Milestone escrow payments</h3>
+        <p>Contracts are broken into milestones. A student is paid when a business approves the work, never just on a promise.</p>
+      </div>
+      <div class="feature">
+        <div class="f-num">04</div>
+        <h3>Mutual blind ratings</h3>
+        <p>Both sides rate each other after a contract — but neither sees the other's rating until both have submitted theirs.</p>
+      </div>
+      <div class="feature">
+        <div class="f-num">05</div>
+        <h3>Off-platform-contact detection</h3>
+        <p>Pre-contract messages are scanned for attempts to move a conversation off-platform, protecting students and the integrity of the agreement.</p>
+      </div>
+      <div class="feature">
+        <div class="f-num">06</div>
+        <h3>Mobile-ready by design</h3>
+        <p>Paginated feeds, long-lived refresh tokens, and a single combined home payload — built for a phone on a patchy connection, not just a desktop.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="roles">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Three logins, one set of rules</div>
+      <h2>See it from whichever seat you're sitting in.</h2>
+      <p>The demo ships with one working account per role, all inside the same seeded university.</p>
+    </div>
+    <div class="role-grid">
+      <div class="role-card">
+        <div class="r-icon">S</div>
+        <h3>Student</h3>
+        <p>Browse a ranked, safeguarded feed of projects with plain-English match reasons, apply, and track contracts and payments through to a rating.</p>
+        <a href="app.html">Login as a student →</a>
+      </div>
+      <div class="role-card">
+        <div class="r-icon">B</div>
+        <h3>Business</h3>
+        <p>Request access to a university, post a project once approved, review applicants, and move an offer through to a milestone-based contract.</p>
+        <a href="app.html">Login as a business →</a>
+      </div>
+      <div class="role-card">
+        <div class="r-icon">U</div>
+        <h3>University admin</h3>
+        <p>Review incoming business partnership requests and decide exactly which year-bands and project categories each one may access.</p>
+        <a href="app.html">Login as a university admin →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="honesty">
+  <div class="wrap">
+    <div class="honesty-card">
+      <div class="eyebrow" style="margin-bottom:0">A note on what this actually is</div>
+      <h2 style="font-size:22px; margin-top:14px">This is a working reference demo, not a live product.</h2>
+      <p style="color:var(--slate); font-size:14px; margin-top:10px; max-width:640px; line-height:1.6">Everything below the login screen calls a real local API and a real database — the safeguarding rules, matching, contracts, and payments logic all genuinely run. A few integration points are deliberately left as clearly-marked placeholders.</p>
+      <div class="honesty-grid">
+        <div class="good">
+          <h4>Fully working</h4>
+          <ul>
+            <li>Registration, login, JWT refresh</li>
+            <li>Multi-tenant university licensing</li>
+            <li>The safeguarding access-control gate</li>
+            <li>Rules-based matching + recommendation logging</li>
+            <li>Applications, contracts, milestones</li>
+            <li>Mutual blind ratings</li>
+            <li>Messaging with off-platform-contact flagging</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Placeholders</h4>
+          <ul>
+            <li>Stripe payment capture (a fake payment id is stored instead)</li>
+            <li>Firebase push notifications (logged, not actually sent)</li>
+            <li>University email verification (domain match only, no real SSO)</li>
+            <li>Schema migrations (tables are created fresh each run)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="wrap">
+    <div class="cta-block">
+      <h2>Try it yourself.</h2>
+      <p>Log in as the seeded student, business, or university admin and follow a project from posting through to a paid, rated contract.</p>
+      <div class="cta-row" style="justify-content:center">
+        <a href="app.html" class="btn primary">Login to the demo</a>
+      </div>
+      <div class="seed-note">student: aisha.rahman@manchester.ac.uk &nbsp;·&nbsp; business: hello@datacraft-analytics.com &nbsp;·&nbsp; admin: admin@manchester.ac.uk &nbsp;·&nbsp; password: ChangeMe123!</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>Bridge <span style="color:var(--slate)">by CAPLink</span> — Social Capital Link</div>
+    <div>Fictional product built for a coding demo · not a real company or university</div>
+  </div>
+</footer>
+
+</body>
+</html>
