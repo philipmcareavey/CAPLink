@@ -72,6 +72,18 @@ class BusinessProfileOut(BaseModel):
     is_registration_verified: bool
     average_rating: float
     completed_projects_count: int
+    postcode: Optional[str]
+    latitude: Optional[float]
+    longitude: Optional[float]
+
+
+class BusinessProfileUpdate(BaseModel):
+    company_name: Optional[str] = None
+    industry: Optional[str] = None
+    company_size: Optional[str] = None
+    website: Optional[str] = None
+    description: Optional[str] = None
+    postcode: Optional[str] = None  # setting/changing this triggers re-geocoding server-side
 
 
 class UserOut(BaseModel):

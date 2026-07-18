@@ -5,6 +5,7 @@ from app.api.v1.endpoints import (
     auth,
     businesses,
     contracts,
+    local_search,
     messages,
     mobile,
     policies,
@@ -29,3 +30,4 @@ api_router.include_router(ratings.router)
 api_router.include_router(messages.router)
 api_router.include_router(recommendations.router)
 api_router.include_router(mobile.router)
+api_router.include_router(local_search.router)

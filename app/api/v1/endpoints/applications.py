@@ -7,13 +7,7 @@ from app.models.application import Application
 from app.models.project import Project
 from app.models.university import University
 from app.models.user import BusinessProfile, StudentProfile, User
-from app.schemas.application import (
-    ApplicationCreate,
-    ApplicationOut,
-    ApplicationStatusUpdate,
-    ProjectApplicantEntry,
-    StudentShortlistEntry,
-)
+from app.schemas.application import ApplicationCreate, ApplicationOut, ApplicationStatusUpdate, StudentShortlistEntry
 from app.services import access_control, matching
 from app.services.notifications import notify_from_template
 
@@ -33,7 +27,7 @@ def apply_to_project(
     if not visible:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "This project is not available to your university/band")
 
-    match = matching.score_student_against_project(student, project)
+    match = matching.score_student_against_project(student, project, db=db)
 
     application = Application(
         project_id=project.id,
@@ -65,7 +59,7 @@ def get_shortlist(
     )
     visible_students = access_control.filter_students_visible_to_business(db, business, candidate_students)
 
-    ranked = matching.rank_students_for_project(project, visible_students)
+    ranked = matching.rank_students_for_project(project, visible_students, db=db)
 
     results = []
     for student, match in ranked:
@@ -80,37 +74,6 @@ def get_shortlist(
                 completed_projects_count=student.completed_projects_count,
                 match_score=match.score,
                 match_reasons=match.reasons,
-            )
-        )
-    return results
-
-
-@router.get("/projects/{project_id}/applications", response_model=list[ProjectApplicantEntry])
-def get_project_applications(
-    project_id: str, db: Session = Depends(get_db), business_user: User = Depends(require_business)
-):
-    """Who has actually applied to one of this business's projects — distinct
-    from /shortlist, which is a broader candidate search regardless of
-    whether they've applied."""
-    business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
-    project = db.query(Project).filter(Project.id == project_id, Project.business_id == business.id).first()
-    if project is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
-
-    applications = db.query(Application).filter(Application.project_id == project_id).all()
-    results = []
-    for application in applications:
-        student = db.query(StudentProfile).filter(StudentProfile.id == application.student_id).first()
-        results.append(
-            ProjectApplicantEntry(
-                application_id=application.id,
-                student_id=student.id,
-                full_name=student.user.full_name,
-                degree_title=student.degree_title,
-                cover_note=application.cover_note,
-                proposed_rate_gbp=application.proposed_rate_gbp,
-                status=application.status,
-                match_score_at_application=application.match_score_at_application,
             )
         )
     return results

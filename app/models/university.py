@@ -40,6 +40,13 @@ class University(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     primary_contact_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     primary_contact_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
+    # Campus location — powers the postcode-radius local business search.
+    # latitude/longitude are geocoded from postcode via app/services/geo.py
+    # and cached here so radius search doesn't re-geocode on every request.
+    postcode: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
     business_agreements: Mapped[List["UniversityBusinessAgreement"]] = relationship(
         back_populates="university", cascade="all, delete-orphan"
     )

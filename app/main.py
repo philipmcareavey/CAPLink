@@ -12,7 +12,6 @@ staging/production and manage schema changes with Alembic instead).
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 
 import app.models  # noqa: F401 — ensures all models register with Base.metadata
 from app.api.v1.api import api_router
@@ -56,8 +55,3 @@ def health_check():
 
 
 app.include_router(api_router, prefix="/api/v1")
-
-# Reference demo UI — a plain HTML/JS page (no build step) demonstrating what
-# a student/business/university-admin would actually see, calling this same
-# API same-origin. Not part of the product; see docs/04-using-the-api-docs-ui.md.
-app.mount("/demo", StaticFiles(directory="static/demo", html=True), name="demo")

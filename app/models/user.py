@@ -68,6 +68,13 @@ class BusinessProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     website: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     description: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
 
+    # Location — geocoded from postcode, powers "local businesses within
+    # X miles of campus" search. Optional: a fully-remote business can
+    # simply never set this and will never appear in radius results.
+    postcode: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
     # Global trust tier — separate from the PER-UNIVERSITY agreement status,
     # which governs whether this business can actually reach that university's students.
     global_trust_tier: Mapped[BusinessTrustTier] = mapped_column(default=BusinessTrustTier.UNVERIFIED)

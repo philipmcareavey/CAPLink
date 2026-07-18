@@ -37,17 +37,3 @@ class StudentShortlistEntry(BaseModel):
     completed_projects_count: int
     match_score: float
     match_reasons: list[str]
-
-
-class ProjectApplicantEntry(BaseModel):
-    """What a business sees when reviewing who has actually applied to one
-    of its projects — distinct from the shortlist, which is a candidate
-    search across everyone eligible whether or not they've applied."""
-    application_id: str
-    student_id: str
-    full_name: str
-    degree_title: str
-    cover_note: Optional[str]
-    proposed_rate_gbp: Optional[float]
-    status: ApplicationStatus
-    match_score_at_application: Optional[float]

@@ -1,0 +1,26 @@
+# Render.com Blueprint — one-click deploy of the CAPLink API.
+#
+# Usage: on render.com, "New +" -> "Blueprint" -> point at this repo.
+# Render reads this file automatically and provisions the service below.
+#
+# Note: the free tier's filesystem is ephemeral, so SQLite data won't
+# survive a redeploy/restart. Fine for a demo; for anything persistent,
+# add a managed Postgres instance on Render and point DATABASE_URL at it
+# instead (see .env.example in the repo root).
+
+services:
+  - type: web
+    name: caplink-api
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: "sqlite:///./caplink.db"
+      - key: ENVIRONMENT
+        value: "production"
+      - key: CORS_ORIGINS
+        value: "https://philipmcareavey.github.io"

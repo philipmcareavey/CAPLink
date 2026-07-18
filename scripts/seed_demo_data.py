@@ -39,6 +39,12 @@ def run():
         license_seats=5000,
         primary_contact_name="Careers & Employability Service",
         primary_contact_email="careers@manchester.ac.uk",
+        # Oxford Road campus — set directly here rather than via the live
+        # geocode_postcode() call so the seed script works fully offline.
+        # In normal use, PATCH /universities/{id}/location does this lookup for real.
+        postcode="M13 9PL",
+        latitude=53.4668,
+        longitude=-2.2339,
     )
     db.add(university)
     db.flush()
@@ -96,6 +102,11 @@ def run():
         industry="Data & Analytics Consultancy",
         global_trust_tier=BusinessTrustTier.UNIVERSITY_APPROVED,
         is_registration_verified=True,
+        # Manchester city centre — ~2 miles from campus, well within a
+        # default 10-mile radius search.
+        postcode="M1 1AE",
+        latitude=53.4794,
+        longitude=-2.2453,
     )
     db.add(business_profile)
     db.flush()
@@ -128,12 +139,12 @@ def run():
     db.add(project)
 
     db.commit()
+    db.close()
     print("Seed complete.")
     print(f"University slug: {university.slug}")
     print("Student login: aisha.rahman@manchester.ac.uk / ChangeMe123!")
     print("Business login: hello@datacraft-analytics.com / ChangeMe123!")
     print("University admin login: admin@manchester.ac.uk / ChangeMe123!")
-    db.close()
 
 
 if __name__ == "__main__":

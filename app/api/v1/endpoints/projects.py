@@ -7,7 +7,7 @@ from app.models.enums import ProjectStatus
 from app.models.project import Project
 from app.models.recommendation import RecommendationLog
 from app.models.user import BusinessProfile, StudentProfile, User
-from app.schemas.project import ProjectCreate, ProjectOut, ProjectWithMatch
+from app.schemas.project import MatchExplanationOut, MatchFactorOut, ProjectCreate, ProjectOut, ProjectWithMatch
 from app.services import access_control, matching
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -65,18 +65,6 @@ def create_project(
     return project
 
 
-@router.get("/mine", response_model=list[ProjectOut])
-def list_my_projects(db: Session = Depends(get_db), business_user: User = Depends(require_business)):
-    """A business's own posted projects, newest first."""
-    business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
-    return (
-        db.query(Project)
-        .filter(Project.business_id == business.id)
-        .order_by(Project.created_at.desc())
-        .all()
-    )
-
-
 @router.get("/feed", response_model=list[ProjectWithMatch])
 def get_suggested_projects(
     db: Session = Depends(get_db),
@@ -93,7 +81,7 @@ def get_suggested_projects(
     candidate_projects = db.query(Project).filter(Project.status == ProjectStatus.OPEN).all()
     visible_projects = access_control.filter_projects_visible_to_student(student, candidate_projects)
 
-    ranked = matching.rank_projects_for_student(student, visible_projects)
+    ranked = matching.rank_projects_for_student(student, visible_projects, db=db)
 
     page = ranked[pagination.offset : pagination.offset + pagination.page_size]
 
@@ -105,6 +93,7 @@ def get_suggested_projects(
             entity_id=project.id,
             score=match.score,
             reasons=match.reasons,
+            algorithm_version=match.algorithm_version,
         )
         db.add(log)
         results.append(
@@ -116,3 +105,40 @@ def get_suggested_projects(
         )
     db.commit()
     return results
+
+
+@router.get("/{project_id}/match-explanation", response_model=MatchExplanationOut)
+def get_match_explanation(
+    project_id: str,
+    db: Session = Depends(get_db),
+    student_user: User = Depends(require_student),
+):
+    """
+    Full factor-by-factor breakdown behind a single student<->project score:
+    raw sub-scores, the weight actually applied to each (post dynamic
+    renormalization), and each factor's contribution to the final number.
+    Powers a 'why this match?' detail view, and is the same data used to
+    sanity-check engine weight changes during development.
+    """
+    student = db.query(StudentProfile).filter(StudentProfile.user_id == student_user.id).first()
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if project is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+
+    visible = access_control.filter_projects_visible_to_student(student, [project])
+    if not visible:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "This project is not available to your university/band")
+
+    match = matching.score_student_against_project(student, project, db=db)
+    return MatchExplanationOut(
+        score=match.score,
+        algorithm_version=match.algorithm_version,
+        reasons=match.reasons,
+        breakdown=[
+            MatchFactorOut(
+                name=f.name, raw_score=f.raw_score, weight=f.weight,
+                contribution=f.contribution, detail=f.detail,
+            )
+            for f in match.breakdown
+        ],
+    )
