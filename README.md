@@ -63,6 +63,8 @@ is kept out of the default `requirements.txt` (see below).
 
 ## Quickstart
 
+**Requires Python 3.13** (not 3.14 — see note below).
+
 ### Option A — VS Code (recommended for the live demo)
 
 1. Clone the repo and open the folder in VS Code (works the same on macOS, Windows, or Linux).
@@ -102,6 +104,19 @@ default (SQLite, permissive CORS, etc). Copy `.env.example` to `.env` only if yo
 override something (e.g. point `DATABASE_URL` at Postgres — if so, also
 `pip install -r requirements-postgres.txt`; it's not needed for the default SQLite setup,
 see `requirements-postgres.txt` for why it's kept separate).
+
+### Why Python 3.13, not 3.14
+
+Python 3.14 reimplemented `typing.Union` in C, which breaks SQLAlchemy's declarative
+model scanning (`app/models/*.py`) with `TypeError: descriptor '__getitem__' requires a
+'typing.Union' object but received a 'tuple'` on startup — a
+[known CPython 3.14 regression](https://github.com/python/cpython/issues/140348), not
+something fixable from this repo's side. SQLAlchemy 2.0.51 added partial 3.14 support but
+doesn't cover this case as of writing. If you already installed 3.14 (easy to do by
+accident — python.org's homepage pushes the newest release by default), uninstall it and
+install 3.13.x instead from https://www.python.org/downloads/ (look for a "3.13.x"
+heading rather than the big top button — same on Windows and macOS). A `.python-version`
+file in the repo root records this for any tooling that reads it (e.g. `pyenv`).
 
 ## Project layout
 

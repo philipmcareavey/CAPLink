@@ -25,8 +25,20 @@ your phone — you download them, click through the installer, and you're done.
    leaving everything on its default setting.
 
 2. **Python** — the programming language this project is written in.
-   Download it here: https://www.python.org/downloads/
-   Open the installer.
+   **Important: get version 3.13, not the newest one.** The python.org
+   homepage always pushes you toward the very latest version (3.14 at the
+   time of writing), but that one has a bug that stops this project from
+   running — see [Troubleshooting](#the-scrolling-text-stops-with-redpink-writing)
+   if you've already hit this.
+   - **Windows:** go to https://www.python.org/downloads/windows/ and look
+     down the page for a heading that says **"Python 3.13.x"** (any number
+     after the second dot is fine) — click that heading, then click
+     **"Windows installer (64-bit)"** underneath it. Don't use the big
+     "Download Python 3.14" button at the very top of that page.
+   - **Mac:** go to https://www.python.org/downloads/macos/ and do the same
+     thing — find a **"Python 3.13.x"** heading and use its installer link,
+     not the big button at the top.
+   Open the installer once downloaded.
    **Important (Windows only):** on the very first screen of the installer,
    there's a checkbox near the bottom that says **"Add python.exe to PATH"**
    — tick that box before clicking Install. (Mac doesn't need this step.)
@@ -219,6 +231,14 @@ But if it stops completely and the browser never opens:
   mentions "No module named" — if so, follow the ["No module named
   uvicorn"](#no-module-named-uvicorn) fix above (same cause, whatever the
   module's name).
+- If it instead mentions `typing.Union`, `sqlalchemy`, or `declarative_scan`
+  somewhere in all that red text — **this means Python 3.14 got installed
+  instead of 3.13.** Python 3.14 is too new and has a bug that breaks this
+  project. Fix: uninstall Python from your computer's normal
+  uninstall/"Add or remove programs" screen, then reinstall it following
+  "Before you start" above *very carefully* — the trick is to not use the
+  big "Download Python 3.14" button and instead find the **3.13.x** heading
+  further down the page. Then restart your computer and try Step 3 again.
 - Otherwise, click the red square (⏹) to stop it, then try Step 3 again —
   one retry fixes it more often than you'd think.
 - Still red? Take a screenshot of the red text and send it over.
