@@ -1,114 +1,119 @@
-# Getting Started
+# Getting Started (Mac)
 
-This walks through getting the demo running from a completely clean Mac. If
-something below doesn't match what you see, check
-[06-troubleshooting.md](06-troubleshooting.md) — it documents every real error hit
-while writing this guide, not hypothetical ones.
+This walks through getting the demo running from a clean Mac. If something
+below doesn't match what you see, check
+[06-troubleshooting.md](06-troubleshooting.md) — it documents every real
+error hit while writing this guide, not hypothetical ones.
 
-## 1. Check you have a working Python 3
+There are two ways to run this: **VS Code** (fewest manual steps, recommended)
+or the **plain terminal**. Both end up in the same place.
+
+## 0. Get the code
+
+```bash
+git clone git@github.com:philipmcareavey/CAPLink.git
+cd CAPLink/caplink
+```
+
+(If you don't have SSH keys set up for GitHub, use the HTTPS clone URL from
+the repo's green "Code" button instead.)
+
+## 1. Check you have Python 3.13
+
+This project **requires Python 3.13** — not 3.14. Python 3.14 reimplemented
+`typing.Union` in C, which breaks SQLAlchemy's model scanning on startup with
+`TypeError: descriptor '__getitem__' requires a 'typing.Union' object but
+received a 'tuple'`. It's a known CPython 3.14 regression, not a bug in this
+project, and not fixable from this repo's side. A `.python-version` file in
+the repo root records the required version for any tooling that reads it
+(e.g. `pyenv`).
 
 ```bash
 python3 --version
 ```
 
-If this prints a version (3.10+), skip to step 2.
+- **If this prints `3.13.x`**, skip to step 2.
+- **If it prints `3.14.x` or something older than 3.13**, or errors out
+  mentioning **Xcode** / **command line developer tools** (macOS's built-in
+  `python3` is a stub that refuses to run until Apple's Command Line Tools
+  are installed), install 3.13 specifically from python.org:
 
-If instead you get an error mentioning **Xcode** or **command line developer
-tools**, macOS's built-in `python3` is a stub that refuses to run until Apple's
-Command Line Tools are installed. Normally:
+  1. Go to https://www.python.org/downloads/macos/.
+  2. **Don't click the big "Download Python 3.x" button at the top** — it's
+     always the newest release. Scroll down for a heading that says
+     **"Python 3.13.x"** specifically and use its "macOS 64-bit universal2
+     installer" `.pkg` link.
+  3. Double-click it and click through the installer (needs your admin
+     password).
+  4. Confirm it worked:
+     ```bash
+     /usr/local/bin/python3.13 --version
+     ```
 
-```bash
-xcode-select --install
-```
+  The rest of this guide calls it `python3` — if you installed via
+  python.org, substitute `/usr/local/bin/python3.13` (or whichever path the
+  installer printed) wherever `python3` appears below.
 
-...pops up a small installer — click through it and wait a few minutes, then
-re-run `python3 --version`.
+## Option A — VS Code (recommended)
 
-**If that installer fails with "not currently available"** (this can happen on a
-very new macOS version before Apple's catalog has caught up), skip Xcode entirely
-and install Python directly from python.org instead — it's self-contained and
-doesn't need Xcode:
+1. Open the `caplink/` folder in VS Code.
+2. VS Code will offer to install the Python extension, then to create a
+   virtual environment and install `requirements.txt` — accept both prompts.
+   (No prompt? Run **Python: Create Environment** from the Command Palette —
+   ⇧⌘P — and pick `requirements.txt`.)
+3. Open **Run and Debug** (⇧⌘D) and run **"CAPLink: Run demo (backend +
+   browser)"**. This starts the API on `localhost:8000` and automatically
+   opens `http://localhost:8000/demo/app.html` in your default browser.
 
-1. Go to https://www.python.org/downloads/macos/ and download the latest
-   "macOS 64-bit universal2 installer" `.pkg`.
-2. Double-click it and click through the installer (needs your admin password).
-3. Confirm it worked:
-   ```bash
-   /usr/local/bin/python3 --version
-   ```
+No `.env` file or manual seeding needed — every setting has a working local
+default, and the server seeds a demo university/student/business/project on
+first run automatically. Log in as the student with
+`aisha.rahman@manchester.ac.uk` / `ChangeMe123!` (see
+[03-user-guide-demo-walkthrough.md](03-user-guide-demo-walkthrough.md) for
+the business/admin logins too). You're done — skip to
+[Confirm it's running](#confirm-its-running) below.
 
-Either way, you now have a working `python3`. The rest of this guide calls it
-`python3` — if you used the python.org installer, that's `/usr/local/bin/python3`.
-
-## 2. Create a virtual environment and install dependencies
+## Option B — terminal
 
 From inside the `caplink/` folder:
 
 ```bash
-cd caplink
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-**Two packages in `requirements.txt` are likely to need a small override on a
-new Python version, because their pinned versions predate that Python release
-getting pre-built binary wheels:**
-
-- **`psycopg2-binary==2.9.9`** — if `pip install` fails trying to *compile* it
-  (an error mentioning `pg_config` / "Getting requirements to build wheel...
-  error"), install a newer patch version instead — it's the same package, just
-  built for your Python version:
-  ```bash
-  pip install "psycopg2-binary==2.9.12"
-  ```
-  (This is only used for a *production* Postgres database — local dev uses
-  SQLite and never touches this package.)
-
-- **`passlib[bcrypt]==1.7.4`** pulls in whatever the latest `bcrypt` is, but
-  `passlib` 1.7.4 (unmaintained since 2020) reads an internal `bcrypt.__about__`
-  attribute that was removed in `bcrypt>=4.1`. If you see
-  `AttributeError: module 'bcrypt' has no attribute '__about__'`, pin an older
-  bcrypt:
-  ```bash
-  pip install "bcrypt==4.0.1"
-  ```
-
-- **`email-validator`** isn't in `requirements.txt` at all, but Pydantic's
-  `EmailStr` type (used for every email field) needs it at import time. If the
-  server fails to start with `email-validator is not installed`, add it:
-  ```bash
-  pip install "pydantic[email]==2.9.2"
-  ```
-
-Once installed, sanity-check everything imports:
+Once installed, sanity-check the core imports:
 
 ```bash
-python -c "import fastapi, sqlalchemy, pydantic, jose, passlib, psycopg2, stripe, firebase_admin, email_validator; print('OK')"
+python -c "import fastapi, sqlalchemy, pydantic, jose, passlib, email_validator; print('OK')"
 ```
 
-## 3. Configure environment variables
+`.env` is **optional** — every setting in `app/core/config.py` has a sensible
+local default (SQLite, permissive CORS, etc). Only copy it if you want to
+override something:
 
 ```bash
 cp .env.example .env
 ```
 
-SQLite works out of the box — you don't need to edit anything to run the demo
-locally. (`.env` points `DATABASE_URL` at a local `caplink.db` file. Swap it for
-a `postgresql://...` URL only when you actually have a Postgres server running.)
+Then run the server:
 
-## 4. Seed demo data
+```bash
+uvicorn app.main:app --reload
+```
 
-This creates one working "tenant" end-to-end: a licensed university, an approved
-business, a student, and an open project, so you have something to look at
-immediately instead of an empty database.
+The server auto-seeds a demo university/student/business/project on first
+run (same as VS Code — this happens automatically whenever `ENVIRONMENT`
+is `development`, which is the default). If you'd rather seed manually or
+re-seed after wiping the database, that's still available:
 
 ```bash
 python -m scripts.seed_demo_data
 ```
 
-Expected output:
+Expected seed output:
 
 ```
 Seed complete.
@@ -118,19 +123,16 @@ Business login: hello@datacraft-analytics.com / ChangeMe123!
 University admin login: admin@manchester.ac.uk / ChangeMe123!
 ```
 
-Re-running this script twice without deleting the database first will fail with
-duplicate-key errors (the demo emails/slug already exist). To start over:
+Re-running the seed script twice without deleting the database first fails
+with duplicate-key errors (the demo emails/slug already exist). To start
+over:
 
 ```bash
 rm caplink.db
 python -m scripts.seed_demo_data
 ```
 
-## 5. Run the server
-
-```bash
-uvicorn app.main:app --reload
-```
+## Confirm it's running
 
 You should see something like:
 
@@ -146,22 +148,24 @@ curl http://localhost:8000/health
 # {"status":"ok","app":"CAPLink","environment":"development"}
 ```
 
-Then open **http://localhost:8000/docs** in a browser — this is the interactive
-API explorer. See [04-using-the-api-docs-ui.md](04-using-the-api-docs-ui.md) for
-how to actually use it (there's a login quirk worth knowing about first), and
-[03-user-guide-demo-walkthrough.md](03-user-guide-demo-walkthrough.md) for a full
-worked demo.
+Then open one of:
+
+- **http://localhost:8000/demo/app.html** — the live demo app (login, feed,
+  applications; see [03-user-guide-demo-walkthrough.md](03-user-guide-demo-walkthrough.md))
+- **http://localhost:8000/app** — the fuller build covering nearly the whole
+  API for all three roles; see [deploy-locally.md](deploy-locally.md)
+- **http://localhost:8000/docs** — the interactive Swagger API explorer; see
+  [04-using-the-api-docs-ui.md](04-using-the-api-docs-ui.md) for a login
+  quirk worth knowing about first
 
 ## Quick reference: full setup, start to finish
 
 ```bash
-cd caplink
+git clone git@github.com:philipmcareavey/CAPLink.git
+cd CAPLink/caplink
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
-# if needed: pip install "psycopg2-binary==2.9.12" "bcrypt==4.0.1" "pydantic[email]==2.9.2"
-cp .env.example .env
-python -m scripts.seed_demo_data
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload   # auto-seeds demo data on first run
 ```

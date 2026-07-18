@@ -30,7 +30,28 @@ currently available"** (seen on very new macOS versions before Apple's
 software catalog has caught up), don't fight it — install Python directly from
 [python.org](https://www.python.org/downloads/macos/) instead. It's fully
 self-contained and doesn't need Xcode at all. Full steps in
-[02-getting-started.md](02-getting-started.md#1-check-you-have-a-working-python-3).
+[02-getting-started.md](02-getting-started.md#1-check-you-have-python-313).
+
+---
+
+### `TypeError: descriptor '__getitem__' requires a 'typing.Union' object but received a 'tuple'` on startup
+
+You have **Python 3.14** installed instead of the required **3.13**. Python
+3.14 reimplemented `typing.Union` in C ([cpython#140348](https://github.com/python/cpython/issues/140348)),
+which breaks SQLAlchemy's declarative model scanning (`app/models/*.py`).
+SQLAlchemy 2.0.51 has partial 3.14 support but not for this case, as of
+mid-2026. Not fixable from this repo's side — install 3.13 specifically:
+
+```bash
+python3 --version   # confirm it's actually 3.14.x
+```
+
+Go to https://www.python.org/downloads/macos/, but **don't use the big
+top button** (always the newest release) — scroll to a **"Python 3.13.x"**
+heading instead and use its installer. Full steps in
+[02-getting-started.md](02-getting-started.md#1-check-you-have-python-313).
+Recreate your venv afterwards with the 3.13 binary (an existing `venv/`
+folder stays pinned to whatever Python created it).
 
 ---
 
@@ -41,13 +62,13 @@ Error: pg_config executable not found.
 pg_config is required to build psycopg2 from source.
 ```
 
-This means pip couldn't find a pre-built wheel for `psycopg2-binary==2.9.9`
-for your Python version (this happens on very new Python releases — the
-wheel-building catches up over time) and fell back to compiling from source,
-which needs a local Postgres installation. You almost certainly don't have —
-or want — a local Postgres for this demo (SQLite is what local dev actually
-uses). Fix: install a newer patch version of the same package instead, which
-does have a pre-built wheel:
+This only happens if you're installing `requirements-postgres.txt` (Postgres
+is opt-in, for production — local dev uses SQLite and never touches this
+package). It means pip couldn't find a pre-built wheel for your Python
+version and fell back to compiling from source, which needs a local Postgres
+installation you almost certainly don't have or want for local dev. Fix:
+install a newer patch version of the same package, which does have a
+pre-built wheel:
 
 ```bash
 pip install "psycopg2-binary==2.9.12"
@@ -58,27 +79,17 @@ pip install "psycopg2-binary==2.9.12"
 ### `AttributeError: module 'bcrypt' has no attribute '__about__'`
 
 Full traceback ends in `passlib/handlers/bcrypt.py`, triggered by
-`hash_password(...)`. `requirements.txt` pins `passlib[bcrypt]==1.7.4`, but
-doesn't pin `bcrypt` itself, so pip installs whatever the latest `bcrypt` is.
-`passlib` 1.7.4 (last updated in 2020, unmaintained) reads an internal
-`bcrypt.__about__.__version__` attribute to detect the installed version —
-that attribute was removed in `bcrypt>=4.1`. Fix: pin an older, compatible
-`bcrypt`:
+`hash_password(...)`. `passlib` (last updated in 2020, unmaintained) reads an
+internal `bcrypt.__about__.__version__` attribute to detect the installed
+version — removed in `bcrypt>=4.1`. `requirements.txt` already pins
+`bcrypt<4.1` to prevent this, so seeing this error means something in your
+environment installed a newer `bcrypt` anyway (e.g. a stale venv from before
+that pin was added, or a manual `pip install --upgrade bcrypt`). Fix: rebuild
+your venv from a clean `pip install -r requirements.txt`, or downgrade
+directly:
 
 ```bash
 pip install "bcrypt==4.0.1"
-```
-
----
-
-### `ImportError: email-validator is not installed, run 'pip install pydantic[email]'`
-
-Every schema using `EmailStr` (in `app/schemas/user.py`, `university.py`)
-needs this at import time — it's an optional Pydantic extra, and
-`requirements.txt` doesn't include it. Fix:
-
-```bash
-pip install "pydantic[email]==2.9.2"
 ```
 
 ---
