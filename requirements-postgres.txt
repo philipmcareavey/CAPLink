@@ -1,0 +1,9 @@
+# Only needed if you point DATABASE_URL at a real Postgres database instead
+# of the default local SQLite file (see .env.example). Not required for the
+# demo, and deliberately kept out of requirements.txt: it's a compiled
+# package that occasionally fails to install on machines without a matching
+# prebuilt wheel (needs pg_config / Postgres dev headers to build from
+# source otherwise).
+#
+# Install with: pip install -r requirements.txt -r requirements-postgres.txt
+psycopg2-binary==2.9.10

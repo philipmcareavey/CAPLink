@@ -13,8 +13,10 @@ exactly which businesses can reach which student year-groups.
 - **SQLAlchemy 2.0** — ORM (SQLite for local dev, Postgres for production)
 - **JWT** (python-jose) — access + refresh tokens, mobile-friendly
 - **Passlib/bcrypt** — password hashing
-- **Stripe Connect** (integration point) — escrow milestone payments
-- **Firebase Cloud Messaging** (integration point) — mobile push notifications
+- **Stripe Connect** (integration point, not yet wired up — see
+  `requirements-integrations.txt`) — escrow milestone payments
+- **Firebase Cloud Messaging** (integration point, not yet wired up — see
+  `requirements-integrations.txt`) — mobile push notifications
 
 ## Docs & demo
 
@@ -55,7 +57,9 @@ quickest free option is **Render**:
 
 Note: Render's free tier has an ephemeral filesystem, so SQLite data resets on every
 redeploy — fine for demoing, not for anything persistent. For that, add a Render Postgres
-instance and point `DATABASE_URL` at it (see `.env.example`).
+instance and point `DATABASE_URL` at it (see `.env.example`) — and add
+`pip install -r requirements-postgres.txt` to the build command, since the Postgres driver
+is kept out of the default `requirements.txt` (see below).
 
 ## Quickstart
 
@@ -95,7 +99,9 @@ Visit `http://localhost:8000/demo/app.html` for the live demo app, or
 
 An `.env` file is optional — every setting in `app/core/config.py` has a sensible local
 default (SQLite, permissive CORS, etc). Copy `.env.example` to `.env` only if you want to
-override something (e.g. point `DATABASE_URL` at Postgres).
+override something (e.g. point `DATABASE_URL` at Postgres — if so, also
+`pip install -r requirements-postgres.txt`; it's not needed for the default SQLite setup,
+see `requirements-postgres.txt` for why it's kept separate).
 
 ## Project layout
 

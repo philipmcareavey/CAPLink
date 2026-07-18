@@ -1,0 +1,12 @@
+# Real third-party integrations for the two features currently left as
+# placeholders in the code (see README > "What's stubbed vs. production-ready"):
+# Stripe Connect (payments) and Firebase Cloud Messaging (mobile push).
+# Neither package is actually imported anywhere in app/ yet, so they're kept
+# out of requirements.txt — firebase-admin in particular pulls in a large,
+# compiled dependency tree (grpcio, etc.) that's a common source of
+# wheel-build failures on newer/less common Python setups, for no benefit
+# to the demo.
+#
+# Install with: pip install -r requirements.txt -r requirements-integrations.txt
+stripe>=10.12.0
+firebase-admin>=6.5.0

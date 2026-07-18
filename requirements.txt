@@ -1,15 +1,17 @@
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-SQLAlchemy==2.0.35
-pydantic==2.9.2
-pydantic-settings==2.5.2
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-python-multipart==0.0.9
-alembic==1.13.2
-psycopg2-binary==2.9.10
-stripe==10.12.0
-firebase-admin==6.5.0
-slowapi==0.1.9
-httpx==0.27.2
-python-dotenv==1.0.1
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.6
+SQLAlchemy>=2.0.35
+pydantic[email]>=2.9.2
+pydantic-settings>=2.5.2
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+# passlib 1.7.4 (unmaintained since ~2020) can't detect bcrypt>=4.1's version
+# info and crashes at startup; bcrypt<4.1 is unaffected and its wheel covers
+# every Python 3.6+ release (it's built for the stable "abi3" ABI), so this
+# doesn't reintroduce the wheel-availability problem this file exists to avoid.
+bcrypt<4.1
+python-multipart>=0.0.9
+alembic>=1.13.2
+slowapi>=0.1.9
+httpx>=0.27.2
+python-dotenv>=1.0.1
