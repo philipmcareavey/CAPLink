@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "CAPLink: Run demo (backend + browser)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["app.main:app", "--reload", "--port", "8000"],
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true,
+      "serverReadyAction": {
+        "pattern": "Uvicorn running on http://[^:]+:([0-9]+)",
+        "uriFormat": "http://localhost:%s/demo/app.html",
+        "action": "openExternally"
+      }
+    }
+  ]
+}

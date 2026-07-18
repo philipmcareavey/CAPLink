@@ -22,8 +22,13 @@ Everything from the planning/prototyping phase now lives in this repo under `doc
 not as separate downloads:
 
 - `docs/index.html` — the university-facing licensing/sales page
-- `docs/prototype.html` — the interactive click-through UI prototype (student + business views)
+- `docs/prototype.html` — the interactive click-through UI prototype (student + business views),
+  with hardcoded fake data — no backend needed, just open it in a browser
 - `docs/implementation-plan.md` — the original business/technical implementation plan
+
+There's also a **live demo app** at `static/demo/app.html` — unlike the prototype above,
+it's wired up to the real backend (login, matching feed, applications) and is mounted by
+`app.main` at `/demo/app.html` whenever the server is running. See "Quickstart" below.
 
 ### Hosting the static pages on GitHub Pages (github.io)
 
@@ -54,22 +59,43 @@ instance and point `DATABASE_URL` at it (see `.env.example`).
 
 ## Quickstart
 
+### Option A — VS Code (recommended for the live demo)
+
+1. Clone the repo and open the folder in VS Code (works the same on macOS, Windows, or Linux).
+2. VS Code will offer to install the Python extension and then to create an environment /
+   install `requirements.txt` — accept both prompts. (No prompt? Run **Python: Create
+   Environment** from the Command Palette and pick `requirements.txt`.)
+3. Open **Run and Debug** (⇧⌘D / Ctrl+Shift+D) and run **"CAPLink: Run demo (backend +
+   browser)"** — this starts the API on `localhost:8000` and automatically opens
+   `http://localhost:8000/demo/app.html` in your default browser.
+
+No `.env` file or manual seeding needed — every setting has a working local default, and
+the server seeds a demo university/student/business/project on first run automatically.
+Log in as the student with `aisha.rahman@manchester.ac.uk` / `ChangeMe123!` (see
+[docs/03-user-guide-demo-walkthrough.md](docs/03-user-guide-demo-walkthrough.md) for the
+business/admin logins too).
+
+### Option B — terminal
+
 ```bash
 python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt --break-system-packages   # omit the flag in a normal venv
-
-cp .env.example .env
-# edit .env — SQLite works out of the box for local dev, no changes needed
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 
 # create demo data: a licensed university, an approved business agreement,
-# a student, a business, and an open project
+# a student, a business, and an open project (the VS Code option does this
+# automatically on first run instead)
 python -m scripts.seed_demo_data
 
 uvicorn app.main:app --reload
 ```
 
-Visit `http://localhost:8000/docs` for interactive Swagger docs.
+Visit `http://localhost:8000/demo/app.html` for the live demo app, or
+`http://localhost:8000/docs` for interactive Swagger docs.
+
+An `.env` file is optional — every setting in `app/core/config.py` has a sensible local
+default (SQLite, permissive CORS, etc). Copy `.env.example` to `.env` only if you want to
+override something (e.g. point `DATABASE_URL` at Postgres).
 
 ## Project layout
 

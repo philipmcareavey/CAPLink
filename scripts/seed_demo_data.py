@@ -139,9 +139,10 @@ def run():
     db.add(project)
 
     db.commit()
+    university_slug = university.slug
     db.close()
     print("Seed complete.")
-    print(f"University slug: {university.slug}")
+    print(f"University slug: {university_slug}")
     print("Student login: aisha.rahman@manchester.ac.uk / ChangeMe123!")
     print("Business login: hello@datacraft-analytics.com / ChangeMe123!")
     print("University admin login: admin@manchester.ac.uk / ChangeMe123!")
