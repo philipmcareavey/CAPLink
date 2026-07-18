@@ -5,8 +5,12 @@ own computer, written for someone who has never touched a programming tool
 before. Just follow the steps in order — you don't need to understand what
 anything means, just do what each step says.
 
-At the very bottom there's a small "what do these words mean" glossary, in
-case you get curious.
+If something doesn't work partway through, don't panic — every step below
+tells you exactly which bit of the **Troubleshooting** section (near the
+bottom) to jump to for that exact problem.
+
+At the very bottom there's also a small "what do these words mean" glossary,
+in case you get curious.
 
 ---
 
@@ -35,6 +39,9 @@ your phone — you download them, click through the installer, and you're done.
 Once those three are installed, restart your computer once (just to be safe),
 and you're ready for the next part.
 
+> **Trouble here?** See Troubleshooting: ["git" or "python" isn't
+> recognized](#git-or-python-isnt-recognized).
+
 ---
 
 ## Step 1 — Download the project
@@ -56,6 +63,9 @@ and you're ready for the next part.
 
 VS Code will now reopen showing all the project's files on the left-hand
 side. That means it worked.
+
+> **Trouble here?** See Troubleshooting: [The download/clone
+> fails](#the-downloadclone-fails).
 
 ---
 
@@ -80,6 +90,9 @@ small notification boxes pop up in the bottom-right corner of the window.
 3. Find the one simply called **Python**, published by Microsoft, and click
    the blue **Install** button.
 
+> **Trouble here?** See Troubleshooting: [The Python extension won't
+> install](#the-python-extension-wont-install).
+
 ---
 
 ## Step 3 — Run the demo
@@ -102,6 +115,17 @@ small notification boxes pop up in the bottom-right corner of the window.
 http://localhost:8000/demo/app.html
 ```
 
+> **Trouble here?** This step has the most ways to go wrong, so check
+> Troubleshooting for the one that matches what you're seeing:
+> - [Nothing happens when I click the play
+>   button](#nothing-happens-when-i-click-the-play-button)
+> - ["No Python interpreter selected"](#no-python-interpreter-selected)
+> - ["No module named uvicorn"](#no-module-named-uvicorn)
+> - [The scrolling text stops with red/pink writing
+>   (an error)](#the-scrolling-text-stops-with-redpink-writing)
+> - [The browser never opens by
+>   itself](#the-browser-never-opens-by-itself)
+
 ---
 
 ## Step 4 — Log in and have a look around
@@ -118,6 +142,9 @@ around. Use these on the demo's login screen:
 Try logging in as the student first and have a look at the projects it
 suggests for her.
 
+> **Trouble here?** See Troubleshooting: [I can't log
+> in](#i-cant-log-in).
+
 ---
 
 ## Step 5 — How to stop it when you're done
@@ -128,17 +155,96 @@ That switches the demo off. To start it again later, just repeat Step 3.
 
 ---
 
-## If something goes wrong
+## Troubleshooting
 
-- **Nothing happens when I click the play button** — click the dropdown
-  next to the play button and make sure **"CAPLink: Run demo (backend +
-  browser)"** is selected, not something else.
-- **It mentions "no Python interpreter selected"** — press `Ctrl+Shift+P`
-  (or `Cmd+Shift+P`), type `Python: Select Interpreter`, press Enter, and
-  pick the one that mentions `venv`.
-- **Still stuck** — close VS Code completely, open it again, and try Step 3
-  again. If that doesn't help, take a screenshot of whatever red/error text
-  you see and send it over.
+This section is organised by problem, not by step — find the sentence
+below that best matches what you're seeing. Each step above already tells
+you which of these to check, so you shouldn't need to hunt around.
+
+### "git" or "python" isn't recognized
+
+This shows up as a red error message containing words like `'git' is not
+recognized` or `'python' is not recognized`, usually right after trying
+Step 1. It means one of the "Before you start" installs didn't finish
+properly, or your computer hasn't noticed it yet.
+- Restart your computer (this alone fixes it most of the time).
+- If it still happens, reinstall the one it's complaining about (Git or
+  Python) from the links in "Before you start". For Python on Windows,
+  double-check you ticked **"Add python.exe to PATH"** during the install.
+
+### The download/clone fails
+
+If Step 1 shows an error instead of asking to open the repository:
+- Make sure you're connected to the internet.
+- Double-check you pasted the address exactly:
+  `https://github.com/philipmcareavey/CAPLink.git`
+- Try the whole of Step 1 again — a flaky internet connection is the most
+  common cause.
+
+### The Python extension won't install
+
+- Make sure you're connected to the internet (extensions download from the
+  internet, just like the initial project).
+- Close VS Code fully and reopen it, then try Step 2 again.
+
+### Nothing happens when I click the play button
+
+Click the dropdown next to the play button (top of the "Run and Debug"
+panel) and make sure **"CAPLink: Run demo (backend + browser)"** is the one
+selected, not something else or nothing at all.
+
+### "No Python interpreter selected"
+
+Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on a Mac), type `Python: Select
+Interpreter`, press Enter, and pick the option that has the word `venv`
+somewhere in it. Then try Step 3 again.
+
+### "No module named uvicorn"
+
+This means VS Code tried to run the project using the wrong copy of
+Python — one that doesn't have this project's pieces installed on it —
+instead of the one Step 2 set up specifically for this project (the one
+with `venv` in its name).
+- Press `Ctrl+Shift+P` (or `Cmd+Shift+P`), type `Python: Select
+  Interpreter`, press Enter, and choose the one that mentions `venv`.
+- Then press `Ctrl+Shift+P` again, type `Developer: Reload Window`, press
+  Enter (this just refreshes VS Code without closing it).
+- Try Step 3 again.
+
+### The scrolling text stops with red/pink writing
+
+A little bit of red/pink writing appearing briefly is sometimes normal.
+But if it stops completely and the browser never opens:
+- Scroll up in that bottom panel and see if the very first red line
+  mentions "No module named" — if so, follow the ["No module named
+  uvicorn"](#no-module-named-uvicorn) fix above (same cause, whatever the
+  module's name).
+- Otherwise, click the red square (⏹) to stop it, then try Step 3 again —
+  one retry fixes it more often than you'd think.
+- Still red? Take a screenshot of the red text and send it over.
+
+### The browser never opens by itself
+
+Open any browser yourself and type this into the address bar (not a search
+engine — the actual address bar at the very top):
+```
+http://localhost:8000/demo/app.html
+```
+
+### I can't log in
+
+- Double-check you copied the email and password from the table in Step 4
+  exactly, including the capital letters and the `!` at the end of the
+  password.
+- Make sure the bottom panel in VS Code still shows the program running
+  (no red square, scrolling stopped) — if it's stopped, redo Step 3 first.
+
+### Still stuck after all that
+
+Close VS Code completely, open it again, and try Step 3 again. If that
+still doesn't help, take a screenshot of whatever red/error text you see
+(scroll up in the bottom panel if needed to catch the very first error
+line) and send it over.
 
 ---
 
