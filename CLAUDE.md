@@ -57,6 +57,30 @@ This repo's history is short and doesn't tell the whole story:
   troubleshooting entry there, matching the existing pattern — that's an
   explicit standing preference from the user, not a one-off.
 
+## The full app (`/app`), alongside the lightweight demo (`/demo`)
+
+`static/demo/` (mounted at `/demo`) only ever covered a slice of the API, and
+two of its business-side calls (`GET /projects/mine`, `GET
+/projects/{id}/applications`) referenced endpoints that didn't exist post-merge
+— that part of the demo was silently broken. `static/app/` (mounted at `/app`,
+same same-origin trick as `/demo`) is the fuller build: nearly the entire API,
+all three roles, native ES modules per concern (`js/api.js`, `js/dom.js`,
+`js/constants.js`, `js/main.js`, `js/student.js`, `js/business.js`,
+`js/university-admin.js`, `js/shared/contracts.js`, `js/shared/messaging.js`)
+rather than one growing HTML file — no bundler, since same-origin `<script
+type="module">` just works when served by `StaticFiles`. Walkthrough:
+[docs/deploy-locally.md](docs/deploy-locally.md).
+
+Building it required 5 new backend GET endpoints that plain didn't exist
+before (own projects, real applicants vs. ranked candidates, own contracts
+role-aware, own message threads, own rating history both directions) — see
+each endpoint's docstring for the exact shape, or `docs/deploy-locally.md`'s
+closing section for the short version. All were verified both via curl
+against the seeded accounts and by actually clicking through every tab of
+`/app` in a real browser (Chrome via the claude-in-chrome extension) for all
+three roles, including a full contract → milestone → rating lifecycle and a
+flagged-message exchange — not just an import/syntax check.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The

@@ -24,3 +24,18 @@ class RatingOut(BaseModel):
     sub_scores: dict
     visibility: RatingVisibility
     is_released: bool
+
+
+class RatingHistoryEntry(BaseModel):
+    """Full rating history, both directions — unlike /pending (given-only,
+    unreleased-only). A rating I received stays hidden (score/sub_scores
+    null) until is_released, mirroring submit_rating's blind-until-both-
+    submit release logic; a rating I gave is always visible to me."""
+    id: str
+    contract_id: str
+    counterpart_user_id: str
+    direction: str  # "given" | "received"
+    is_released: bool
+    overall_score: Optional[float]
+    sub_scores: Optional[dict]
+    visibility: RatingVisibility

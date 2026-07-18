@@ -7,7 +7,13 @@ from app.models.application import Application
 from app.models.project import Project
 from app.models.university import University
 from app.models.user import BusinessProfile, StudentProfile, User
-from app.schemas.application import ApplicationCreate, ApplicationOut, ApplicationStatusUpdate, StudentShortlistEntry
+from app.schemas.application import (
+    ApplicantOut,
+    ApplicationCreate,
+    ApplicationOut,
+    ApplicationStatusUpdate,
+    StudentShortlistEntry,
+)
 from app.services import access_control, matching
 from app.services.notifications import notify_from_template
 
@@ -74,6 +80,45 @@ def get_shortlist(
                 completed_projects_count=student.completed_projects_count,
                 match_score=match.score,
                 match_reasons=match.reasons,
+            )
+        )
+    return results
+
+
+@router.get("/projects/{project_id}/applications", response_model=list[ApplicantOut])
+def get_project_applications(
+    project_id: str, db: Session = Depends(get_db), business_user: User = Depends(require_business)
+):
+    """Real applicants to this project — not candidates (see get_shortlist
+    above), actual Application rows, for a business to review and act on."""
+    business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if project is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+    if project.business_id != business.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your project")
+
+    applications = (
+        db.query(Application)
+        .filter(Application.project_id == project_id)
+        .order_by(Application.created_at.desc())
+        .all()
+    )
+
+    results = []
+    for application in applications:
+        student = db.query(StudentProfile).filter(StudentProfile.id == application.student_id).first()
+        results.append(
+            ApplicantOut(
+                application_id=application.id,
+                student_id=student.id,
+                student_user_id=student.user_id,
+                full_name=student.user.full_name,
+                degree_title=student.degree_title,
+                status=application.status,
+                cover_note=application.cover_note,
+                proposed_rate_gbp=application.proposed_rate_gbp,
+                match_score_at_application=application.match_score_at_application,
             )
         )
     return results

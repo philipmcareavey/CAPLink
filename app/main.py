@@ -80,3 +80,9 @@ app.include_router(api_router, prefix="/api/v1")
 # origin as the API so its relative fetch("/api/v1/...") calls just work,
 # no CORS setup needed. Visit /demo/app.html once the server is running.
 app.mount("/demo", StaticFiles(directory=REPO_ROOT / "static" / "demo", html=True), name="demo")
+
+# The fuller reference app (static/app/) — exercises nearly the whole API
+# across all three roles (student/business/university admin), same
+# same-origin trick as /demo. /demo stays as the lightweight teaser; this is
+# the one to actually explore the platform with. See docs/deploy-locally.md.
+app.mount("/app", StaticFiles(directory=REPO_ROOT / "static" / "app", html=True), name="app")

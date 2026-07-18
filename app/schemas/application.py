@@ -37,3 +37,19 @@ class StudentShortlistEntry(BaseModel):
     completed_projects_count: int
     match_score: float
     match_reasons: list[str]
+
+
+class ApplicantOut(BaseModel):
+    """What a business sees for an actual applicant to one of its projects —
+    distinct from StudentShortlistEntry (which ranks candidates, applied or
+    not). Includes student_user_id so the UI can act on this specific
+    person (message them, create a contract from application_id)."""
+    application_id: str
+    student_id: str
+    student_user_id: str
+    full_name: str
+    degree_title: str
+    status: ApplicationStatus
+    cover_note: Optional[str]
+    proposed_rate_gbp: Optional[float]
+    match_score_at_application: Optional[float]

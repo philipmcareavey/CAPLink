@@ -65,6 +65,22 @@ def create_project(
     return project
 
 
+@router.get("/mine", response_model=list[ProjectOut])
+def get_my_projects(
+    db: Session = Depends(get_db),
+    business_user: User = Depends(require_business),
+):
+    """This business's own projects, any status — unlike the student feed,
+    which only ever shows OPEN."""
+    business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
+    return (
+        db.query(Project)
+        .filter(Project.business_id == business.id)
+        .order_by(Project.created_at.desc())
+        .all()
+    )
+
+
 @router.get("/feed", response_model=list[ProjectWithMatch])
 def get_suggested_projects(
     db: Session = Depends(get_db),

@@ -38,3 +38,11 @@ class ContractOut(BaseModel):
     ip_assignment_accepted: bool
     nda_accepted: bool
     milestones: List[MilestoneOut]
+
+
+class ContractWithCounterpart(ContractOut):
+    """ContractOut plus enough of the other party's identity to drive a
+    'message them' action from a contract card without a second round trip."""
+    project_title: str
+    counterpart_user_id: str
+    counterpart_name: str

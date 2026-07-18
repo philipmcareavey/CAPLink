@@ -23,3 +23,13 @@ class MessageOut(BaseModel):
     is_flagged: bool
     is_read: bool
     created_at: datetime
+
+
+class ThreadSummaryOut(BaseModel):
+    thread_id: str
+    project_id: str | None
+    counterpart_user_id: str
+    counterpart_name: str
+    last_message_preview: str | None
+    last_message_at: datetime | None
+    unread_count: int

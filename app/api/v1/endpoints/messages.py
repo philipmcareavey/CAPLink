@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -7,7 +8,7 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.message import Message, MessageThread
 from app.models.user import User
-from app.schemas.message import MessageCreate, MessageOut, ThreadCreate
+from app.schemas.message import MessageCreate, MessageOut, ThreadCreate, ThreadSummaryOut
 from app.services.notifications import notify_from_template
 
 router = APIRouter(prefix="/messages", tags=["messages"])
@@ -69,6 +70,46 @@ def send_message(payload: MessageCreate, db: Session = Depends(get_db), user: Us
     recipient_id = thread.business_user_id if user.id == thread.student_user_id else thread.student_user_id
     notify_from_template(db, recipient_id, "new_message", sender_name=user.full_name)
     return message
+
+
+@router.get("/threads", response_model=list[ThreadSummaryOut])
+def get_my_threads(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Every thread this user is part of, newest activity first — there's no
+    other way to discover a thread id otherwise."""
+    threads = (
+        db.query(MessageThread)
+        .filter((MessageThread.student_user_id == user.id) | (MessageThread.business_user_id == user.id))
+        .all()
+    )
+
+    results = []
+    for thread in threads:
+        counterpart_id = thread.business_user_id if user.id == thread.student_user_id else thread.student_user_id
+        counterpart = db.query(User).filter(User.id == counterpart_id).first()
+        last_message = (
+            db.query(Message)
+            .filter(Message.thread_id == thread.id)
+            .order_by(Message.created_at.desc())
+            .first()
+        )
+        unread_count = (
+            db.query(Message)
+            .filter(Message.thread_id == thread.id, Message.sender_user_id != user.id, Message.is_read == False)  # noqa: E712
+            .count()
+        )
+        results.append(
+            ThreadSummaryOut(
+                thread_id=thread.id,
+                project_id=thread.project_id,
+                counterpart_user_id=counterpart_id,
+                counterpart_name=counterpart.full_name if counterpart else "Unknown",
+                last_message_preview=(last_message.content[:140] if last_message else None),
+                last_message_at=last_message.created_at if last_message else None,
+                unread_count=unread_count,
+            )
+        )
+    results.sort(key=lambda r: r.last_message_at or datetime.min, reverse=True)
+    return results
 
 
 @router.get("/threads/{thread_id}", response_model=list[MessageOut])

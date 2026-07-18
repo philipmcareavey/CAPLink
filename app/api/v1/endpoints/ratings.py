@@ -7,7 +7,7 @@ from app.models.contract import Contract
 from app.models.enums import RatingVisibility
 from app.models.rating import Rating
 from app.models.user import BusinessProfile, StudentProfile, User
-from app.schemas.rating import RatingCreate, RatingOut
+from app.schemas.rating import RatingCreate, RatingHistoryEntry, RatingOut
 from app.services.notifications import notify_from_template
 
 router = APIRouter(prefix="/ratings", tags=["ratings"])
@@ -101,3 +101,32 @@ def my_pending_ratings(db: Session = Depends(get_db), user: User = Depends(get_c
         .filter(Rating.rater_user_id == user.id, Rating.is_released == False)  # noqa: E712
         .all()
     )
+
+
+@router.get("/mine", response_model=list[RatingHistoryEntry])
+def my_rating_history(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Full history, both directions."""
+    ratings = (
+        db.query(Rating)
+        .filter((Rating.rater_user_id == user.id) | (Rating.ratee_user_id == user.id))
+        .order_by(Rating.created_at.desc())
+        .all()
+    )
+
+    results = []
+    for rating in ratings:
+        given = rating.rater_user_id == user.id
+        reveal = given or rating.is_released
+        results.append(
+            RatingHistoryEntry(
+                id=rating.id,
+                contract_id=rating.contract_id,
+                counterpart_user_id=rating.ratee_user_id if given else rating.rater_user_id,
+                direction="given" if given else "received",
+                is_released=rating.is_released,
+                overall_score=rating.overall_score if reveal else None,
+                sub_scores=rating.sub_scores if reveal else None,
+                visibility=rating.visibility,
+            )
+        )
+    return results

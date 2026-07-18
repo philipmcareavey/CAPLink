@@ -5,10 +5,10 @@ from app.api.deps import get_current_user, require_business
 from app.db.session import get_db
 from app.models.application import Application
 from app.models.contract import Contract, Milestone
-from app.models.enums import ApplicationStatus, ContractStatus, MilestoneStatus
+from app.models.enums import ApplicationStatus, ContractStatus, MilestoneStatus, UserRole
 from app.models.project import Project
-from app.models.user import BusinessProfile, User
-from app.schemas.contract import ContractCreate, ContractOut, MilestoneOut
+from app.models.user import BusinessProfile, StudentProfile, User
+from app.schemas.contract import ContractCreate, ContractOut, ContractWithCounterpart, MilestoneOut
 from app.services.notifications import notify_from_template
 
 router = APIRouter(prefix="/contracts", tags=["contracts"])
@@ -51,6 +51,42 @@ def create_contract(
     db.commit()
     db.refresh(contract)
     return contract
+
+
+@router.get("/mine", response_model=list[ContractWithCounterpart])
+def get_my_contracts(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Role-aware: a student sees contracts where they're the student side,
+    a business sees contracts where they're the business side. Reuses
+    ContractOut as-is — milestones come for free via the model's relationship."""
+    if user.role == UserRole.STUDENT:
+        student = db.query(StudentProfile).filter(StudentProfile.user_id == user.id).first()
+        query = db.query(Contract).filter(Contract.student_id == student.id)
+    elif user.role == UserRole.BUSINESS:
+        business = db.query(BusinessProfile).filter(BusinessProfile.user_id == user.id).first()
+        query = db.query(Contract).filter(Contract.business_id == business.id)
+    else:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not permitted for this role")
+
+    contracts = query.order_by(Contract.created_at.desc()).all()
+
+    results = []
+    for contract in contracts:
+        student = db.query(StudentProfile).filter(StudentProfile.id == contract.student_id).first()
+        business = db.query(BusinessProfile).filter(BusinessProfile.id == contract.business_id).first()
+        project = db.query(Project).filter(Project.id == contract.project_id).first()
+        if user.role == UserRole.STUDENT:
+            counterpart_user_id, counterpart_name = business.user_id, business.company_name
+        else:
+            counterpart_user_id, counterpart_name = student.user_id, student.user.full_name
+        results.append(
+            ContractWithCounterpart(
+                **ContractOut.model_validate(contract).model_dump(),
+                project_title=project.title if project else "",
+                counterpart_user_id=counterpart_user_id,
+                counterpart_name=counterpart_name,
+            )
+        )
+    return results
 
 
 @router.post("/{contract_id}/accept-terms", response_model=ContractOut)

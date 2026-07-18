@@ -32,6 +32,11 @@ There's also a **live demo app** at `static/demo/app.html` — unlike the protot
 it's wired up to the real backend (login, matching feed, applications) and is mounted by
 `app.main` at `/demo/app.html` whenever the server is running. See "Quickstart" below.
 
+For the **full app** — nearly every endpoint, all three roles (student/business/university
+admin), contracts and milestones, messaging, ratings, local business search — see
+`static/app/`, mounted at `/app`, and walk through it with
+[docs/deploy-locally.md](docs/deploy-locally.md).
+
 ### Hosting the static pages on GitHub Pages (github.io)
 
 GitHub Pages only serves **static** files — it can't run the Python backend, but
