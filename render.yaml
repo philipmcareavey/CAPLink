@@ -10,15 +10,25 @@
 #
 # This service is labelled ENVIRONMENT=staging, not production: it's
 # Render's free tier, used for public demoing, not real institutional/
-# payment data. `Settings` (app/core/config.py) currently allows staging to
-# run on SQLite as a fallback — that check is NOT yet tightened to require
-# Postgres for staging, deliberately: doing so in the same change as this
-# database's own DATABASE_URL wiring would mean staging tries to boot
-# against Postgres before you've actually synced the blueprint and the
-# database exists. Once you've synced this and confirmed (e.g. via /health
-# and the Render logs) that the staging service is genuinely running on
-# Postgres, tighten that validator to reject SQLite in staging too — see the
-# comment on `_reject_dev_secrets_outside_dev` in app/core/config.py.
+# payment data. `Settings` (app/core/config.py) confirmed 2026-08-30 as
+# genuinely running on this database (not SQLite — check Render's deploy
+# logs for "Context impl PostgresqlImpl" and "Running upgrade -> ...
+# baseline schema" to reverify), so the SQLite-rejection validator now
+# covers staging too, not just production — see
+# `_reject_dev_secrets_outside_dev` in app/core/config.py.
+#
+# Gotcha hit while first setting this up, worth knowing before changing
+# `databases:`/`envVars` again: a database's region defaults to wherever
+# Render puts it if `region:` is omitted, which is NOT guaranteed to match
+# an existing service's region — a mismatch breaks the internal `dpg-...`
+# hostname entirely ("could not translate host name"), not just slowly.
+# Separately, a `fromDatabase`-linked env var only gets (re-)resolved on an
+# actual Blueprint **Sync**, not a plain "Manual Deploy" of the service —
+# after recreating the database in the right region, `DATABASE_URL` here
+# still pointed at the old (deleted) one's address until it was manually
+# re-copied from the new database's Info page and pasted into the service's
+# Environment tab directly. If a future blueprint sync doesn't pick this up
+# automatically, that manual paste is the fallback.
 #
 # Connection pooling (PgBouncer): Render's managed Postgres exposes a pooled
 # connection string (via its own PgBouncer) alongside the direct one — check
@@ -46,6 +56,15 @@
 databases:
   - name: caplink-staging-db
     plan: free
+    region: oregon  # MUST match caplink-api's actual region — Render's
+                  # internal networking (the DATABASE_URL below relies on
+                  # it) only connects services in the same region. Omitting
+                  # this let Render default the database to Ohio while
+                  # caplink-api was actually in Oregon, breaking the
+                  # connection entirely ("could not translate host name")
+                  # until this was set explicitly and the database
+                  # recreated to match. If you ever move caplink-api to a
+                  # different region, this must move with it.
     databaseName: caplink_staging
     user: caplink_staging
 
@@ -86,6 +105,9 @@ services:
 # databases:
 #   - name: caplink-production-db
 #     plan: starter  # NOT free — this is real production data
+#     region: oregon  # MUST match caplink-api-production's region below —
+#                   # verify this is still correct when you uncomment this;
+#                   # see the comment on caplink-staging-db above for why
 #     databaseName: caplink_production
 #     user: caplink_production
 #
@@ -93,6 +115,7 @@ services:
 #   - type: web
 #     name: caplink-api-production
 #     env: python
+#     region: oregon  # MUST match caplink-production-db's region above
 #     plan: starter  # NOT free — production shouldn't sleep on inactivity
 #     buildCommand: "pip install -r requirements.txt -r requirements-postgres.txt"
 #     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"

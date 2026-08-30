@@ -207,56 +207,65 @@ configurations"** is now done:
   stubbed.
 
 **Step 1.a.iv "Stand up separate staging and production Postgres instances"
-— code/config side done, actual provisioning still pending a manual step
-only the user can take:**
+— DONE for staging, confirmed live 2026-08-30.** `caplink-staging-db` is a
+real, running Render Postgres instance, and `caplink-api` is genuinely
+reading/writing to it (confirmed via Render's deploy logs: `Context impl
+PostgresqlImpl` and `Running upgrade -> bb371d385f9a, baseline schema`,
+service live at `caplink-api.onrender.com`). This also closed out the rest
+of **step 1.a.ii's "DB credentials"** requirement (now also marked Done) —
+the real connection string exists only in Render's dashboard, never in git.
 
-- I have no Render account access and no local Docker/Postgres in this
-  environment, so I could not actually provision anything or test the
-  migration against real Postgres — everything below is preparation, not
-  completed infrastructure. Flagged this to the user up front rather than
-  overclaiming.
-- Asked the user whether to scaffold a production database block now with
-  nothing to consume it yet, or stay staging-only — they chose to scaffold
-  both, with production kept inactive. Their call, recorded here so it's
-  not re-litigated next session.
-- `render.yaml` now has a `databases:` block declaring `caplink-staging-db`
-  (Render-managed Postgres, free plan) and wires the existing `caplink-api`
-  service's `DATABASE_URL` to it via `fromDatabase` instead of a hardcoded
-  SQLite string — this is also the rest of **step 1.a.ii's "DB credentials"**
-  requirement: the real connection string (password included) is populated
-  by Render itself, never appears in this file or in git.
-  `buildCommand` now installs `requirements-postgres.txt` too.
-- Added a **commented-out** `caplink-production-db` + `caplink-api-production`
-  block below it, clearly marked, ready to uncomment when a real production
-  launch is actually planned — nothing in it is live or provisioned.
-- **The actual "stand up" action is still outstanding**: none of this takes
-  effect until the user commits it and syncs the Render blueprint from their
-  own dashboard — that's the one thing here I could not do myself.
-- **Deliberately did NOT tighten the SQLite-rejection validator to cover
-  staging** in this same change, even though the database is now declared —
-  declaring it in render.yaml isn't the same as it existing yet. Doing both
-  in one change would mean the staging deploy starts failing the moment
-  this ships, before the database is real. `app/core/config.py`'s validator
-  comment spells out the exact sequencing: sync the blueprint first, confirm
-  via `/health`/Render logs that staging is genuinely running on Postgres
-  (not still SQLite from before the sync), *then* tighten the check.
-  **Whoever picks this up next: check whether that confirmation happened
-  before assuming this is fully wired up** — same pattern as the still-open
-  "dad's machine" confirmation loop elsewhere in this file.
-- PgBouncer connection pooling (named explicitly in this step's own
-  description) isn't something `render.yaml` can declare — it's a
-  per-database dashboard feature Render exposes once the database exists.
-  Documented as a manual step (use the pooled connection string Render
-  shows under the database's "Connection Pooling" tab) rather than guessed
-  at in code.
-- Known-but-unaddressed Postgres gotcha, noted rather than fixed: the
-  baseline migration's `downgrade()` drops tables but not the Postgres
-  `ENUM` types those columns use — a `downgrade base` then `upgrade head`
-  cycle against real Postgres would hit "type already exists". This never
-  happens on the automatic `stamp`-or-`upgrade` path `run_migrations()`
-  actually uses (see 1.a.iii above), only on a deliberate manual downgrade,
-  and couldn't be verified without a real Postgres to test against — worth
-  fixing properly if a real downgrade is ever needed, not urgent otherwise.
+I had no Render account access and no local Docker/Postgres in this
+environment, so I could only prepare `render.yaml` — the user did the
+actual dashboard work (creating/recreating the database, pasting the
+connection string) themselves, live, over several back-and-forth rounds.
+Two real gotchas came up, both now documented in `render.yaml`'s own
+comments so they don't get rediscovered the hard way again:
+
+1. **Region mismatch.** `render.yaml`'s first version didn't set `region:`
+   on `caplink-staging-db`, so Render defaulted it to Ohio while
+   `caplink-api` was actually in Oregon (I'd initially guessed the opposite
+   way round and got it wrong first). Render's internal `dpg-...` hostnames
+   only resolve between services in the *same* region, so every deploy
+   failed at startup with `could not translate host name` — not a timing
+   issue, not a code bug, purely a region mismatch. Fixed by recreating the
+   database in Oregon and adding `region: oregon` explicitly (also applied
+   to the commented-out production scaffold, which should be re-verified
+   when it's ever uncommented for real).
+2. **`fromDatabase` doesn't re-resolve on a Manual Deploy.** After fixing
+   the region, `DATABASE_URL` kept resolving to the *old, now-deleted*
+   database's hostname — the exact same one, deploy after deploy. Render
+   only re-resolves a `fromDatabase`-linked env var during an actual
+   Blueprint **Sync**, not a plain "Deploy latest commit." The working fix
+   was pasting the new database's Internal Database URL directly into
+   `caplink-api`'s Environment tab by hand. `render.yaml` still declares the
+   `fromDatabase` link (it's the correct infra-as-code intent, and should
+   auto-work on a future real Sync), but know that a manual override is
+   sitting on top of it right now — don't assume the file and reality
+   agree without checking the dashboard.
+
+**Also discovered, unrelated to either gotcha above but worth a permanent
+note**: partway through debugging, the user's real staging database
+password ended up pasted into their local, gitignored `.env` (not `.git`-
+tracked, never reached the public repo, but real local exposure). Worth
+checking next session whether it's still there — local dev should only
+ever point at its own default SQLite, never a real environment's secret.
+
+**Now genuinely done, not just prepared**: the SQLite-rejection validator
+in `app/core/config.py` covers **both staging and production** as of this
+session — the temporary staging exemption from 1.a.i/1.a.ii is gone.
+
+**Still open, lower priority**: PgBouncer connection pooling (a manual
+per-database Render dashboard step, not yet enabled — `render.yaml`
+documents where to find it); production Postgres remains commented-out
+scaffolding, not provisioned, per the user's explicit choice to wait for a
+real launch; and one known-but-unaddressed Postgres gotcha in the baseline
+migration — `downgrade()` drops tables but not the Postgres `ENUM` types
+those columns use, so a `downgrade base` → `upgrade head` cycle would hit
+"type already exists". This never happens on the automatic `stamp`-or-
+`upgrade` path `run_migrations()` actually uses, only on a deliberate
+manual downgrade — worth fixing properly if that's ever needed, not urgent
+otherwise.
 
 ## Dependency pinning — read this before touching requirements.txt
 

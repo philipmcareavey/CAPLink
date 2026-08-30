@@ -65,21 +65,14 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _reject_dev_secrets_outside_dev(self) -> "Settings":
         """Staging/production must never silently run on dev's placeholder
-        secrets — this guardrail, not just file separation, is the actual
-        point of having per-environment config at all.
+        secrets or SQLite — this guardrail, not just file separation, is the
+        actual point of having per-environment config at all.
 
-        The SQLite check is production-only, not staging-too, on purpose —
-        not because staging is exempt in principle, but for sequencing:
-        render.yaml now *declares* a staging Postgres instance (Technical
-        Implementation Plan step 1.a.iv), but declaring it isn't the same as
-        it existing — that only happens once the blueprint is actually
-        synced on Render. Tightening this check in the same change that
-        declares the database would mean the staging deploy starts failing
-        the instant this ships, before the database is real. Once the
-        blueprint's been synced and the staging service is confirmed
-        running on Postgres (check /health, or the Render logs for a
-        `postgresql://` connection rather than `sqlite://`), tighten this to
-        cover staging too — don't leave the gap open indefinitely.
+        Both checks cover staging and production equally as of 2026-08-30:
+        Render's staging deploy (`caplink-staging-db`, see render.yaml) was
+        confirmed actually running on Postgres — its deploy logs showed
+        `Context impl PostgresqlImpl` and the baseline migration applying
+        fresh — so there's no longer a sequencing reason to exempt staging.
         """
         if self.ENVIRONMENT == "development":
             return self
@@ -88,10 +81,10 @@ class Settings(BaseSettings):
                 f"SECRET_KEY is still the development default in {self.ENVIRONMENT} — "
                 f"set a real value (see .env.{self.ENVIRONMENT}.example)."
             )
-        if self.ENVIRONMENT == "production" and self.DATABASE_URL.startswith("sqlite"):
+        if self.DATABASE_URL.startswith("sqlite"):
             raise ValueError(
-                "DATABASE_URL is SQLite in production — point it at a real "
-                "Postgres instance (see .env.production.example)."
+                f"DATABASE_URL is SQLite in {self.ENVIRONMENT} — point it at a real "
+                f"Postgres instance (see .env.{self.ENVIRONMENT}.example)."
             )
         return self
 
