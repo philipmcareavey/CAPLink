@@ -386,19 +386,26 @@ otherwise.
   observability changes by actually triggering the code path and reading
   the output, not just by checking the code compiles/imports cleanly** —
   this one would have shipped silently broken otherwise.
-- **1.c.ii "Sentry error tracking" — code fully wired (~70%), no real
-  account exists yet.** `sentry-sdk[fastapi]` added to `requirements.txt`
-  (safe to always install, unlike `firebase-admin` — no wheel-build risk);
-  `SENTRY_DSN` setting added (empty = no-op); `configure_error_tracking()`
-  called at startup; exceptions captured **explicitly** via
-  `sentry_sdk.capture_exception()` inside `main.py`'s existing global
-  exception handler, rather than relying only on Sentry's own
-  auto-instrumentation — that handler already catches everything and
-  returns a clean JSON response, so there's no "unhandled exception" left
-  for generic auto-instrumentation to necessarily notice. Verified both
-  the empty-DSN no-op path and that init succeeds with a DSN-shaped
-  string. **What's actually missing**: a real Sentry account/project —
-  nothing here can create one. sentry.io has a free tier.
+- **1.c.ii "Sentry error tracking" — DONE, verified end-to-end, not just
+  wired up.** `sentry-sdk[fastapi]` in `requirements.txt` (safe to always
+  install, unlike `firebase-admin` — no wheel-build risk); `SENTRY_DSN`
+  setting (empty = no-op); `configure_error_tracking()` called at startup;
+  exceptions captured **explicitly** via `sentry_sdk.capture_exception()`
+  inside `main.py`'s existing global exception handler, rather than relying
+  only on Sentry's own auto-instrumentation — that handler already catches
+  everything and returns a clean JSON response, so there's no "unhandled
+  exception" left for generic auto-instrumentation to necessarily notice.
+  `SENTRY_DSN` was also missing from `render.yaml` entirely at first (a gap
+  from when this was originally coded — the Settings field existed but
+  Render had no slot for a human to actually set it) — added as `sync:
+  false`, same as the other secrets. The user created a real Sentry
+  account/project, set the real DSN in Render's dashboard, and a temporary
+  `/debug-sentry` route (deliberately raising, exercising the real handler)
+  was added, deployed, triggered directly against the live staging URL
+  (`curl` → clean `500 {"detail":"Internal server error"}`, confirming
+  staging's error-hiding behavior too), confirmed showing up in Sentry's
+  Issues page tagged `environment=staging`, then removed. Real account,
+  real DSN, real captured error — genuinely closed out.
 - **1.c.iii "Uptime monitoring" — documented only (~20%), zero
   configuration exists.** This step is ~100% external — there was
   genuinely nothing to add to the repo beyond documentation. README's
