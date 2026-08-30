@@ -55,16 +55,42 @@ The FastAPI backend needs an actual Python host — GitHub Pages can't run it. T
 quickest free option is **Render**:
 
 1. On [render.com](https://render.com): **New → Blueprint**, point it at this GitHub repo.
-2. Render reads `render.yaml` (included in the repo root) and provisions the API automatically.
+2. Render reads `render.yaml` (included in the repo root) and provisions **both** the API
+   service and a managed Postgres database (`caplink-staging-db`) automatically — `DATABASE_URL`
+   is wired to it via Render's `fromDatabase`, so no manual copying of a connection string.
 3. Once deployed, update `CORS_ORIGINS` (in Render's environment variables) to include your
    GitHub Pages URL so the static prototype could eventually call the real API instead of
    its hardcoded demo data.
 
-Note: Render's free tier has an ephemeral filesystem, so SQLite data resets on every
-redeploy — fine for demoing, not for anything persistent. For that, add a Render Postgres
-instance and point `DATABASE_URL` at it (see `.env.example`) — and add
-`pip install -r requirements-postgres.txt` to the build command, since the Postgres driver
-is kept out of the default `requirements.txt` (see below).
+This deploys as the `staging` environment (see below) — persistent Postgres, but still
+Render's free tier. `render.yaml` also has a real **production** block, deliberately kept
+commented out until an actual production launch is planned (so nothing paid/persistent gets
+provisioned before anything needs it) — uncomment both the `caplink-production-db` and
+`caplink-api-production` blocks together when that time comes, and reconsider their `plan:`
+(free-tier Postgres isn't meant for anything persistent, and expires after a fixed period).
+
+## Environments (development / staging / production)
+
+`ENVIRONMENT` (in `.env` or a real env var) selects both which config file loads and which
+runtime behaviour applies — set via `app/core/config.py`:
+
+| Environment | Config file loaded | Notes |
+|---|---|---|
+| `development` (default) | `.env` | Sensible defaults for everything; auto-seeds demo data on first run; unhandled exceptions return full tracebacks. |
+| `staging` | `.env.staging` (falls back to real env vars if the file isn't present, e.g. on a host that injects them directly) | Template: `.env.staging.example`. Render's current public deploy runs as this tier, on a real managed Postgres instance — see `render.yaml`. |
+| `production` | `.env.production` (same fallback behaviour) | Template: `.env.production.example`. Doesn't exist as a live deployment yet — `render.yaml` has a ready-to-uncomment block for when it does. |
+
+**Staging and production both refuse to start** if `SECRET_KEY` is still the development
+placeholder — enforced by a validator in `Settings`, not just by convention, so a
+misconfigured deploy fails loudly at startup instead of silently running with dev-grade
+security. **Production additionally refuses to start on a SQLite `DATABASE_URL`**; staging
+is still allowed to as a fallback for now — not because it's exempt in principle, but so
+that declaring staging's Postgres database in `render.yaml` and enforcing it happen as two
+separate, sequenced changes rather than one that could crash-loop the deploy if applied out
+of order (see the comment on `_reject_dev_secrets_outside_dev` in `app/core/config.py`).
+Copy the relevant `.env.*.example` file, fill in real values via your host's own secrets mechanism
+(Render's dashboard env vars today, per `render.yaml`), and never copy secrets between
+environments.
 
 ## Quickstart
 
@@ -244,10 +270,31 @@ distance sort.
 
 Fully implemented: auth, multi-tenant licensing, safeguarding access control, rules-based
 matching + recommendation logging, applications, contracts/milestones, mutual blind
-ratings, messaging with off-platform-contact flagging, mobile device registration.
+ratings, messaging with off-platform-contact flagging, mobile device registration,
+Alembic-managed schema migrations.
 
 Integration points left as clearly-marked placeholders (each notes what to replace):
 Stripe PaymentIntent creation/capture, Firebase push delivery, university-email domain
 verification is currently a simple string match (swap for a real SSO/Shibboleth flow
-for enterprise customers), and Alembic migrations aren't wired up (schema is created
-via `create_all` for fast local iteration).
+for enterprise customers).
+
+## Database migrations (Alembic)
+
+Schema changes go through Alembic, not `Base.metadata.create_all` — `app/db/migrations.py`
+runs the migration chain automatically on every startup (`alembic/versions/`), so a fresh
+clone still needs zero manual steps. When you change a model:
+
+```bash
+alembic revision --autogenerate -m "describe the change"
+```
+
+Review the generated file in `alembic/versions/` before committing — autogenerate is a
+strong first draft, not infallible (it won't detect a plain column rename, for instance;
+that shows up as a drop + add unless you edit the migration by hand). The next app startup
+(or `alembic upgrade head` directly) applies it.
+
+A database that already has every current table but no `alembic_version` row (i.e. it
+predates Alembic being wired up) gets stamped as already being at the latest migration
+instead of replaying `CREATE TABLE`s that would just fail on "already exists" — this is
+what let the switchover happen without anyone needing to drop and reseed an existing
+local `caplink.db`.

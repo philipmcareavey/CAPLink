@@ -1,6 +1,7 @@
 """
-Import every model here so a single `from app.db.base_class import Base` +
-`Base.metadata.create_all(engine)` (see app/main.py) picks up all tables.
+Import every model here so both `Base.metadata` (Alembic's autogenerate,
+see alembic/env.py) and the Alembic migration chain itself (app/db/migrations.py)
+know about every table.
 """
 from app.models.university import University          # noqa: F401
 from app.models.user import User, StudentProfile, BusinessProfile  # noqa: F401

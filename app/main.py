@@ -5,9 +5,10 @@ Backend entrypoint. Run locally with:
 
     uvicorn app.main:app --reload
 
-This creates SQLite tables automatically on startup for quick local
-development (see .env.example — point DATABASE_URL at Postgres for
-staging/production and manage schema changes with Alembic instead).
+Applies the Alembic migration chain (alembic/versions/) automatically on
+startup — a fresh SQLite file gets every table with zero manual steps for
+local dev, and the same mechanism applies cleanly to Postgres once a real
+staging/production instance exists. See app/db/migrations.py.
 """
 from pathlib import Path
 
@@ -19,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 import app.models  # noqa: F401 — ensures all models register with Base.metadata
 from app.api.v1.api import api_router
 from app.core.config import settings
-from app.db.base_class import Base
+from app.db.migrations import run_migrations
 from app.db.session import SessionLocal, engine
 from app.models.university import University
 
@@ -44,7 +45,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    Base.metadata.create_all(bind=engine)
+    run_migrations(engine)
 
     # First run in a fresh clone: no .env, no data yet — seed the demo
     # university/student/business/project automatically so the Bridge demo

@@ -33,7 +33,8 @@ caplink/
 │   │   └── security.py         Password hashing (bcrypt) + JWT access/refresh tokens
 │   ├── db/
 │   │   ├── base_class.py       SQLAlchemy declarative Base + shared mixins (UUID id, timestamps)
-│   │   └── session.py          Engine + SessionLocal + get_db() FastAPI dependency
+│   │   ├── session.py          Engine + SessionLocal + get_db() FastAPI dependency
+│   │   └── migrations.py       Runs the Alembic chain on startup; stamps pre-Alembic databases instead of re-creating tables
 │   ├── models/                 SQLAlchemy ORM classes — the actual database tables
 │   │   ├── enums.py            Every enum used across the whole system (roles, statuses, bands...)
 │   │   ├── user.py             User, StudentProfile, BusinessProfile
@@ -71,6 +72,10 @@ caplink/
 │               └── mobile.py         device registration + combined home-screen payload
 ├── scripts/
 │   └── seed_demo_data.py       Creates one working demo tenant end-to-end (see Getting Started)
+├── alembic/
+│   ├── env.py                  Points Alembic at Base.metadata + settings.DATABASE_URL
+│   └── versions/                One file per schema migration, in order
+├── alembic.ini                  Alembic config (sqlalchemy.url here is unused — env.py overrides it)
 ├── requirements.txt             Pinned Python dependencies
 ├── .env.example                 Template for local config — copy to .env
 └── docs/                        You are here
@@ -141,7 +146,10 @@ version later, without changing any of the calling code.
 licensing, the safeguarding access-control gate, the matching engine +
 recommendation logging, project posting, applications, contracts + milestones,
 mutual blind ratings, in-app messaging with off-platform-contact flagging,
-mobile device registration + combined home payload.
+mobile device registration + combined home payload, Alembic-managed schema
+migrations (`alembic/versions/` — applied automatically on startup via
+`app/db/migrations.py`, which is why local dev still needs zero setup on a
+fresh clone).
 
 **Stubbed (clearly marked in code, safe to demo without them):**
 - **Payments** — `approve_and_pay_milestone` sets a fake
@@ -150,6 +158,3 @@ mobile device registration + combined home payload.
   calling Firebase.
 - **University email verification** — a student's email just needs to end in
   `@<university.domain>`; there's no real SSO/Shibboleth check.
-- **Alembic migrations** — not wired up yet; tables are created directly from
-  the models on every startup (`Base.metadata.create_all`), which is why local
-  dev uses SQLite with zero setup.

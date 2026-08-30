@@ -1,26 +1,115 @@
 # Render.com Blueprint — one-click deploy of the CAPLink API.
 #
-# Usage: on render.com, "New +" -> "Blueprint" -> point at this repo.
-# Render reads this file automatically and provisions the service below.
+# Usage: on render.com, "New +" -> "Blueprint" -> point at this repo. Render
+# reads this file automatically and provisions everything declared below —
+# INCLUDING the `databases:` section, so applying this blueprint (or syncing
+# it again after this change) is the actual "stand up a Postgres instance"
+# action for step 1.a.iv. That sync is a real, manual step only you can take
+# (Render dashboard access, and it may move you off the free tier depending
+# on the plan chosen) — nothing in this repo can do it for you.
 #
-# Note: the free tier's filesystem is ephemeral, so SQLite data won't
-# survive a redeploy/restart. Fine for a demo; for anything persistent,
-# add a managed Postgres instance on Render and point DATABASE_URL at it
-# instead (see .env.example in the repo root).
+# This service is labelled ENVIRONMENT=staging, not production: it's
+# Render's free tier, used for public demoing, not real institutional/
+# payment data. `Settings` (app/core/config.py) currently allows staging to
+# run on SQLite as a fallback — that check is NOT yet tightened to require
+# Postgres for staging, deliberately: doing so in the same change as this
+# database's own DATABASE_URL wiring would mean staging tries to boot
+# against Postgres before you've actually synced the blueprint and the
+# database exists. Once you've synced this and confirmed (e.g. via /health
+# and the Render logs) that the staging service is genuinely running on
+# Postgres, tighten that validator to reject SQLite in staging too — see the
+# comment on `_reject_dev_secrets_outside_dev` in app/core/config.py.
+#
+# Connection pooling (PgBouncer): Render's managed Postgres exposes a pooled
+# connection string (via its own PgBouncer) alongside the direct one — check
+# the database's "Connection Pooling" info in the Render dashboard once it's
+# provisioned, and prefer that pooled string for DATABASE_URL over the
+# direct connection string, especially once more than one web instance is
+# running (avoids exhausting Postgres's own max_connections).
+#
+# Secrets: SECRET_KEY is generated and stored by Render itself, never in
+# this file or in git — that alone is "a managed secrets store" for the one
+# thing that must never leak. DATABASE_URL below is populated by Render
+# itself from the database resource (`fromDatabase`), so the real connection
+# string — including its password — never appears in this file or in git
+# either, the same principle applied to the "DB credentials" part of step
+# 1.a.ii that was blocked pending this step. STRIPE_*/FIREBASE_* use
+# `sync: false`, Render's mechanism for "this service needs this var, but
+# its value is set once by a human in the Render dashboard, never committed
+# or templated here" — same principle as Doppler/AWS Secrets Manager, just
+# Render's own built-in version of it, adequate while there's a single host
+# and no integration is live yet (Stripe/Firebase are still stubbed — see
+# README's "What's stubbed" section). Swapping to Doppler or AWS Secrets
+# Manager later needs no code changes: the app only ever reads process env
+# vars, never cares who injected them.
+
+databases:
+  - name: caplink-staging-db
+    plan: free
+    databaseName: caplink_staging
+    user: caplink_staging
 
 services:
   - type: web
     name: caplink-api
     env: python
     plan: free
-    buildCommand: "pip install -r requirements.txt"
+    buildCommand: "pip install -r requirements.txt -r requirements-postgres.txt"
     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        value: "sqlite:///./caplink.db"
+        fromDatabase:
+          name: caplink-staging-db
+          property: connectionString
       - key: ENVIRONMENT
-        value: "production"
+        value: "staging"
       - key: CORS_ORIGINS
         value: "https://philipmcareavey.github.io"
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: FIREBASE_CREDENTIALS_JSON
+        sync: false
+
+# --- Production scaffolding — NOT active, nothing here is provisioned until ---
+# --- you uncomment it. Deliberately kept out of the live blueprint above:  ---
+# --- there's no real production web service yet, so a production Postgres ---
+# --- instance would just be paid/free-tier infrastructure sitting unused. ---
+# --- Uncomment both blocks together when a real production launch is      ---
+# --- actually planned, fill in a real CORS_ORIGINS value, and reconsider  ---
+# --- `plan:` on both resources (free-tier Postgres expires after a fixed  ---
+# --- period on Render and isn't meant for anything persistent).           ---
+#
+# databases:
+#   - name: caplink-production-db
+#     plan: starter  # NOT free — this is real production data
+#     databaseName: caplink_production
+#     user: caplink_production
+#
+# services:
+#   - type: web
+#     name: caplink-api-production
+#     env: python
+#     plan: starter  # NOT free — production shouldn't sleep on inactivity
+#     buildCommand: "pip install -r requirements.txt -r requirements-postgres.txt"
+#     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+#     envVars:
+#       - key: SECRET_KEY
+#         generateValue: true
+#       - key: DATABASE_URL
+#         fromDatabase:
+#           name: caplink-production-db
+#           property: connectionString
+#       - key: ENVIRONMENT
+#         value: "production"
+#       - key: CORS_ORIGINS
+#         value: "https://app.caplink.io"  # replace with the real production domain
+#       - key: STRIPE_SECRET_KEY
+#         sync: false
+#       - key: STRIPE_WEBHOOK_SECRET
+#         sync: false
+#       - key: FIREBASE_CREDENTIALS_JSON
+#         sync: false

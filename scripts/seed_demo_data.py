@@ -5,7 +5,7 @@ a student, a business, and a project so you can explore the API immediately.
 Run with:  python -m scripts.seed_demo_data
 """
 from app.core.security import hash_password
-from app.db.base_class import Base
+from app.db.migrations import run_migrations
 from app.db.session import SessionLocal, engine
 from app.models.enums import (
     AgreementStatus,
@@ -26,7 +26,7 @@ import app.models  # noqa: F401
 
 
 def run():
-    Base.metadata.create_all(bind=engine)
+    run_migrations(engine)
     db = SessionLocal()
 
     university = University(

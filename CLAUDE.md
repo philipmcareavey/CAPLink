@@ -81,6 +81,183 @@ against the seeded accounts and by actually clicking through every tab of
 three roles, including a full contract → milestone → rating lifecycle and a
 flagged-message exchange — not just an import/syntax check.
 
+## Technical Implementation Plan progress (steps 1.a.i–1.a.iv, 2026-08-30)
+
+`../CAPLink-Technical-Implementation-Plan.docx` (one level up, not in this
+repo) and its companion `../CAPLink-Technical-Tracker.xlsx` define a 104-step
+productionization backlog — see the top-level `CLAUDE.md` for the full
+breakdown. Step **1.a.i "Create separate dev/staging/production environment
+configurations"** is now done:
+
+- `app/core/config.py`'s `Settings` now types `ENVIRONMENT` as
+  `Literal["development", "staging", "production"]` and resolves which env
+  file to load *before* the class is built (`_ENV_FILE`), since
+  pydantic-settings fixes `env_file` at class-definition time: `development`
+  keeps loading plain `.env` (unchanged, zero-friction default); `staging`/
+  `production` look for `.env.staging` / `.env.production` and fall back to
+  whatever the process environment already provides if no such file exists
+  on disk — this matches how the current Render deploy already works
+  (`render.yaml` injects env vars directly, no `.env` file shipped).
+- A `model_validator` on `Settings` now **refuses to boot** in staging/production
+  if `SECRET_KEY` is still the dev placeholder, and **refuses to boot in
+  production specifically** (not staging — see 1.a.ii below for why) if
+  `DATABASE_URL` is still `sqlite://`. Verified all paths manually (dev
+  unaffected, staging fails loudly on bad config then succeeds with real
+  values via env vars, production auto-loads a `.env.production` file) —
+  see the tracker's Notes column on row 1.a.i for the original verification
+  commands.
+- Added `.env.staging.example` and `.env.production.example` (git-tracked
+  templates); added `.env.staging` / `.env.production` (the *real*,
+  filled-in files, if anyone creates them locally) to `.gitignore` alongside
+  the existing `.env` entry.
+- `README.md` gained an "Environments" section explaining the above.
+- Ran the full test suite before/after: **1 pre-existing failure**
+  (`tests/test_collaborative.py::test_scorer_includes_collaborative_factor_when_db_and_data_available`)
+  present on `main` before this change too (confirmed via `git stash`) — not
+  caused by this work, left alone rather than scope-creeping into an
+  unrelated matching-engine fix.
+- The Tracker spreadsheet was updated directly (row 1.a.i → Done, 100%, with
+  a Notes entry) by hand-editing its underlying XML (`.xlsx` is a zip of XML
+  parts — no `openpyxl`/`pandoc` available in this environment) rather than
+  through Excel/LibreOffice (neither installed here). A pre-edit backup was
+  kept at `/tmp/CAPLink-Technical-Tracker.xlsx.backup` in case anything looks
+  wrong when actually opened in Excel — the zip and every XML part validate
+  and re-parse correctly, and the Dashboard sheet's cached formula values
+  were hand-updated to match (1/104 done overall, 1/16 for Workstream 1,
+  1/54 for P0), but it hasn't been opened in a real spreadsheet app to
+  confirm it *looks* right, since none was available to test with.
+
+**Step 1.a.ii "Migrate secrets to a managed secrets store" — in progress
+(75%), not fully done:**
+
+- `render.yaml`'s `SECRET_KEY` already used Render's `generateValue: true` —
+  generated and stored by Render itself, never in git or a file. That alone
+  satisfies the step for the one secret that matters most.
+- Added `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `FIREBASE_CREDENTIALS_JSON`
+  to `render.yaml` as `sync: false` — Render's mechanism for "this service
+  needs this var, a human sets its value once in the dashboard, it's never
+  in the blueprint or git." Same principle Doppler/AWS Secrets Manager would
+  give; fine to keep using Render's own version of it while there's a single
+  host and neither integration is live yet.
+- **What's genuinely blocked, not just deferred**: "DB credentials" per the
+  step's own wording can't be migrated because none exist yet — the only
+  live deployment still runs SQLite (see below), so there's no real
+  Postgres connection string anywhere to move into a secrets store. That
+  part of this step is effectively gated on 1.a.iv.
+- **Found and fixed a regression from 1.a.i while doing this**:
+  `render.yaml` had `ENVIRONMENT=production` with a hardcoded SQLite
+  `DATABASE_URL` — combined with 1.a.i's new validator, the *next* deploy of
+  the existing Render service would have crashed at startup. Fixed by (a)
+  relabelling that service `ENVIRONMENT=staging` in `render.yaml`, since
+  it's genuinely Render's free/ephemeral tier used for public demoing, not
+  real production, and (b) narrowing the SQLite rejection in `Settings` to
+  `production` only, since no staging Postgres instance exists yet either
+  (1.a.iv). Production still hard-rejects SQLite; staging is allowed to for
+  now. **Tighten this to cover staging too once 1.a.iv lands** — don't leave
+  it loose indefinitely.
+- Verified all 5 combinations (dev; staging+sqlite+real-secret passes —
+  this is the actual Render config now; staging+dev-secret fails;
+  production+sqlite fails even with a real secret; production+postgres+real-secret
+  passes) and reran the full test suite (same 1 pre-existing unrelated
+  failure, nothing new broken).
+- `.env.staging.example`, `.env.production.example`, and README's
+  Environments section updated to match the production-only SQLite rule.
+
+**Step 1.a.iii "Introduce Alembic for schema migrations" — done:**
+
+- `alembic init alembic`, then wired `alembic/env.py` to import `app.models`
+  (registers everything on `Base.metadata`) and read
+  `app.core.config.settings.DATABASE_URL` directly — migrations always
+  target the same database the app itself would use for the current
+  `ENVIRONMENT`, never a second hand-maintained connection string.
+  `alembic.ini`'s `sqlalchemy.url` is a deliberately-unused placeholder now
+  (comment explains why); `script_location` is set to an absolute path in
+  code too, so it doesn't depend on CWD.
+- Autogenerated the baseline migration
+  (`alembic/versions/bb371d385f9a_baseline_schema.py`) against a fresh empty
+  DB — captures all 15 tables/indexes/FKs exactly as `create_all` used to.
+  Verified `upgrade head` → `downgrade base` → `upgrade head` all work
+  cleanly.
+- New `app/db/migrations.py:run_migrations(engine)` replaces the
+  `Base.metadata.create_all(bind=engine)` calls in both `app/main.py`'s
+  startup hook and `scripts/seed_demo_data.py`. It's not a plain
+  `alembic upgrade head` though — a database that already has every table
+  but no `alembic_version` row (this Mac's own `caplink.db`, Render's
+  existing staging deploy, anyone else's pre-existing local copy) would hit
+  "table already exists" and crash on a naive upgrade, since it predates
+  Alembic being wired up at all. `run_migrations` detects that case (tables
+  exist, no `alembic_version`) and runs `alembic stamp head` instead —
+  records the DB as already being at the baseline without replaying any DDL.
+  A genuinely fresh DB (new clone, CI, a future Postgres instance) still
+  gets a real `upgrade head`, so the zero-setup fresh-clone experience is
+  unchanged.
+- **Verified against three real scenarios, not just the fresh-DB case**:
+  (1) a brand new DB — creates schema + demo-seeds normally; (2) a
+  simulated legacy DB (tables via the old `create_all` path, no
+  `alembic_version`) — stamps cleanly, no crash; (3) **this Mac's actual
+  `caplink.db`** (backed up first to `/tmp/caplink.db.backup-before-alembic`)
+  — stamped cleanly, row counts for `universities`/`users`/`student_profiles`/
+  `business_profiles`/`projects` confirmed identical before and after, and a
+  second run (already-migrated path) was a clean no-op. Full test suite
+  rerun too: same 1 pre-existing unrelated failure, nothing new broken.
+- README gained a "Database migrations (Alembic)" section (how to add one:
+  `alembic revision --autogenerate -m "..."`, review before committing,
+  autogenerate doesn't detect plain renames). `docs/01-project-structure.md`
+  and README's stubbed-features lists both updated — Alembic is no longer
+  stubbed.
+
+**Step 1.a.iv "Stand up separate staging and production Postgres instances"
+— code/config side done, actual provisioning still pending a manual step
+only the user can take:**
+
+- I have no Render account access and no local Docker/Postgres in this
+  environment, so I could not actually provision anything or test the
+  migration against real Postgres — everything below is preparation, not
+  completed infrastructure. Flagged this to the user up front rather than
+  overclaiming.
+- Asked the user whether to scaffold a production database block now with
+  nothing to consume it yet, or stay staging-only — they chose to scaffold
+  both, with production kept inactive. Their call, recorded here so it's
+  not re-litigated next session.
+- `render.yaml` now has a `databases:` block declaring `caplink-staging-db`
+  (Render-managed Postgres, free plan) and wires the existing `caplink-api`
+  service's `DATABASE_URL` to it via `fromDatabase` instead of a hardcoded
+  SQLite string — this is also the rest of **step 1.a.ii's "DB credentials"**
+  requirement: the real connection string (password included) is populated
+  by Render itself, never appears in this file or in git.
+  `buildCommand` now installs `requirements-postgres.txt` too.
+- Added a **commented-out** `caplink-production-db` + `caplink-api-production`
+  block below it, clearly marked, ready to uncomment when a real production
+  launch is actually planned — nothing in it is live or provisioned.
+- **The actual "stand up" action is still outstanding**: none of this takes
+  effect until the user commits it and syncs the Render blueprint from their
+  own dashboard — that's the one thing here I could not do myself.
+- **Deliberately did NOT tighten the SQLite-rejection validator to cover
+  staging** in this same change, even though the database is now declared —
+  declaring it in render.yaml isn't the same as it existing yet. Doing both
+  in one change would mean the staging deploy starts failing the moment
+  this ships, before the database is real. `app/core/config.py`'s validator
+  comment spells out the exact sequencing: sync the blueprint first, confirm
+  via `/health`/Render logs that staging is genuinely running on Postgres
+  (not still SQLite from before the sync), *then* tighten the check.
+  **Whoever picks this up next: check whether that confirmation happened
+  before assuming this is fully wired up** — same pattern as the still-open
+  "dad's machine" confirmation loop elsewhere in this file.
+- PgBouncer connection pooling (named explicitly in this step's own
+  description) isn't something `render.yaml` can declare — it's a
+  per-database dashboard feature Render exposes once the database exists.
+  Documented as a manual step (use the pooled connection string Render
+  shows under the database's "Connection Pooling" tab) rather than guessed
+  at in code.
+- Known-but-unaddressed Postgres gotcha, noted rather than fixed: the
+  baseline migration's `downgrade()` drops tables but not the Postgres
+  `ENUM` types those columns use — a `downgrade base` then `upgrade head`
+  cycle against real Postgres would hit "type already exists". This never
+  happens on the automatic `stamp`-or-`upgrade` path `run_migrations()`
+  actually uses (see 1.a.iii above), only on a deliberate manual downgrade,
+  and couldn't be verified without a real Postgres to test against — worth
+  fixing properly if a real downgrade is ever needed, not urgent otherwise.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The
