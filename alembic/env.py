@@ -20,8 +20,19 @@ config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
+#
+# disable_existing_loggers=False is not optional here: the default (True)
+# silently disables every already-created logger not explicitly listed in
+# alembic.ini's [loggers] section — including the app's own "caplink.*"
+# loggers and uvicorn's, all created before this runs since migrations are
+# triggered from app/db/migrations.py during FastAPI startup, not a
+# standalone `alembic` CLI invocation. A disabled logger drops every
+# message with no error at all, which is exactly as silent and hard to
+# debug as it sounds — this was caught by actually checking the log output
+# after wiring up structured logging (Technical Implementation Plan step
+# 1.c.i), not by inspection.
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 

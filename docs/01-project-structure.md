@@ -149,7 +149,8 @@ mutual blind ratings, in-app messaging with off-platform-contact flagging,
 mobile device registration + combined home payload, Alembic-managed schema
 migrations (`alembic/versions/` — applied automatically on startup via
 `app/db/migrations.py`, which is why local dev still needs zero setup on a
-fresh clone).
+fresh clone), structured JSON logging for every log line including uvicorn's
+own (`app/core/observability.py`).
 
 **Stubbed (clearly marked in code, safe to demo without them):**
 - **Payments** — `approve_and_pay_milestone` sets a fake
@@ -158,3 +159,7 @@ fresh clone).
   calling Firebase.
 - **University email verification** — a student's email just needs to end in
   `@<university.domain>`; there's no real SSO/Shibboleth check.
+- **Error tracking** — Sentry integration is wired up (`app/core/observability.py`)
+  but inactive until `SENTRY_DSN` is set to a real project's DSN.
+- **Uptime monitoring** — not configured anywhere; needs an external service
+  (e.g. UptimeRobot) pointed at `/health`, entirely outside this repo.

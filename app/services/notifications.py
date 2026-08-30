@@ -17,7 +17,10 @@ logger = logging.getLogger("caplink.notifications")
 
 def _send_push(push_token: str, title: str, body: str, data: dict | None = None) -> None:
     # Placeholder — replace with firebase_admin.messaging.send(...) in production.
-    logger.info("PUSH -> token=%s title=%r body=%r data=%s", push_token[:12], title, body, data)
+    logger.info(
+        "push_notification",
+        extra={"push_token_prefix": push_token[:12], "title": title, "body": body, "data": data},
+    )
 
 
 def notify_user(db: Session, user_id: str, title: str, body: str, data: dict | None = None) -> None:

@@ -81,7 +81,7 @@ against the seeded accounts and by actually clicking through every tab of
 three roles, including a full contract → milestone → rating lifecycle and a
 flagged-message exchange — not just an import/syntax check.
 
-## Technical Implementation Plan progress (Epic 1.a done; Epic 1.b in progress, 2026-08-30)
+## Technical Implementation Plan progress (Epics 1.a, 1.b done/near-done; 1.c in progress, 2026-08-30)
 
 `../CAPLink-Technical-Implementation-Plan.docx` (one level up, not in this
 repo) and its companion `../CAPLink-Technical-Tracker.xlsx` define a 104-step
@@ -350,6 +350,69 @@ otherwise.
   containerizing the app is a *different* epic's item (1.d.i, Workstream 1
   Epic d), not started. Revisit once 1.d.i lands — building this before
   then would mean building against nothing.
+
+**Epic 1.c (Observability) — 1.c.i done, 1.c.ii/1.c.iii in progress
+(code/docs done, external accounts pending), 1.c.iv deliberately deferred:**
+
+- **1.c.i "Structured JSON logging" — done, and worth reading closely if
+  logging or migrations need touching again.** `app/core/observability.py`
+  adds a JSON formatter + `configure_logging()`, called from `main.py`'s
+  startup hook (after uvicorn's own logging setup, so it wins, not the
+  reverse) and covering uvicorn's own request/error loggers too, not just
+  the app's `logger.info(...)` calls. `RequestLoggingMiddleware` in
+  `main.py` emits one structured line per request with real separate
+  fields (`request_id`/`method`/`path`/`status_code`/`duration_ms`) and
+  replaces uvicorn's own plain-text access log rather than duplicating it
+  (that log is explicitly disabled, not just reformatted).
+
+  **Found a real, non-obvious bug while actually verifying this worked**
+  (via `TestClient`, not just code review — the first attempt looked fine
+  by inspection and was actually silently broken): `alembic/env.py` calls
+  `logging.config.fileConfig(alembic.ini)` as a side effect of loading,
+  every single time `run_migrations()` runs — including the second,
+  redundant call inside `scripts/seed_demo_data.py`. That call does two
+  destructive things at once: it resets the ROOT logger to `alembic.ini`'s
+  own plain-text config (`[logger_root] level=WARN`), and — because
+  `fileConfig`'s `disable_existing_loggers` defaults to `True` — it
+  silently **disables** every other already-created logger not explicitly
+  listed in the ini, including every `caplink.*` logger and uvicorn's. A
+  disabled logger drops every message with zero error, so the first
+  attempt just... didn't log anything, ever, with no exception anywhere to
+  point at why. Fixed at the root, not patched around: `disable_existing_
+  loggers=False` in `env.py`, plus `run_migrations()` now saves and
+  restores the root logger's handlers/level around the alembic call so
+  this can never leak out again regardless of who calls it or how many
+  times. **Lesson for next time something like this gets added: verify
+  observability changes by actually triggering the code path and reading
+  the output, not just by checking the code compiles/imports cleanly** —
+  this one would have shipped silently broken otherwise.
+- **1.c.ii "Sentry error tracking" — code fully wired (~70%), no real
+  account exists yet.** `sentry-sdk[fastapi]` added to `requirements.txt`
+  (safe to always install, unlike `firebase-admin` — no wheel-build risk);
+  `SENTRY_DSN` setting added (empty = no-op); `configure_error_tracking()`
+  called at startup; exceptions captured **explicitly** via
+  `sentry_sdk.capture_exception()` inside `main.py`'s existing global
+  exception handler, rather than relying only on Sentry's own
+  auto-instrumentation — that handler already catches everything and
+  returns a clean JSON response, so there's no "unhandled exception" left
+  for generic auto-instrumentation to necessarily notice. Verified both
+  the empty-DSN no-op path and that init succeeds with a DSN-shaped
+  string. **What's actually missing**: a real Sentry account/project —
+  nothing here can create one. sentry.io has a free tier.
+- **1.c.iii "Uptime monitoring" — documented only (~20%), zero
+  configuration exists.** This step is ~100% external — there was
+  genuinely nothing to add to the repo beyond documentation. README's
+  Observability section recommends a free monitor (e.g. UptimeRobot)
+  polling `/health` every 5 minutes, and flags an important caveat:
+  `/health` only confirms the process is up, not that the database is
+  reachable — a DB-down scenario currently only surfaces as request-level
+  500s in the logs/Sentry, not as a monitoring alert on its own.
+- **1.c.iv "Latency dashboards" — not started, deliberately.** Matches its
+  own P2/Medium-effort rating exactly — needs a real APM/dashboarding tool
+  that doesn't exist yet. The structured per-request fields from `1.c.i`
+  (method/path/status_code/duration_ms) are exactly what a future
+  dashboard would query, so doing `1.c.i` properly now pays off later
+  regardless of when this gets picked up.
 
 ## Dependency pinning — read this before touching requirements.txt
 

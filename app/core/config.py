@@ -51,6 +51,13 @@ class Settings(BaseSettings):
     # Push notifications
     FIREBASE_CREDENTIALS_JSON: str = ""
 
+    # Observability
+    LOG_LEVEL: str = "INFO"
+    # Empty = error tracking disabled (see app/core/observability.py) — a
+    # real Sentry account/project is a manual step (Technical Implementation
+    # Plan step 1.c.ii), same pattern as Stripe/Firebase above.
+    SENTRY_DSN: str = ""
+
     # Licensing
     DEFAULT_UNIVERSITY_TRIAL_DAYS: int = 30
 

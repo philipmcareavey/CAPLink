@@ -271,12 +271,13 @@ distance sort.
 Fully implemented: auth, multi-tenant licensing, safeguarding access control, rules-based
 matching + recommendation logging, applications, contracts/milestones, mutual blind
 ratings, messaging with off-platform-contact flagging, mobile device registration,
-Alembic-managed schema migrations.
+Alembic-managed schema migrations, structured JSON logging, CI (lint/type-check/test).
 
 Integration points left as clearly-marked placeholders (each notes what to replace):
 Stripe PaymentIntent creation/capture, Firebase push delivery, university-email domain
 verification is currently a simple string match (swap for a real SSO/Shibboleth flow
-for enterprise customers).
+for enterprise customers), Sentry error tracking is wired up but inactive without a real
+`SENTRY_DSN`, and uptime monitoring isn't configured anywhere (see "Observability" above).
 
 ## Database migrations (Alembic)
 
@@ -298,6 +299,41 @@ predates Alembic being wired up) gets stamped as already being at the latest mig
 instead of replaying `CREATE TABLE`s that would just fail on "already exists" — this is
 what let the switchover happen without anyone needing to drop and reseed an existing
 local `caplink.db`.
+
+## Observability
+
+**Structured logging** — every log line, including uvicorn's own request/access/error
+logs (not just the app's own `logger.info(...)` calls), comes out as one JSON object per
+line, with real separate fields rather than everything crammed into a message string —
+see `app/core/observability.py`. Per-request logs (method, path, status code, duration)
+come from `RequestLoggingMiddleware` in `app/main.py`, replacing uvicorn's own plain-text
+access log rather than duplicating it. Set `LOG_LEVEL` (default `INFO`, `.env.example`
+uses `DEBUG` for local dev) to control verbosity per environment.
+
+One gotcha worth knowing if this ever needs touching again: Alembic's `env.py` calls
+`logging.config.fileConfig(alembic.ini)` as a side effect of loading, which resets the
+*entire* root logger (level, handlers) to `alembic.ini`'s own plain-text config — `app/db/
+migrations.py`'s `run_migrations()` saves and restores the root logger's state around the
+Alembic call specifically so this doesn't leak out and silently break the app's own
+logging every time migrations run (including the second, redundant call inside
+`scripts/seed_demo_data.py`).
+
+**Error tracking (Sentry)** — inactive by default; set `SENTRY_DSN` to a real DSN to turn
+it on (see `.env.production.example`). This needs an actual Sentry account and project —
+sentry.io has a free tier, but nothing in this repo can create the account for you.
+Exceptions are captured explicitly from the global exception handler in `app/main.py`
+(rather than relying only on Sentry's own auto-instrumentation), since that handler
+already catches everything and returns a clean JSON error response — a well-behaved
+error handler like that means an exception never "escapes" in the way generic
+auto-instrumentation typically looks for.
+
+**Uptime monitoring** — not configured; this is 100% an external step, there's nothing to
+add to this repo for it. Recommended: a free monitor (e.g. [UptimeRobot](https://uptimerobot.com))
+polling `https://<your-render-url>/health` every 5 minutes with email/SMS alerting on a
+non-200 response. `/health` deliberately does nothing but confirm the process is up and
+responding — it doesn't check the database connection, so a monitor on it alone won't
+catch "app is up but the database is unreachable"; that failure mode currently only shows
+up as request-level 500s in the logs/Sentry above.
 
 ## Continuous integration
 

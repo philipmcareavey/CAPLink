@@ -15,3 +15,8 @@ alembic>=1.13.2
 slowapi>=0.1.9
 httpx>=0.27.2
 python-dotenv>=1.0.1
+# Inactive until SENTRY_DSN is set (see app/core/observability.py) — a real
+# Sentry account/project is a manual step (Technical Implementation Plan
+# step 1.c.ii). Pure-Python-ish SDK, no wheel-build risk like firebase-admin,
+# so unlike that one it's fine to always install rather than keep separate.
+sentry-sdk[fastapi]>=2.14.0
