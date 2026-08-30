@@ -118,15 +118,6 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
-# TEMPORARY — Technical Implementation Plan step 1.c.ii verification only.
-# Deliberately raises, exercising the real global exception handler above
-# (Sentry capture + structured error log) exactly as a genuine production
-# error would. Remove once confirmed showing up in Sentry's Issues page.
-@app.get("/debug-sentry", tags=["meta"])
-def debug_sentry():
-    raise ValueError("CAPLink Sentry verification trigger — safe to ignore, this route is temporary")
-
-
 @app.get("/health", tags=["meta"])
 def health_check():
     return {"status": "ok", "app": settings.APP_NAME, "environment": settings.ENVIRONMENT}
