@@ -92,6 +92,8 @@ services:
         sync: false
       - key: FIREBASE_CREDENTIALS_JSON
         sync: false
+      - key: SENTRY_DSN
+        sync: false
 
 # --- Production scaffolding — NOT active, nothing here is provisioned until ---
 # --- you uncomment it. Deliberately kept out of the live blueprint above:  ---
@@ -135,4 +137,6 @@ services:
 #       - key: STRIPE_WEBHOOK_SECRET
 #         sync: false
 #       - key: FIREBASE_CREDENTIALS_JSON
+#         sync: false
+#       - key: SENTRY_DSN
 #         sync: false
