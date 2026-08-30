@@ -298,3 +298,35 @@ predates Alembic being wired up) gets stamped as already being at the latest mig
 instead of replaying `CREATE TABLE`s that would just fail on "already exists" — this is
 what let the switchover happen without anyone needing to drop and reseed an existing
 local `caplink.db`.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs three independent checks on every pull request (and on
+pushes to `main`, as a safety net): `ruff check .` (lint), `mypy app/ scripts/`
+(type-check), and the full `pytest` suite. Config for the first two lives in
+`pyproject.toml` — notably `line-length = 135` (matches this codebase's existing style
+rather than forcing a repo-wide reformat) and a deliberately narrow `select = ["E", "F"]`
+(flake8-bugbear's `B008` would otherwise flag every single FastAPI `Depends(...)` default
+argument as an anti-pattern, which is just how FastAPI dependency injection works).
+
+## Rollback procedure
+
+**Application code**: Render redeploys automatically on every push to `main` (see
+`render.yaml`). To roll back a bad deploy, either:
+- In the Render dashboard, open the service's **Events**/**Deploys** history and redeploy
+  a previous successful commit, or
+- `git revert <bad-commit-sha>` and push — safer than `git reset` since it doesn't rewrite
+  history other clones/CI may already have.
+
+**Database schema**: `alembic downgrade -1` reverses the most recently applied migration
+(or `alembic downgrade <revision>` for a specific one). Known limitation: the baseline
+migration's `downgrade()` drops tables but not the Postgres `ENUM` types those columns
+use, so a downgrade-then-upgrade cycle against real Postgres would hit "type already
+exists" — not an issue for the normal `stamp`-or-`upgrade` path the app itself uses (see
+`app/db/migrations.py`), only for a deliberate manual downgrade.
+
+Application code and schema rollbacks are independent — reverting a commit does not
+automatically downgrade the database, and vice versa. If a bad deploy included both a
+code change and a migration, roll back both, in that order (schema first, since old code
+generally can't run against a newer schema, but new-schema-old-code mismatches are more
+likely to actually break something than the reverse).

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import Pagination, require_business, require_student
@@ -20,6 +20,7 @@ def create_project(
     business_user: User = Depends(require_business),
 ):
     business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
+    assert business is not None, "require_business guarantees a BusinessProfile row exists"
 
     # Safeguarding gate: for every university this project targets, the
     # business must hold an approved agreement covering this category,
@@ -32,6 +33,7 @@ def create_project(
             raise HTTPException(status.HTTP_403_FORBIDDEN, decision.reason)
 
         agreement = access_control.get_agreement(db, uni_id, business.id)
+        assert agreement is not None, "decision.allowed above guarantees an approved agreement exists"
         disallowed_bands = [b.value for b in payload.target_bands if b.value not in agreement.allowed_bands]
         if disallowed_bands:
             raise HTTPException(
@@ -39,10 +41,13 @@ def create_project(
                 f"Not approved for bands {disallowed_bands} at university {uni_id}",
             )
 
-    needs_review = any(
-        access_control.get_agreement(db, uid, business.id).requires_university_project_review
-        for uid in payload.target_university_ids
-    )
+    needs_review = False
+    for uid in payload.target_university_ids:
+        review_agreement = access_control.get_agreement(db, uid, business.id)
+        assert review_agreement is not None, "the loop above guarantees an approved agreement exists for every uid"
+        if review_agreement.requires_university_project_review:
+            needs_review = True
+            break
 
     project = Project(
         business_id=business.id,
@@ -73,6 +78,7 @@ def get_my_projects(
     """This business's own projects, any status — unlike the student feed,
     which only ever shows OPEN."""
     business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
+    assert business is not None, "require_business guarantees a BusinessProfile row exists"
     return (
         db.query(Project)
         .filter(Project.business_id == business.id)
@@ -93,6 +99,7 @@ def get_suggested_projects(
     with mobile-friendly pagination baked in.
     """
     student = db.query(StudentProfile).filter(StudentProfile.user_id == student_user.id).first()
+    assert student is not None, "require_student guarantees a StudentProfile row exists"
 
     candidate_projects = db.query(Project).filter(Project.status == ProjectStatus.OPEN).all()
     visible_projects = access_control.filter_projects_visible_to_student(student, candidate_projects)
@@ -137,6 +144,7 @@ def get_match_explanation(
     sanity-check engine weight changes during development.
     """
     student = db.query(StudentProfile).filter(StudentProfile.user_id == student_user.id).first()
+    assert student is not None, "require_student guarantees a StudentProfile row exists"
     project = db.query(Project).filter(Project.id == project_id).first()
     if project is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")

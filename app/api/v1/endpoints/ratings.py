@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.contract import Contract
-from app.models.enums import RatingVisibility
 from app.models.rating import Rating
 from app.models.user import BusinessProfile, StudentProfile, User
 from app.schemas.rating import RatingCreate, RatingHistoryEntry, RatingOut

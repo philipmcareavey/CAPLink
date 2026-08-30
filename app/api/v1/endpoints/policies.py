@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, require_business, require_university_admin
+from app.api.deps import require_business, require_university_admin
 from app.db.session import get_db
 from app.models.enums import AgreementStatus
 from app.models.policy import UniversityBusinessAgreement
@@ -26,6 +26,7 @@ def request_access(
     Starts PENDING — no access is granted until a university admin approves it
     and sets the allowed student bands / project categories."""
     business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
+    assert business is not None, "require_business guarantees a BusinessProfile row exists"
 
     existing = (
         db.query(UniversityBusinessAgreement)

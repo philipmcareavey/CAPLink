@@ -35,7 +35,7 @@ ALGORITHM_VERSION = "rules_v2"
 # Keywords used for degree/module <-> project category relevance. Expanded
 # vs. the original single-word list, and split into "strong" (title-level
 # discipline match) vs "supporting" (adjacent discipline, partial credit).
-CATEGORY_KEYWORDS = {
+CATEGORY_KEYWORDS: dict[str, dict[str, list[str]]] = {
     "data_analytics": {
         "strong": ["data science", "data analytics", "statistics", "computer science"],
         "supporting": ["mathematics", "maths", "economics", "physics", "engineering"],

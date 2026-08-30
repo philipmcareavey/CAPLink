@@ -88,12 +88,20 @@ def test_collaborative_score_reflects_similar_students_success(db_session):
 def test_scorer_includes_collaborative_factor_when_db_and_data_available(db_session):
     uni = _seed_university(db_session)
     business = _seed_business(db_session)
-    successful = _seed_student(db_session, uni, "s1@test.ac.uk", ["Python", "SQL"], 4.9, 5)
-    new_student = _seed_student(db_session, uni, "s2@test.ac.uk", ["Python", "SQL"], 0.0, 0)
-    past_project = _seed_project(db_session, business)
+    # collaborative_score requires MIN_SIMILAR_STUDENTS_FOR_SIGNAL (2) similar
+    # successful students before it returns a signal rather than None — see
+    # app/services/matching/collaborative.py. One is not enough, matching the
+    # setup in test_collaborative_score_reflects_similar_students_success above.
+    successful_1 = _seed_student(db_session, uni, "s1@test.ac.uk", ["Python", "SQL"], 4.9, 5)
+    successful_2 = _seed_student(db_session, uni, "s2@test.ac.uk", ["Python", "SQL"], 4.8, 3)
+    new_student = _seed_student(db_session, uni, "s3@test.ac.uk", ["Python", "SQL"], 0.0, 0)
+    past_project_1 = _seed_project(db_session, business)
+    past_project_2 = _seed_project(db_session, business)
     new_project = _seed_project(db_session, business)
 
-    db_session.add(Application(project_id=past_project.id, student_id=successful.id,
+    db_session.add(Application(project_id=past_project_1.id, student_id=successful_1.id,
+                                status=ApplicationStatus.ACCEPTED))
+    db_session.add(Application(project_id=past_project_2.id, student_id=successful_2.id,
                                 status=ApplicationStatus.ACCEPTED))
     db_session.commit()
 

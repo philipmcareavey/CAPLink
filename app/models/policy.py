@@ -1,10 +1,13 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, JSON, String, Text
+from sqlalchemy import ForeignKey, JSON, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.enums import AgreementStatus
+
+if TYPE_CHECKING:
+    from app.models.university import University
 
 
 class UniversityBusinessAgreement(Base, UUIDPrimaryKeyMixin, TimestampMixin):

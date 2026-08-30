@@ -1,10 +1,13 @@
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import Float, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.enums import ProjectCategory, ProjectStatus
+
+if TYPE_CHECKING:
+    from app.models.application import Application
 
 
 class Project(Base, UUIDPrimaryKeyMixin, TimestampMixin):

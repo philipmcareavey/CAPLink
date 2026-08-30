@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-import app.models  # noqa: F401 — ensures all models register with Base.metadata
+from app import models  # noqa: F401 — ensures all models register with Base.metadata
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.db.migrations import run_migrations

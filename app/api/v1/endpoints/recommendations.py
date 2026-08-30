@@ -50,6 +50,7 @@ _EMPLOYER_SUGGESTION_RULES = [
 @router.get("/employer-suggestions", response_model=list[EmployerSuggestion])
 def get_employer_suggestions(db: Session = Depends(get_db), student_user: User = Depends(require_student)):
     student = db.query(StudentProfile).filter(StudentProfile.user_id == student_user.id).first()
+    assert student is not None, "require_student guarantees a StudentProfile row exists"
     student_skills = {s.lower() for s in student.skills}
 
     suggestions = []

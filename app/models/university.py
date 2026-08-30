@@ -1,11 +1,14 @@
 from datetime import date
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
-from sqlalchemy import Date, Float, ForeignKey, String
+from sqlalchemy import Date, Float, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.enums import UniversityLicenseStatus, UniversityLicenseTier
+
+if TYPE_CHECKING:
+    from app.models.policy import UniversityBusinessAgreement
 
 
 class University(Base, UUIDPrimaryKeyMixin, TimestampMixin):

@@ -1,11 +1,13 @@
-from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String
+from sqlalchemy import Boolean, Float, ForeignKey, Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.enums import BusinessTrustTier, StudentBand, UserRole
+
+if TYPE_CHECKING:
+    from app.models.device import Device
 
 
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):

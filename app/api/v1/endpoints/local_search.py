@@ -55,6 +55,7 @@ def get_local_businesses(
         )
 
     student = db.query(StudentProfile).filter(StudentProfile.user_id == student_user.id).first()
+    assert student is not None, "require_student guarantees a StudentProfile row exists"
 
     # Safeguarding gate, same as everywhere else: only APPROVED agreements
     # that cover this student's band make a business eligible at all.
@@ -81,6 +82,8 @@ def get_local_businesses(
 
     results: list[LocalBusinessResult] = []
     for business in businesses:
+        # Already filtered to latitude/longitude IS NOT NULL in the query above.
+        assert business.latitude is not None and business.longitude is not None
         distance = haversine_distance_miles(
             university.latitude, university.longitude, business.latitude, business.longitude
         )

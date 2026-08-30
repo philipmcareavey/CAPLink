@@ -25,6 +25,7 @@ def apply_to_project(
     payload: ApplicationCreate, db: Session = Depends(get_db), student_user: User = Depends(require_student)
 ):
     student = db.query(StudentProfile).filter(StudentProfile.user_id == student_user.id).first()
+    assert student is not None, "require_student guarantees a StudentProfile row exists"
     project = db.query(Project).filter(Project.id == payload.project_id).first()
     if project is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
@@ -56,6 +57,7 @@ def get_shortlist(
     project_id: str, db: Session = Depends(get_db), business_user: User = Depends(require_business)
 ):
     business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
+    assert business is not None, "require_business guarantees a BusinessProfile row exists"
     project = db.query(Project).filter(Project.id == project_id, Project.business_id == business.id).first()
     if project is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
@@ -92,6 +94,7 @@ def get_project_applications(
     """Real applicants to this project — not candidates (see get_shortlist
     above), actual Application rows, for a business to review and act on."""
     business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
+    assert business is not None, "require_business guarantees a BusinessProfile row exists"
     project = db.query(Project).filter(Project.id == project_id).first()
     if project is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
@@ -108,6 +111,7 @@ def get_project_applications(
     results = []
     for application in applications:
         student = db.query(StudentProfile).filter(StudentProfile.id == application.student_id).first()
+        assert student is not None, "Application.student_id is a NOT NULL FK to student_profiles"
         results.append(
             ApplicantOut(
                 application_id=application.id,
@@ -136,7 +140,9 @@ def update_application_status(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Application not found")
 
     business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
+    assert business is not None, "require_business guarantees a BusinessProfile row exists"
     project = db.query(Project).filter(Project.id == application.project_id).first()
+    assert project is not None, "Application.project_id is a NOT NULL FK to projects"
     if project.business_id != business.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your project")
 

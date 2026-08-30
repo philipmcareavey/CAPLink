@@ -5,7 +5,7 @@ from app.api.deps import get_current_user, require_business
 from app.db.session import get_db
 from app.models.application import Application
 from app.models.contract import Contract, Milestone
-from app.models.enums import ApplicationStatus, ContractStatus, MilestoneStatus, UserRole
+from app.models.enums import ApplicationStatus, MilestoneStatus, UserRole
 from app.models.project import Project
 from app.models.user import BusinessProfile, StudentProfile, User
 from app.schemas.contract import ContractCreate, ContractOut, ContractWithCounterpart, MilestoneOut
@@ -23,7 +23,9 @@ def create_contract(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Application not found")
 
     project = db.query(Project).filter(Project.id == application.project_id).first()
+    assert project is not None, "Application.project_id is a NOT NULL FK to projects"
     business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
+    assert business is not None, "require_business guarantees a BusinessProfile row exists"
     if project.business_id != business.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your project")
 
@@ -60,9 +62,11 @@ def get_my_contracts(db: Session = Depends(get_db), user: User = Depends(get_cur
     ContractOut as-is — milestones come for free via the model's relationship."""
     if user.role == UserRole.STUDENT:
         student = db.query(StudentProfile).filter(StudentProfile.user_id == user.id).first()
+        assert student is not None, "a STUDENT-role user always has a StudentProfile (see auth.py registration)"
         query = db.query(Contract).filter(Contract.student_id == student.id)
     elif user.role == UserRole.BUSINESS:
         business = db.query(BusinessProfile).filter(BusinessProfile.user_id == user.id).first()
+        assert business is not None, "a BUSINESS-role user always has a BusinessProfile (see auth.py registration)"
         query = db.query(Contract).filter(Contract.business_id == business.id)
     else:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not permitted for this role")
@@ -72,7 +76,9 @@ def get_my_contracts(db: Session = Depends(get_db), user: User = Depends(get_cur
     results = []
     for contract in contracts:
         student = db.query(StudentProfile).filter(StudentProfile.id == contract.student_id).first()
+        assert student is not None, "Contract.student_id is a NOT NULL FK to student_profiles"
         business = db.query(BusinessProfile).filter(BusinessProfile.id == contract.business_id).first()
+        assert business is not None, "Contract.business_id is a NOT NULL FK to business_profiles"
         project = db.query(Project).filter(Project.id == contract.project_id).first()
         if user.role == UserRole.STUDENT:
             counterpart_user_id, counterpart_name = business.user_id, business.company_name
@@ -137,6 +143,7 @@ def approve_and_pay_milestone(
     db.refresh(milestone)
 
     contract = db.query(Contract).filter(Contract.id == milestone.contract_id).first()
+    assert contract is not None, "Milestone.contract_id is a NOT NULL FK to contracts"
     from app.models.user import StudentProfile  # local import avoids circular import at module load
 
     student_user_id = (

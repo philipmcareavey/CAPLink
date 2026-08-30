@@ -14,7 +14,7 @@ from app.models.enums import UserRole
 from app.models.university import University
 from app.models.user import BusinessProfile, StudentProfile, User
 from app.schemas.token import RefreshRequest, TokenPair
-from app.schemas.user import BusinessRegister, LoginRequest, StudentRegister, UserOut
+from app.schemas.user import BusinessRegister, LoginRequest, StudentRegister
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

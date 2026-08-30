@@ -1,0 +1,43 @@
+name: CI
+
+# Technical Implementation Plan step 1.b.i: lint, type-check, and test on
+# every pull request (and on main, as a safety net for direct pushes/merges
+# that skip a PR). Three independent jobs, not one job with three steps, so
+# they run in parallel and a lint failure doesn't block seeing the mypy/test
+# results too.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: mypy app/ scripts/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: pytest tests/ -v
