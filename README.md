@@ -380,3 +380,35 @@ automatically downgrade the database, and vice versa. If a bad deploy included b
 code change and a migration, roll back both, in that order (schema first, since old code
 generally can't run against a newer schema, but new-schema-old-code mismatches are more
 likely to actually break something than the reverse).
+
+## Database backups
+
+**Not automated** — `caplink-staging-db` runs on Render's free Postgres tier, which
+doesn't include the automated daily backups / point-in-time recovery that Render's paid
+Postgres plans do. Deliberately left this way rather than building a stopgap: there's no
+real data worth protecting yet on a disposable staging demo, and a real backup strategy
+belongs on a real (paid) database anyway — revisit once one exists.
+
+**Manual backup** (works today, on any plan):
+
+```bash
+# DATABASE_URL here should be the database's *External* connection string
+# (from Render's dashboard) if running this from outside Render's network.
+pg_dump "$DATABASE_URL" -F custom -f "caplink_backup_$(date +%Y%m%d).dump"
+```
+
+**Restore** (the drill this step calls for — always into a *separate*, empty database,
+never over a live one without a very good reason and an even better backup of what
+you're about to overwrite):
+
+```bash
+createdb caplink_restore_test
+pg_restore -d caplink_restore_test caplink_backup_YYYYMMDD.dump
+```
+
+Then spot-check with `psql caplink_restore_test` — row counts on a few key tables
+(`universities`, `users`, `contracts`) should match what the backup's source had.
+
+This is a documented procedure, not one that's actually been run — no Docker/Postgres was
+available in the environment it was written in (same caveat as the Dockerfile above).
+Worth actually running once, deliberately, before trusting it against real data.
