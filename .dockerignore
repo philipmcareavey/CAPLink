@@ -1,0 +1,22 @@
+# Never let a real secret or local database end up baked into an image layer.
+.env
+.env.staging
+.env.production
+*.db
+
+.git/
+.github/
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.vscode/
+.DS_Store
+
+tests/
+docs/
+*.docx
+*.xlsx

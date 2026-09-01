@@ -1,0 +1,48 @@
+# Local development parity (Technical Implementation Plan step 1.d.i) — runs
+# the same Dockerfile that would ship to a real host, against real Postgres
+# rather than SQLite, so "works in Docker" here actually means something.
+#
+# This is deliberately NOT the fast day-to-day dev loop — for that, the
+# existing zero-setup path (`uvicorn app.main:app --reload` against local
+# SQLite, see README's Quickstart) is still faster to iterate with. Use this
+# specifically to sanity-check the container itself, or to test something
+# that only shows up against real Postgres (see the ENUM-downgrade note in
+# app/db/migrations.py, for instance).
+#
+# Not verified with an actual `docker-compose up` — no Docker available in
+# the environment this was written in.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: caplink
+      POSTGRES_PASSWORD: caplink
+      POSTGRES_DB: caplink
+    ports:
+      - "5432:5432"
+    volumes:
+      - caplink_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caplink"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # development, not staging/production: Settings' validator (see
+      # app/core/config.py) rejects the placeholder SECRET_KEY below outside
+      # development, and this is local development, just containerized.
+      ENVIRONMENT: development
+      SECRET_KEY: dev-only-secret-change-me
+      DATABASE_URL: postgresql://caplink:caplink@db:5432/caplink
+      CORS_ORIGINS: http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  caplink_pgdata:

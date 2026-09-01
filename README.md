@@ -136,6 +136,20 @@ override something (e.g. point `DATABASE_URL` at Postgres — if so, also
 `pip install -r requirements-postgres.txt`; it's not needed for the default SQLite setup,
 see `requirements-postgres.txt` for why it's kept separate).
 
+### Option C — Docker
+
+```bash
+docker-compose up
+```
+
+Builds the same `Dockerfile` a real deployment would use and runs it against a real local
+Postgres container (not SQLite) — see `docker-compose.yml`'s own comments for why this is a
+parity/production-sanity-check path, not the fastest day-to-day loop (Option B above still
+iterates faster for everyday changes). Visit `http://localhost:8000/demo/app.html` once it's
+up. **Not verified with an actual `docker build`/`docker-compose up`** — written and reviewed
+carefully, but no Docker was available in the environment this was authored in; treat it as
+unverified until someone actually runs it.
+
 ### Why Python 3.13, not 3.14
 
 Python 3.14 reimplemented `typing.Union` in C, which breaks SQLAlchemy's declarative
