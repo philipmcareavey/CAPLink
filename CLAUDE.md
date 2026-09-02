@@ -81,7 +81,7 @@ against the seeded accounts and by actually clicking through every tab of
 three roles, including a full contract → milestone → rating lifecycle and a
 flagged-message exchange — not just an import/syntax check.
 
-## Technical Implementation Plan progress (Epics 1.a, 1.b done/near-done; 1.c in progress, 2026-08-30)
+## Technical Implementation Plan progress (Workstream 1 now 9/16 done, 2026-08-30–09-02)
 
 `../CAPLink-Technical-Implementation-Plan.docx` (one level up, not in this
 repo) and its companion `../CAPLink-Technical-Tracker.xlsx` define a 104-step
@@ -420,6 +420,52 @@ otherwise.
   (method/path/status_code/duration_ms) are exactly what a future
   dashboard would query, so doing `1.c.i` properly now pays off later
   regardless of when this gets picked up.
+
+**Epic 1.d (Hosting & Scaling) — 1.d.i done, 1.d.iv in progress
+(documented, unverified), 1.d.ii deliberately deferred, 1.d.iii genuinely
+blocked:**
+
+- **1.d.i "Containerize the application" — done, but flagged as
+  unverified.** `Dockerfile` (single-stage `python:3.13-slim`, non-root
+  user, respects `$PORT` the same way `render.yaml`'s `startCommand`
+  already does) and `docker-compose.yml` (runs that same Dockerfile
+  against a **real local Postgres container**, not SQLite — specifically
+  to catch Postgres-only issues the SQLite dev path can't, e.g. the ENUM-
+  downgrade gotcha noted in `app/db/migrations.py`) plus a `.dockerignore`
+  keeping secrets/local DB/dev cruft out of the image. **No Docker was
+  available in this environment**, so none of this has actually been
+  built or run — written carefully against dependencies already confirmed
+  to resolve to prebuilt wheels on Linux (via Render's own build logs
+  captured earlier in this file), but genuinely unverified until someone
+  actually runs `docker build`/`docker-compose up`. **This also unblocks
+  `1.b.ii`** (Docker image build on merge to main), which was blocked on
+  this exact Dockerfile not existing — worth picking up together if `1.b`
+  gets revisited.
+- **1.d.ii "Managed container host with autoscaling" — deferred, the
+  user's explicit choice.** Asked directly rather than assuming, since
+  this has real cost implications: Render's free tier (what `caplink-api`
+  runs on) has no autoscaling, only paid plans do, and this is a
+  pre-revenue, pre-pilot product with no traffic problem to solve yet.
+  Revisit once real usage actually justifies it.
+- **1.d.iii "CDN for the frontend build" — genuinely blocked, not
+  deprioritised.** This step assumes a compiled frontend build to put
+  behind a CDN, which doesn't exist — `static/demo`/`static/app` are
+  plain HTML/JS served directly by FastAPI's own `StaticFiles`, not a
+  build output. The real frontend is Workstream 5 (not started). The
+  existing static marketing pages (`docs/index.html`, `docs/prototype.html`)
+  already get free CDN-like hosting via GitHub Pages per the README's
+  existing "Hosting the static pages" section, so arguably the only part
+  of this that currently *could* apply is already covered.
+- **1.d.iv "Automated backups with a tested restore" — in progress
+  (~30%), documented but not actually run.** README gained a "Database
+  backups" section: manual `pg_dump` backup, `pg_restore`-into-a-separate-
+  database restore drill, with a row-count spot-check step — matching the
+  user's explicit choice (asked alongside `1.d.ii`, same reasoning) to
+  document rather than build a stopgap on the free tier. Real automated
+  backups need a paid Postgres plan, deliberately deferred like `1.d.ii`.
+  **The restore drill itself has not been run for real** — no Docker/
+  Postgres available here to test it against. Whoever picks this up next:
+  actually run it once, deliberately, before trusting it.
 
 ## Dependency pinning — read this before touching requirements.txt
 
