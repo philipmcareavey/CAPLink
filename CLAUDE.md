@@ -81,7 +81,7 @@ against the seeded accounts and by actually clicking through every tab of
 three roles, including a full contract → milestone → rating lifecycle and a
 flagged-message exchange — not just an import/syntax check.
 
-## Technical Implementation Plan progress (Workstream 1 now 9/16 done, 2026-08-30–09-02)
+## Technical Implementation Plan progress (Workstream 1 9/16, Workstream 2 4/16, 2026-08-30–09-05)
 
 `../CAPLink-Technical-Implementation-Plan.docx` (one level up, not in this
 repo) and its companion `../CAPLink-Technical-Tracker.xlsx` define a 104-step
@@ -466,6 +466,90 @@ blocked:**
   **The restore drill itself has not been run for real** — no Docker/
   Postgres available here to test it against. Whoever picks this up next:
   actually run it once, deliberately, before trusting it.
+
+## Workstream 2 (Auth Hardening), Epic 2.a — all four steps done, 2026-09-05
+
+This was a much bigger lift than the Small/Small/Small/Medium effort
+ratings suggest once actually implemented properly with real verification,
+not just wired up. All four ended up genuinely done, not partially:
+
+- **2.a.i (password policy)**: `app/services/password_policy.py` — local
+  complexity rules + a live HaveIBeenPwned Pwned Passwords check (free,
+  keyless, k-anonymity: only 5 hex chars of a SHA-1 hash ever leave this
+  process). Fails open on a network error — a breach check shouldn't turn
+  a third-party outage into an outage of registration for the whole
+  platform. Applied at registration and a new `POST /auth/change-password`.
+  **Actually verified against the live HIBP API** (a known-breached
+  password was genuinely rejected via a real network call), not just
+  mocked — the mocked unit tests exist separately, for CI.
+- **2.a.ii (lockout)**: `app/services/account_lockout.py` (per-account,
+  progressive: doubling backoff past `ACCOUNT_LOCKOUT_THRESHOLD` failed
+  attempts — 5, 10, 20, 40 minutes...) plus `app/core/rate_limit.py`
+  (per-IP, via `slowapi`). Worth knowing: **`slowapi` has been in
+  `requirements.txt` since the very first commit of this repo but was
+  never actually wired up until now** — `app.state.limiter` +
+  `@limiter.limit(...)` decorators on login/register/resend-verification/
+  mfa-verify. Verified end-to-end: 5 wrong passwords locks the account
+  (423), the *correct* password is then also rejected while locked, and
+  hitting the rate limit actually returns 429.
+- **2.a.iii (email verification)**: a real confirmation-link flow
+  (`GET /auth/verify-email?token=...`, `app/services/email.py` — same
+  stub-until-a-real-ESP-exists shape as `notifications.py`'s push
+  abstraction), replacing plain domain-string matching. **Auto-verifies in
+  `development` only** — deliberately, not an oversight: no ESP is wired
+  up yet, and zero-friction local dev/demo has been a stated priority
+  throughout this project's whole history (see the dadster-guide section
+  above) — making `static/app`/`static/demo`'s registration forms
+  unusable without digging a token out of a log line would violate that
+  for no real security benefit locally. Staging/production enforce the
+  real flow. **This required updating both reference apps' registration
+  JS** (`static/app/js/main.js`, `static/demo/app.html`) to handle either
+  response shape (tokens directly in dev, a "check your email" message
+  otherwise) — they call these endpoints directly and would have silently
+  broken on staging otherwise. Verified the *real* (non-dev) path
+  end-to-end by flipping `settings.ENVIRONMENT` to `"staging"` in-process
+  against a local SQLite DB (Settings' own validator would reject
+  staging+sqlite as a real deploy, but this sidesteps that just to
+  exercise the verification logic itself): register → login blocked (403)
+  → grabbed the token straight from the DB (same as reading it from the
+  logged email with no ESP wired up) → verified → login succeeds.
+- **2.a.iv (TOTP MFA)**: `app/services/mfa.py`, RFC 6238 via `pyotp` — no
+  external account needed at all, just whatever authenticator app the
+  admin already has. `/mfa/setup` persists a *pending* secret immediately
+  (`totp_enabled` stays false) — same pattern as GitHub/Google's own setup
+  flows — confirmed via `/mfa/enable` with a real code, which is also when
+  8 single-use bcrypt-hashed backup codes get issued. Login for an
+  MFA-enabled admin returns `mfa_required` + a short-lived, single-purpose
+  `mfa` token type instead of real tokens, exchanged at `/mfa/verify`.
+  **Deliberately not retroactively enforced** on existing admin accounts
+  that haven't opted in — there's no admin UI yet to walk someone through
+  setup, so hard-blocking would just lock people out with no way back in;
+  it's real and immediate the moment `totp_enabled` actually flips true,
+  not "on but unenforced" indefinitely. Verified the full cycle: setup →
+  enable → login-challenge → wrong code rejected → correct TOTP accepted →
+  backup code accepted once → same backup code rejected on reuse →
+  disable requiring a valid code.
+
+**One real bug caught before it ever shipped**: the autogenerated
+migration (`alembic/versions/c5563aee8f62`) had three new `NOT NULL`
+columns (`failed_login_attempts`, `totp_enabled`, `mfa_backup_codes`) with
+no `server_default` — autogenerate doesn't add these on its own. Applying
+that as-is would have crashed against any database with existing rows,
+i.e. the real staging Postgres, which has real seeded users. Caught by
+testing the migration against a DB with a pre-existing row (not just a
+fresh one) before it ever shipped, fixed by hand, then reverified both
+ways. **Confirmed genuinely working against the real live staging
+deploy** after pushing — `/health` returned a clean 200 consistently for
+90+ seconds post-deploy, meaning the migration applied cleanly to the
+real database with real existing rows.
+
+Two bugs also turned up in my own new *test* fixtures while running the
+suite (not app bugs): a stale hand-computed SHA-1 value in a mocked HIBP
+test, and `User(...)` objects built directly without a session not
+getting their SQLAlchemy column `default=` values applied (those apply at
+flush/INSERT time, not at bare Python construction) — both fixed, noted
+here mainly as a reminder that hand-written test fixtures need the same
+scrutiny as the code they're testing.
 
 ## Dependency pinning — read this before touching requirements.txt
 
