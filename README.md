@@ -282,16 +282,49 @@ distance sort.
 
 ## What's stubbed vs. production-ready
 
-Fully implemented: auth, multi-tenant licensing, safeguarding access control, rules-based
-matching + recommendation logging, applications, contracts/milestones, mutual blind
-ratings, messaging with off-platform-contact flagging, mobile device registration,
-Alembic-managed schema migrations, structured JSON logging, CI (lint/type-check/test).
+Fully implemented: auth (including hardening — see below), multi-tenant licensing,
+safeguarding access control, rules-based matching + recommendation logging, applications,
+contracts/milestones, mutual blind ratings, messaging with off-platform-contact flagging,
+mobile device registration, Alembic-managed schema migrations, structured JSON logging,
+CI (lint/type-check/test).
 
 Integration points left as clearly-marked placeholders (each notes what to replace):
-Stripe PaymentIntent creation/capture, Firebase push delivery, university-email domain
-verification is currently a simple string match (swap for a real SSO/Shibboleth flow
-for enterprise customers), Sentry error tracking is wired up but inactive without a real
-`SENTRY_DSN`, and uptime monitoring isn't configured anywhere (see "Observability" above).
+Stripe PaymentIntent creation/capture, Firebase push delivery, verification emails are
+logged rather than actually sent (no ESP wired up — see "Auth hardening" below),
+university-email domain verification for *which institution* is still a simple string
+match (swap for a real SSO/Shibboleth flow for enterprise customers — this is separate
+from the real per-account email confirmation flow, which is fully implemented), Sentry
+error tracking is wired up but inactive without a real `SENTRY_DSN`, and uptime
+monitoring isn't configured anywhere (see "Observability" above).
+
+## Auth hardening
+
+- **Password policy** — complexity rules (8+ characters, upper/lower/digit) plus a check
+  against [HaveIBeenPwned's Pwned Passwords API](https://haveibeenpwned.com/API/v3#PwnedPasswords)
+  (free, keyless, k-anonymity — only 5 hex characters of a SHA-1 hash are ever sent, never
+  the password itself). Fails open on a network error rather than blocking registration
+  because a third party is down; toggle off entirely with `PASSWORD_BREACH_CHECK_ENABLED=false`.
+  Applied at registration and `POST /auth/change-password`.
+- **Account lockout** — progressive backoff per account (`ACCOUNT_LOCKOUT_THRESHOLD` wrong
+  attempts locks it, doubling in length each attempt past that — 5, 10, 20, 40 minutes...),
+  plus a per-IP rate limit (`slowapi`, 10/minute) on login/register/MFA endpoints as a
+  separate, complementary layer.
+- **Email verification** — a real confirmation-link flow (`app/services/email.py`, `GET
+  /auth/verify-email?token=...`), replacing plain domain-string matching. **In development
+  only**, registration auto-verifies and logs straight in (matches this project's
+  zero-friction local-dev priority, and there's no ESP wired up yet to click a link from
+  anyway) — staging and production enforce the real flow, so a new account there can't log
+  in until the link is actually clicked. No real ESP is wired up, so that link currently
+  only appears in the server's own logs.
+- **MFA (TOTP)** — for `university_admin`/`platform_admin`. `POST /auth/mfa/setup` →
+  `POST /auth/mfa/enable` (with a code from an authenticator app) → `totp_enabled` flips on,
+  and login for that account then returns an `mfa_required` challenge instead of tokens
+  directly, exchanged at `POST /auth/mfa/verify`. 8 single-use, bcrypt-hashed backup codes
+  are issued on enable, for when the authenticator device is unavailable. Standard RFC 6238
+  TOTP via `pyotp` — no external account needed, just whatever authenticator app the admin
+  already has. Not retroactively enforced on existing admin accounts that haven't opted in
+  (there's no admin UI yet to walk someone through setup) — real and immediate once
+  `totp_enabled` is actually true, not merely "on but unenforced."
 
 ## Database migrations (Alembic)
 

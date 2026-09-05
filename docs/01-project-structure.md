@@ -150,15 +150,23 @@ mobile device registration + combined home payload, Alembic-managed schema
 migrations (`alembic/versions/` — applied automatically on startup via
 `app/db/migrations.py`, which is why local dev still needs zero setup on a
 fresh clone), structured JSON logging for every log line including uvicorn's
-own (`app/core/observability.py`).
+own (`app/core/observability.py`), and auth hardening — password complexity
++ breach checking, progressive account lockout + per-IP rate limiting, a
+real confirmation-link email verification flow, and TOTP MFA for admin
+roles (see README's "Auth hardening" section for the full picture).
 
 **Stubbed (clearly marked in code, safe to demo without them):**
 - **Payments** — `approve_and_pay_milestone` sets a fake
   `stripe_payment_intent_id` instead of calling Stripe.
 - **Push notifications** — `notifications.py._send_push` just logs instead of
   calling Firebase.
-- **University email verification** — a student's email just needs to end in
-  `@<university.domain>`; there's no real SSO/Shibboleth check.
+- **Verification emails** — `email.py._send_email` just logs instead of
+  calling a real ESP (SendGrid/Postmark/SES); the confirmation-link flow
+  itself is fully real, only actual delivery is stubbed.
+- **University *institution* verification** — a student's email just needs
+  to end in `@<university.domain>` to confirm *which* university they
+  belong to; there's no real SSO/Shibboleth check for that part. Separate
+  from (and in addition to) the real per-account email confirmation flow.
 - **Error tracking** — Sentry integration is wired up (`app/core/observability.py`)
   but inactive until `SENTRY_DSN` is set to a real project's DSN.
 - **Uptime monitoring** — not configured anywhere; needs an external service

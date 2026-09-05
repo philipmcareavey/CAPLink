@@ -91,6 +91,7 @@ def run():
         hashed_password=hash_password("ChangeMe123!"),
         role=UserRole.BUSINESS,
         full_name="DataCraft Analytics Hiring Team",
+        is_email_verified=True,
     )
     db.add(business_user)
     db.flush()

@@ -54,6 +54,15 @@ def create_refresh_token(user_id: str) -> str:
     )
 
 
+def create_mfa_token(user_id: str) -> str:
+    """Short-lived, single-purpose token issued by /auth/login when TOTP is
+    enabled — proves the password check already passed, but is deliberately
+    a different `type` than access/refresh tokens so it can't be used
+    anywhere a real access token is expected, and expires in minutes, not
+    the usual 30 (Technical Implementation Plan step 2.a.iv)."""
+    return _create_token(subject=user_id, expires_delta=timedelta(minutes=5), token_type="mfa")
+
+
 def decode_token(token: str) -> dict:
     """Raises jose.JWTError on invalid/expired tokens — caught by the caller."""
     return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])

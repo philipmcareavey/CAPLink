@@ -90,9 +90,14 @@ try out how the platform behaves:
 - **Phone push notifications** — normally goes through Firebase (Google's
   notification service for apps). Right now it just writes "a notification
   would have been sent" to a log file instead of buzzing a real phone.
-- **Verifying a student is really a student** — right now, it just checks that
-  their email ends in the university's domain (e.g. `@manchester.ac.uk`). A
-  real product would hook into the university's actual login system.
+- **Verifying a student is really a student** — two separate checks happen here.
+  Confirming *which* university someone belongs to still just checks that their
+  email ends in that university's domain (e.g. `@manchester.ac.uk`) — a real
+  product would hook into the university's actual login system for this part.
+  Confirming they actually *own* that email address is real, though: they get
+  sent a link and have to click it before they can log in at all (in the local
+  demo specifically, this step is skipped for convenience, since there's no real
+  way to send emails yet — see below).
 
 Everything else — the accounts, the permission system, the matching, the
 applications, the contracts, the milestone payments logic, the ratings, the

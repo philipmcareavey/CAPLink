@@ -20,3 +20,6 @@ python-dotenv>=1.0.1
 # step 1.c.ii). Pure-Python-ish SDK, no wheel-build risk like firebase-admin,
 # so unlike that one it's fine to always install rather than keep separate.
 sentry-sdk[fastapi]>=2.14.0
+# TOTP MFA for admin roles (Technical Implementation Plan step 2.a.iv) —
+# pure Python, RFC 6238, no compiled deps, no external account needed.
+pyotp>=2.9.0

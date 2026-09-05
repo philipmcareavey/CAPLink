@@ -86,6 +86,11 @@ services:
         value: "staging"
       - key: CORS_ORIGINS
         value: "https://philipmcareavey.github.io"
+      # Settings' own default (localhost:8000) would be wrong here — this
+      # is what a registration confirmation email's link actually points
+      # at (Technical Implementation Plan step 2.a.iii).
+      - key: PUBLIC_APP_URL
+        value: "https://caplink-api.onrender.com"
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
@@ -131,6 +136,8 @@ services:
 #       - key: ENVIRONMENT
 #         value: "production"
 #       - key: CORS_ORIGINS
+#         value: "https://app.caplink.io"  # replace with the real production domain
+#       - key: PUBLIC_APP_URL
 #         value: "https://app.caplink.io"  # replace with the real production domain
 #       - key: STRIPE_SECRET_KEY
 #         sync: false

@@ -30,6 +30,22 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RegistrationResult(BaseModel):
+    """Registration no longer returns tokens directly (2.a.iii) — a new
+    account must verify its email via the confirmation link before it can
+    log in at all."""
+    message: str = "Registration successful. Check your email to verify your account before logging in."
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8)
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
 # ---------- Read models ----------
 
 class StudentProfileOut(BaseModel):

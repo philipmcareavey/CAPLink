@@ -19,12 +19,15 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app import models  # noqa: F401 — ensures all models register with Base.metadata
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.observability import configure_error_tracking, configure_logging
+from app.core.rate_limit import limiter
 from app.db.migrations import run_migrations
 from app.db.session import SessionLocal, engine
 from app.models.university import University
@@ -64,6 +67,18 @@ app = FastAPI(
     "for paid projects and internships, with university-controlled safeguarding policies.",
     version="0.1.0",
 )
+
+# Per-IP rate limiting (Technical Implementation Plan step 2.a.ii) — the
+# actual Limiter instance lives in app/core/rate_limit.py, not here, since
+# endpoint modules applying @limiter.limit(...) are imported *by* this
+# module (via api_router below); importing it back from here would be a
+# circular import.
+app.state.limiter = limiter
+# slowapi's handler is typed Callable[[Request, RateLimitExceeded], Response],
+# narrower than add_exception_handler's Callable[[Request, Exception], ...] —
+# a real Exception subclass at runtime, just a stub mismatch between the two
+# libraries, not an actual type error in this code.
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 # CORS: web dashboard + mobile app origins (capacitor://, ionic://, custom schemes)
 app.add_middleware(

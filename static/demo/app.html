@@ -270,7 +270,7 @@ function renderLogin() {
     `));
     body.querySelector('[data-action="register-student"]').addEventListener("click", async () => {
       try {
-        const tokens = await api("/auth/register/student", { method: "POST", auth: false, body: {
+        const result = await api("/auth/register/student", { method: "POST", auth: false, body: {
           email: document.getElementById("rs-email").value,
           password: document.getElementById("rs-pass").value,
           full_name: document.getElementById("rs-name").value,
@@ -278,9 +278,18 @@ function renderLogin() {
           degree_title: document.getElementById("rs-degree").value,
           band: document.getElementById("rs-band").value,
         }});
-        setSession(tokens);
-        toast("Registered and logged in", "success");
-        render();
+        // Local dev auto-verifies and logs straight in; staging/production
+        // require a real clicked verification link instead (no ESP is wired
+        // up yet, so that link only ever appears in the server's logs).
+        if (result.access_token) {
+          setSession(result);
+          toast("Registered and logged in", "success");
+          render();
+        } else {
+          toast(result.message || "Registered — check your email to verify.", "success");
+          state.registerTab = "login";
+          render();
+        }
       } catch (e) { toast("Registration failed: " + e.message, "error"); }
     });
   } else if (state.registerTab === "register-business") {
@@ -297,15 +306,21 @@ function renderLogin() {
     `));
     body.querySelector('[data-action="register-business"]').addEventListener("click", async () => {
       try {
-        const tokens = await api("/auth/register/business", { method: "POST", auth: false, body: {
+        const result = await api("/auth/register/business", { method: "POST", auth: false, body: {
           email: document.getElementById("rb-email").value,
           password: document.getElementById("rb-pass").value,
           full_name: document.getElementById("rb-name").value,
           company_name: document.getElementById("rb-company").value,
         }});
-        setSession(tokens);
-        toast("Registered and logged in", "success");
-        render();
+        if (result.access_token) {
+          setSession(result);
+          toast("Registered and logged in", "success");
+          render();
+        } else {
+          toast(result.message || "Registered — check your email to verify.", "success");
+          state.registerTab = "login";
+          render();
+        }
       } catch (e) { toast("Registration failed: " + e.message, "error"); }
     });
   }

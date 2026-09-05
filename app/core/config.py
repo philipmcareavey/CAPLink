@@ -58,6 +58,17 @@ class Settings(BaseSettings):
     # Plan step 1.c.ii), same pattern as Stripe/Firebase above.
     SENTRY_DSN: str = ""
 
+    # Auth hardening (Technical Implementation Plan 2.a)
+    # Used to build the link inside verification emails — no real ESP is
+    # wired up yet (see app/services/email.py), so this only matters once
+    # one is, but staging/production should already point it at their real
+    # public URL so the link a user actually clicks is correct from day one.
+    PUBLIC_APP_URL: str = "http://localhost:8000"
+    EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
+    ACCOUNT_LOCKOUT_THRESHOLD: int = 5
+    ACCOUNT_LOCKOUT_BASE_MINUTES: int = 5
+    PASSWORD_BREACH_CHECK_ENABLED: bool = True
+
     # Licensing
     DEFAULT_UNIVERSITY_TRIAL_DAYS: int = 30
 
