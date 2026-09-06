@@ -52,3 +52,35 @@ class UniversityPublicBranding(BaseModel):
     slug: str
     primary_color: str
     logo_url: Optional[str]
+    saml_enabled: bool  # lets a login screen decide whether to show "Sign in with your university"
+
+
+# ---------- SAML SSO config (2.b) ----------
+
+class SamlConfigUpdate(BaseModel):
+    """Manual entry — the alternative to uploading the IdP's metadata XML
+    directly (see SamlMetadataUpload) when an admin already has these three
+    values to hand."""
+    saml_enabled: bool = True
+    saml_idp_entity_id: str
+    saml_idp_sso_url: str
+    saml_idp_x509_cert: str
+    saml_attribute_mapping: Optional[dict] = None
+
+
+class SamlMetadataUpload(BaseModel):
+    """2.b.iv's backend half — the actual upload *screen* is a Workstream 5
+    (frontend) concern; this is the endpoint it would call."""
+    metadata_xml: str
+    saml_enabled: bool = True
+
+
+class SamlConfigOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    saml_enabled: bool
+    saml_idp_entity_id: Optional[str]
+    saml_idp_sso_url: Optional[str]
+    saml_attribute_mapping: Optional[dict]
+    # x509cert deliberately excluded — long, and not something a caller
+    # ever needs handed back to them.

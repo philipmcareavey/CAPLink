@@ -23,3 +23,11 @@ sentry-sdk[fastapi]>=2.14.0
 # TOTP MFA for admin roles (Technical Implementation Plan step 2.a.iv) —
 # pure Python, RFC 6238, no compiled deps, no external account needed.
 pyotp>=2.9.0
+# University SAML SSO (Technical Implementation Plan step 2.b.i). Pulls in
+# xmlsec (Python bindings for libxmlsec1, a C library) transitively — this
+# has historically been a painful, source-build-only dependency, but as of
+# writing it ships prebuilt wheels for manylinux and macOS (confirmed for
+# this repo's Python 3.13 target on both), so it doesn't reintroduce the
+# wheel-availability problem this file otherwise avoids. Re-check this if
+# installs ever start failing here.
+python3-saml>=1.16.0

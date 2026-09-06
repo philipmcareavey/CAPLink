@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List, Optional, TYPE_CHECKING
 
-from sqlalchemy import Date, Float, String
+from sqlalchemy import Boolean, Date, Float, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -53,6 +53,20 @@ class University(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     business_agreements: Mapped[List["UniversityBusinessAgreement"]] = relationship(
         back_populates="university", cascade="all, delete-orphan"
     )
+
+    # --- SAML SSO (Technical Implementation Plan 2.b) ---
+    # All nullable/False by default: SSO is additive (2.b.iii), never a hard
+    # replacement for email/password — a university with none of this
+    # configured just keeps using /auth/login exactly as before.
+    saml_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    saml_idp_entity_id: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    saml_idp_sso_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    # PEM-ish, no headers required — see app/services/saml.py's normaliser.
+    saml_idp_x509_cert: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Maps CAPLink fields (email/full_name/band/degree_title/affiliation) to
+    # this IdP's actual SAML attribute names (2.a.ii) — defaults to common
+    # eduPerson/UK federation OIDs if not set; see DEFAULT_ATTRIBUTE_MAPPING.
+    saml_attribute_mapping: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     def is_license_active(self) -> bool:
         return self.license_status == UniversityLicenseStatus.ACTIVE

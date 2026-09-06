@@ -286,15 +286,12 @@ Fully implemented: auth (including hardening — see below), multi-tenant licens
 safeguarding access control, rules-based matching + recommendation logging, applications,
 contracts/milestones, mutual blind ratings, messaging with off-platform-contact flagging,
 mobile device registration, Alembic-managed schema migrations, structured JSON logging,
-CI (lint/type-check/test).
+CI (lint/type-check/test), university SAML SSO (see "Auth hardening" below).
 
 Integration points left as clearly-marked placeholders (each notes what to replace):
 Stripe PaymentIntent creation/capture, Firebase push delivery, verification emails are
 logged rather than actually sent (no ESP wired up — see "Auth hardening" below),
-university-email domain verification for *which institution* is still a simple string
-match (swap for a real SSO/Shibboleth flow for enterprise customers — this is separate
-from the real per-account email confirmation flow, which is fully implemented), Sentry
-error tracking is wired up but inactive without a real `SENTRY_DSN`, and uptime
+Sentry error tracking is wired up but inactive without a real `SENTRY_DSN`, and uptime
 monitoring isn't configured anywhere (see "Observability" above).
 
 ## Auth hardening
@@ -325,6 +322,39 @@ monitoring isn't configured anywhere (see "Observability" above).
   already has. Not retroactively enforced on existing admin accounts that haven't opted in
   (there's no admin UI yet to walk someone through setup) — real and immediate once
   `totp_enabled` is actually true, not merely "on but unenforced."
+- **University SAML SSO** — a real SAML 2.0 SP flow (`python3-saml`) replacing the earlier
+  plain domain-string match for *which institution* a student belongs to. A university
+  admin sets `saml_enabled`/IdP entity ID/SSO URL/certificate on their `University` row
+  (`PATCH /universities/{id}/saml-config`, or `POST /universities/{id}/saml-idp-metadata`
+  to extract all three automatically from one exported IdP metadata XML file instead of
+  hand-copying them) — this is additive per-tenant config, not a global switch, so a
+  university that never enables it keeps using `/auth/login` exactly as before.
+  `GET /auth/saml/{slug}/metadata` (SP metadata for the university's IT team),
+  `GET /auth/saml/{slug}/login` (SP-initiated redirect to the IdP), and
+  `POST /auth/saml/{slug}/acs` (assertion consumer service) implement the actual dance;
+  a successful login hands the browser fresh CAPLink tokens via a URL **fragment**
+  (`/app/app.html#access_token=...`), never a query string or log line.
+  A signed assertion JIT-provisions a new **student** account automatically (marked
+  `is_email_verified=True` — a valid signed assertion from the university's own IdP is
+  stronger proof than the confirmation-link flow it stands in for here); an existing
+  account just logs in as whatever role it already has. **Deliberately never
+  auto-provisions a `university_admin` account**, even if the IdP's affiliation
+  attribute says "staff" — that role controls which businesses can reach a university's
+  students at all (the safeguarding gate this whole platform is built around), and
+  granting it needs a human decision the first time, not an IdP claim; SSO logs into an
+  admin account fine once one already exists. Most real institutional federations (e.g.
+  the UK Access Management Federation) only expose standard eduPerson attributes
+  (email, display name, affiliation) and not CAPLink-specific concepts like student band
+  or degree title — `app/services/saml.py`'s `DEFAULT_ATTRIBUTE_MAPPING` reflects that,
+  and a JIT-provisioned student gets a clearly-marked placeholder degree title to fill
+  in via their profile after first login rather than pretending SSO can supply data most
+  IdPs never send. A university can override any individual mapping via
+  `saml_attribute_mapping` if their IdP does expose something extra.
+  Verified end-to-end with a hand-built, cryptographically signed test SAML assertion
+  (real XML-DSig signing via `xmlsec`, not a mocked library call): JIT provisioning,
+  idempotent re-login of an existing account, staff-affiliation-with-no-existing-account
+  correctly rejected without creating an account, a tampered assertion correctly
+  rejected, and a non-SSO-enabled university's login route correctly 404ing.
 
 ## Database migrations (Alembic)
 

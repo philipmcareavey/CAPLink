@@ -1,5 +1,14 @@
 # CLAUDE.md — orientation for whoever (human or agent) works on this repo next
 
+**Standing rule established the hard way in this session — do not repeat
+this mistake**: completing an epic's code, verifying it, and even pushing
+it is not "done" until `../CAPLink-Technical-Tracker.xlsx` (both the
+`Tracker` rows *and* the `Dashboard` sheet's cached formula values) and
+**both** `CLAUDE.md` files are updated to reflect it. The user explicitly
+caught this being skipped once ("You haven't updated the tracker") after
+Epic 2.a's code was fully done and pushed — treat the tracker/CLAUDE.md
+update as a mandatory last step of every epic, not optional cleanup.
+
 This file exists so a new session doesn't have to re-derive context by
 reading every file. Read this first; it links to the deeper docs instead of
 repeating them.
@@ -550,6 +559,108 @@ getting their SQLAlchemy column `default=` values applied (those apply at
 flush/INSERT time, not at bare Python construction) — both fixed, noted
 here mainly as a reminder that hand-written test fixtures need the same
 scrutiny as the code they're testing.
+
+## Workstream 2 (Auth Hardening), Epic 2.b — 3/4 steps done, 2026-09-06
+
+Follows straight on from Epic 2.a above. `2.b.i`–`2.b.iii` are genuinely
+done; `2.b.iv` is backend-only (frontend blocked, same pattern as `1.d.iii`).
+
+- **2.b.i (SAML 2.0 SP endpoint)**: `app/services/saml.py` (settings
+  building, request translation, attribute mapping, IdP metadata parsing,
+  role inference) + `app/api/v1/endpoints/saml.py` (the three actual
+  routes: `GET /auth/saml/{slug}/metadata`, `GET /auth/saml/{slug}/login`,
+  `POST /auth/saml/{slug}/acs`), via `python3-saml` (OneLogin) — it
+  transitively depends on `xmlsec` (C bindings), confirmed to have prebuilt
+  wheels for macOS ARM64 and manylinux x86_64 on Python 3.13 before adding
+  it. Config is per-university (`University.saml_enabled`/
+  `saml_idp_entity_id`/`saml_idp_sso_url`/`saml_idp_x509_cert`/
+  `saml_attribute_mapping`, migration `c98cf682936f`), not a global switch.
+- **2.b.ii (attribute mapping)**: `map_attributes()` translates whatever
+  the IdP actually sends into CAPLink's shape via `DEFAULT_ATTRIBUTE_MAPPING`
+  — standard eduPerson OIDs (mail, displayName, eduPersonAffiliation) that
+  most real institutional federations (e.g. the UK Access Management
+  Federation) actually expose, since student band/degree title are **not**
+  standard eduPerson claims and most IdPs will never send them. A
+  university can override any individual key via `saml_attribute_mapping`
+  if theirs does expose something extra (tested with custom `yearOfStudy`/
+  `degreeTitle` claims). A JIT-provisioned student without those claims
+  gets a clearly-marked placeholder degree title to fill in via their
+  profile after first login, rather than pretending SSO can conjure data
+  it structurally can't.
+- **2.b.iii (email/password fallback preserved)**: `saml_enabled` defaults
+  to `False`; `/auth/login` is completely untouched by this epic. A
+  university that hasn't configured SSO gets a clean 404 on
+  `/auth/saml/{slug}/login`, not a broken partial SSO experience.
+- **2.b.iv (metadata-upload admin UI)**: only the backend half exists —
+  `POST /universities/{id}/saml-idp-metadata` parses one IdP-exported
+  metadata XML file (via `OneLogin_Saml2_IdPMetadataParser`) and extracts
+  entity ID/SSO URL/certificate automatically, instead of a university's IT
+  team hand-copying three fields (especially the certificate — genuinely
+  easy to get wrong by hand). `PATCH /universities/{id}/saml-config` covers
+  manual entry too. The actual upload *screen* doesn't exist because there
+  is no real frontend yet (Workstream 5, not started) — same "genuinely
+  blocked, not deprioritised" situation as `1.d.iii`'s CDN item.
+
+**The safety design decision this epic centres on**: the ACS handler
+(`saml.py`'s `saml_acs`) will JIT-provision a new `STUDENT` account
+automatically on any validly-signed assertion, but will **never**
+auto-provision a `UNIVERSITY_ADMIN` account, even when the IdP's
+affiliation claim says `staff`/`faculty`/`employee` — that role is what
+controls which businesses can reach a university's student body at all
+(the safeguarding gate this entire platform exists around), so granting it
+for the first time needs an explicit human decision, not an unverified IdP
+claim reaching an untested code path. Once an admin account already
+exists (created some other way), SSO logs into it fine — the restriction
+is only on *creating* one. An existing user's role/university is also
+never changed by an SSO login (`account_mismatch` rejection if either
+doesn't line up), so SSO can't be used to escalate or reassign anyone.
+
+**Verification — genuinely end-to-end, not unit-tests-only.** 9 unit
+tests in `tests/test_saml.py` cover the pure-function pieces
+(`normalize_x509_cert`, `parse_idp_metadata`, `map_attributes`,
+`infer_role`). Beyond that, a real cryptographically signed SAML assertion
+was hand-built and tested through the actual FastAPI endpoints via
+`TestClient` — genuine XML-DSig signing via `xmlsec` directly
+(`xmlsec.tree.add_ids` + `xmlsec.template`/`SignatureContext`) against a
+self-signed test IdP certificate, not a mocked library call. Confirmed
+working: the metadata endpoint; the SP-initiated login redirect; a new
+student JIT-provisioned correctly (role, `is_email_verified=True`, correct
+`StudentProfile.band`/`degree_title` from custom mapped attributes); the
+same user logging in again via SSO without creating a second row; a
+staff-affiliation assertion with no pre-existing account being rejected
+(`admin_account_not_provisioned`) with zero account created; a tampered
+assertion being rejected (`assertion_invalid`) with zero account created;
+a non-SSO-enabled university's login route 404ing; and plain
+`POST /auth/login` continuing to work completely unchanged.
+
+**One genuine bug hit and fixed while building the test harness — worth
+knowing if this needs debugging again**: `TestClient`'s literal `Host`
+header is `testserver` unless `base_url=` is passed explicitly, but
+`app/api/v1/endpoints/saml.py`'s `SAML_BASE_URL` constant (used for the SP
+entity ID / Audience check) is fixed at import time from
+`settings.PUBLIC_APP_URL`. In a real deployment these always agree (the
+real `Host` header *is* the configured `PUBLIC_APP_URL`), but in a
+`TestClient`-only run they can silently diverge: the Audience check uses
+one value, the Destination/Recipient check uses the other, and mismatching
+either produces a correct-looking-but-wrong `assertion_invalid`. Also,
+`testserver` itself is a single-label domain (no dot), which
+`python3-saml`'s own settings validator rejects outright
+(`sp_acs_url_invalid`) regardless of the above. Fixed by using a real
+dotted test domain (`http://caplink.test`) consistently for both
+`PUBLIC_APP_URL` and `TestClient(app, base_url=...)` — not a code bug, a
+test-harness-only artifact, but a non-obvious one if this needs
+re-verifying later.
+
+**One genuine migration bug, same class as Epic 2.a's**: autogenerate
+again produced a `NOT NULL` column (`saml_enabled`) with no
+`server_default` — would have crashed applying against staging's already-
+seeded university row. Fixed by hand (`server_default=sa.false()`) before
+it ever shipped, verified against fresh + pre-existing-row DBs and a
+downgrade/upgrade round-trip, same as every migration in this project so
+far.
+
+Full test suite reran clean after this epic: `ruff` 0 errors, `mypy` 0
+errors (73 files), `pytest` 74/74 passing (65 pre-existing + 9 new).
 
 ## Dependency pinning — read this before touching requirements.txt
 
