@@ -287,7 +287,9 @@ safeguarding access control, rules-based matching + recommendation logging, appl
 contracts/milestones with real Stripe payment authorization/capture/refund (see "Payments
 & payroll" below), mutual blind ratings, messaging with off-platform-contact flagging,
 mobile device registration, Alembic-managed schema migrations, structured JSON logging,
-CI (lint/type-check/test), university SAML SSO (see "Auth hardening" below).
+CI (lint/type-check/test), university SAML SSO (see "Auth hardening" below), GDPR
+data-subject-rights tooling and an automated retention job (see "Data protection &
+privacy engineering" below).
 
 Integration points left as clearly-marked placeholders (each notes what to replace):
 Firebase push delivery, verification emails are logged rather than actually sent (no ESP
@@ -298,6 +300,10 @@ without a real `SENTRY_DSN`, uptime monitoring isn't configured anywhere (see
 see "API hardening & abuse prevention" below), and the payroll rail for visa-restricted
 students has a real, enforced routing rule but no actual umbrella/EOR provider chosen or
 integrated yet (see "Payments & payroll" below).
+
+**One real, unresolved gap, not a placeholder**: staging is hosted in Oregon, USA, not
+the UK/EU — see "Data protection & privacy engineering" below for why that matters and
+what the alternative is.
 
 ## Payments & payroll
 
@@ -560,6 +566,109 @@ to, rather than something to build. Two items *are* real repo changes:
   feature and restrict the external URL to known IPs (or stop using it
   entirely, relying only on the internal one) — not done here because it
   requires the actual Render dashboard.
+
+## Data protection & privacy engineering
+
+Technical Implementation Plan Workstream 7 — the technical controls a real
+DPIA and university data-protection offices will expect to see evidenced,
+not just documented. 8 of 9 steps done; the 9th is a real, flagged, unresolved
+gap, not something quietly worked around.
+
+- **Data retention (`scripts/data_retention.py`, step 7.a.i)** — the actual
+  policy, not just the enforcement code: unverified accounts are deleted
+  after 30 days (they hold essentially no activity — no contract is
+  possible pre-verification, so nothing else has a legitimate interest in
+  keeping them); accounts inactive for 24 months are anonymized (see
+  below — not hard-deleted, for the same reason self-service deletion
+  isn't); `RecommendationLog` rows (the one table in this schema that
+  grows unboundedly per user with no natural cap otherwise) are purged
+  after 12 months. Defaults to a dry run — `python -m scripts.data_retention`
+  reports what it would do; `--execute` actually applies it. Not wired
+  into a scheduler yet — same "code is real, the schedule is a manual
+  Render Cron Jobs step" shape as `scripts/reconcile_payments.py`.
+- **PII minimisation audit (step 7.a.ii, done as a review, not a rewrite)**
+  — every model was reviewed field-by-field for personal data that isn't
+  genuinely needed. Conclusion: no field was found that should be removed
+  outright — everything stored (skills, portfolio links, company
+  registration numbers, message content, private rating comments, and so
+  on) is directly load-bearing for a feature that needs it. The actual
+  minimisation gap wasn't "fields that shouldn't exist," it was **retention
+  with no time limit** — fixed by 7.a.i above, not by deleting fields.
+- **Explicit consent capture (step 7.b.i)** — `StudentRegister.data_sharing_consent`
+  is a required (not optional, not pre-ticked) field; omitting it is a
+  422, not a silent default. Recorded as a timestamp
+  (`StudentProfile.data_sharing_consent_at`), not just a boolean, so there's
+  a durable record of *when* consent was given. **A known, honest gap**:
+  a student JIT-provisioned via university SSO (2.b) never sees this
+  wording at all, so `data_sharing_consent_at` is deliberately left unset
+  for them rather than backfilled with a fabricated timestamp — closing
+  this needs a real one-time post-login consent screen, a Workstream 5
+  (frontend) concern, same shape as the CAPTCHA widget/SSO metadata-upload
+  gaps.
+- **Cookie/tracking consent banner (step 7.b.ii) — done, because it
+  genuinely doesn't apply.** This step is explicitly conditional in the
+  plan ("required *if* any analytics or non-essential cookies are used").
+  Checked directly: authentication here is bearer-token-in-header (see
+  `static/app/js/api.js`), not cookie-based, and there is no analytics or
+  tracking script anywhere in `app/` or `static/`. Nothing to build until
+  that changes — revisit this the moment analytics or cookies are ever
+  actually added, not before.
+- **Personal data export (`GET /privacy/export`, step 7.c.i)** — a
+  self-service GDPR Subject Access Request export as JSON, covering
+  everything CAPLink holds that constitutes or relates to a user's
+  personal data: account/profile fields, applications, contracts and
+  milestones, every message in a thread they're part of (both sent and
+  received — a two-party conversation is legitimately part of both
+  parties' own data), ratings given and received, recommendation history,
+  and registered devices. See `app/services/privacy.py::export_user_data`.
+- **Account deletion (`DELETE /privacy/account`, step 7.c.ii)** — requires
+  re-entering the current password first (same "sensitive action needs
+  reauth" pattern as MFA disable requiring a valid TOTP code), then
+  **anonymizes rather than hard-deletes**. This is a deliberate design
+  decision, not a shortcut: a contract, rating, or message a user was
+  party to also legitimately belongs to the *other* party's own record
+  (their own contract history, their own received rating) — hard-deleting
+  the `User` row would either cascade-destroy that other party's data too,
+  or simply fail on a foreign-key constraint. GDPR's right to erasure
+  doesn't require deleting data another party has a legitimate ongoing
+  interest in; it requires erasing what identifies *this* person. So
+  deletion clears email/name/password/MFA secrets/device push tokens (a
+  physical-device identifier with no reason to survive account closure)
+  and a student's portfolio links, while leaving the structural rows
+  (contracts, ratings, message content) intact but now pointing at an
+  anonymized account. See `app/services/privacy.py`'s module docstring
+  for the full reasoning.
+- **Encryption at rest (step 7.d.i) — done, confirmed not assumed.**
+  Render Postgres databases are encrypted at rest with AES-256 by
+  default, covering primaries, replicas, and backups alike, with no
+  configuration needed — confirmed via Render's own documentation and
+  community support answers, not just taken on faith.
+- **TLS everywhere + HSTS (step 7.d.ii)** — TLS termination itself is
+  Render's job, not this app's: every `*.onrender.com` service and any
+  custom domain gets HTTPS automatically at Render's edge, confirmed via
+  Render's own documentation. What Render does *not* do on its own is
+  tell a returning browser "never fall back to plain HTTP for this origin
+  again" — that's what the `Strict-Transport-Security` header does, and
+  it has to come from the application: `app/core/security_headers.py`'s
+  `HSTSMiddleware`, added in every environment except `development`
+  (a local `http://localhost` origin shouldn't get a header that assumes
+  TLS is terminating somewhere in front of it).
+- **UK/EU data residency (step 7.d.iii) — NOT done, a real gap, not
+  quietly worked around.** `render.yaml` currently hosts both
+  `caplink-api` and `caplink-staging-db` in **Oregon, USA** — confirmed
+  directly from the blueprint, not assumed. For a UK-focused platform
+  processing UK university students' personal data, hosting outside the
+  UK/EU raises genuine international-data-transfer questions under
+  UK GDPR that a university's own data-protection office will ask about
+  directly during due diligence. Render does offer a Frankfurt, Germany
+  region (confirmed via Render's own regions documentation) as the
+  realistic EU alternative. **Not changed here** — moving region means
+  recreating the database (the same region-must-match gotcha already
+  documented in `render.yaml` from step 1.a.iv, this time on a database
+  that now holds real staging data, however sparse) and is a genuine
+  infrastructure decision for the account owner to make deliberately, not
+  something to change unprompted mid-session. Flagged clearly rather than
+  left to be discovered later during a real DPIA.
 
 ## Database migrations (Alembic)
 

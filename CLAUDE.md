@@ -1057,6 +1057,110 @@ real on staging and fixed in a fast follow-up. Docker's `docker-compose.yml`
 relying on a staging deploy to find this, if it's ever actually run — see
 this file's earlier note that it's still unverified.
 
+## Workstream 7 (Data Protection & Privacy Engineering) — 8/9 done, 1/9 a real flagged gap, 2026-09-07
+
+Picked as the next workstream after Workstream 3 substantially closed out
+— the plan's own text names Workstreams 3 and 7 together as "the most
+likely gating factors for the first university pilot," so this follows
+the same sequencing logic Phil already endorsed by choosing Workstream 3
+over the frontend earlier. Full user-facing detail (the actual retention
+policy, the anonymization design rationale, the data-residency finding)
+is in README's new "Data protection & privacy engineering" section —
+this entry covers what that section doesn't: verification, and a couple
+of decisions worth flagging for whoever touches this next.
+
+**The one deliberate design decision worth understanding before touching
+account deletion again**: `DELETE /privacy/account` anonymizes, it does
+not `DELETE FROM users`. This was a real design choice, not a shortcut —
+see `app/services/privacy.py`'s module docstring for the full reasoning
+(a contract/rating/message the deleted user was party to still belongs,
+legitimately, to the other party's own record). Concretely: email →
+`deleted-user-{id}@deleted.caplink.invalid`, name → "Deleted User",
+password → a random unusable hash, MFA/verification tokens cleared,
+`is_active=False`, `deleted_at` set, a student's `portfolio_urls` cleared
+(personal links), device rows hard-deleted (push tokens are a physical-
+device identifier with no reason to survive). Contracts/milestones/
+ratings/messages are left completely alone. Requires re-entering the
+current password first — same reauth-for-sensitive-actions pattern as
+MFA disable.
+
+**`scripts/data_retention.py` (7.a.i) defaults to a dry run** — `run(execute=False)`
+only reports counts, `--execute` actually applies. Three rules: unverified
+accounts >30 days old hard-deleted (safe — pre-verification, nothing else
+can reference them yet); accounts inactive >24 months anonymized via the
+same function as self-service deletion; `RecommendationLog` rows >12
+months old hard-deleted (flagged during the 7.a.ii PII audit as the one
+table that grows unboundedly per user with no other natural limit).
+Required a new `User.last_login_at` field, set only on an actual
+successful login (`account_lockout.py::register_successful_login`), not
+at registration — an abandoned pre-verification signup is judged by its
+own separate, shorter rule instead.
+
+**Consent capture (7.b.i)** made `StudentRegister.data_sharing_consent` a
+required (not `Optional[bool] = False`) field — omitting it is a 422, not
+a silent opt-in. Both reference UIs (`static/app/js/main.js`,
+`static/demo/app.html`) got a real checkbox wired to a client-side guard
+before the request even goes out, plus the server-side check as the real
+enforcement. `saml.py`'s JIT provisioning deliberately leaves
+`data_sharing_consent_at` unset rather than backfilling a timestamp —
+an SSO-provisioned student has never actually seen the consent wording,
+so recording one would be fabricating consent that was never given; noted
+as a known gap needing a real post-login consent screen once Workstream 5
+exists.
+
+**7.b.ii (cookie banner) is marked Done, not Not Started or Not
+Applicable** — the plan step is explicitly conditional ("required *if*
+analytics/cookies are used"), and a direct grep confirmed neither exists
+anywhere in this codebase (auth is bearer-token-in-header, not cookie-
+based). The audit confirming the precondition doesn't hold **is** the
+deliverable here — revisit the moment analytics or cookies are ever
+actually added.
+
+**7.d.i (encryption at rest) verified via Render's own documentation and
+community answers, not assumed**: Render Postgres uses AES-256 at rest by
+default (primaries, replicas, and backups), no configuration needed.
+**7.d.ii (TLS+HSTS)**: TLS termination is entirely Render's job (confirmed
+the same way); `app/core/security_headers.py::HSTSMiddleware` adds the one
+thing Render doesn't do on its own — telling a returning browser to never
+fall back to plain HTTP — in every environment except `development`
+(unit-tested directly against a minimal Starlette app rather than booted
+through the full config, since `staging`/`production` config both hard-
+require a real Postgres `DATABASE_URL` that doesn't exist in this
+environment).
+
+**7.d.iii (UK/EU data residency) is the one genuine, unresolved gap —
+flagged, not worked around.** Confirmed directly from `render.yaml`:
+both `caplink-api` and `caplink-staging-db` are in Oregon, USA. Render
+does offer Frankfurt, Germany (confirmed via Render's own regions
+documentation) as the realistic EU alternative. Not changed here —
+moving region means recreating the database (the same region-must-match
+gotcha already documented in `render.yaml` from `1.a.iv`, this time
+against a database that holds real staging data) and is a genuine
+infrastructure decision for Phil to make deliberately when he's ready,
+not something to change unprompted mid-session the way this session
+handled Workstream 3's provider-choice gap.
+
+**Migration `c9fc3db88d6f`** adds `student_profiles.data_sharing_consent_at`,
+`users.last_login_at`, `users.deleted_at` — all nullable, no enum
+involved, deliberately the simplest possible shape after `eede1a0f59da`'s
+real Postgres enum-creation lesson. Verified fresh/downgrade-upgrade on
+SQLite; no pre-existing-row scenario needed since every new column is
+nullable with no server_default required. Autogenerate again produced a
+spurious `milestones.status` type-change line (same SQLite-only false
+positive as `eede1a0f59da` — MilestoneStatus's actual members haven't
+changed since then) — recognised immediately this time and removed
+before it could cause any confusion, rather than needing a live failure
+to catch it again.
+
+Full test suite: `ruff` 0 errors, `mypy` 0 errors (91 files), `pytest`
+105/105 passing (96 pre-existing + 9 new: `tests/test_privacy.py`,
+`tests/test_data_retention.py`, `tests/test_security_headers.py`).
+End-to-end verified via `TestClient`: registration correctly rejects
+missing/false consent and records a real timestamp on success; the SAR
+export endpoint returns real nested data across every table touched;
+account deletion correctly requires the current password, then genuinely
+anonymizes; the anonymized account can no longer log in at all.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The
