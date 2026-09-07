@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
     applications,
+    audit_log,
     auth,
     businesses,
     contracts,
@@ -33,3 +34,4 @@ api_router.include_router(messages.router)
 api_router.include_router(recommendations.router)
 api_router.include_router(mobile.router)
 api_router.include_router(local_search.router)
+api_router.include_router(audit_log.router)

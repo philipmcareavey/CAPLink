@@ -99,6 +99,8 @@ services:
         sync: false
       - key: SENTRY_DSN
         sync: false
+      - key: HCAPTCHA_SECRET_KEY
+        sync: false
 
 # --- Production scaffolding — NOT active, nothing here is provisioned until ---
 # --- you uncomment it. Deliberately kept out of the live blueprint above:  ---
@@ -146,4 +148,6 @@ services:
 #       - key: FIREBASE_CREDENTIALS_JSON
 #         sync: false
 #       - key: SENTRY_DSN
+#         sync: false
+#       - key: HCAPTCHA_SECRET_KEY
 #         sync: false

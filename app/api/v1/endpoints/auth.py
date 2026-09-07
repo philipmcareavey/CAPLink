@@ -40,6 +40,7 @@ from app.schemas.user import (
 )
 from app.services import mfa as mfa_service
 from app.services.account_lockout import is_locked, register_failed_attempt, register_successful_login
+from app.services.captcha import verify_captcha
 from app.services.email import send_verification_email
 from app.services.password_policy import PasswordPolicyError, validate_password
 
@@ -81,6 +82,9 @@ def _start_email_verification(user: User) -> None:
 )
 @limiter.limit("10/minute")
 def register_student(request: Request, payload: StudentRegister, db: Session = Depends(get_db)):
+    if not verify_captcha(payload.captcha_token):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Captcha verification failed")
+
     university = db.query(University).filter(University.slug == payload.university_slug).first()
     if university is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown university")
@@ -134,6 +138,9 @@ def register_student(request: Request, payload: StudentRegister, db: Session = D
 )
 @limiter.limit("10/minute")
 def register_business(request: Request, payload: BusinessRegister, db: Session = Depends(get_db)):
+    if not verify_captcha(payload.captcha_token):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Captcha verification failed")
+
     if db.query(User).filter(User.email == payload.email).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists")
 

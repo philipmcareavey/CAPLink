@@ -1,0 +1,28 @@
+# Technical Implementation Plan step 2.d.iii: automated dependency
+# vulnerability scanning on every PR. GitHub's own Dependabot, not
+# Snyk — no extra external account needed for a repo already on GitHub,
+# and security *alerts* (as opposed to these version-update PRs) are
+# already on by default for a public repo like this one under Settings ->
+# Code security. This file adds the second half: scheduled PRs that
+# actually bump vulnerable/outdated dependencies, reviewed against the
+# patch-management cadence documented in README.md's "Dependency patching"
+# section (2.d.iv).
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    # requirements.txt intentionally uses >= floors, not == exact pins (see
+    # CLAUDE.md's "Dependency pinning" section) — Dependabot's version PRs
+    # still apply cleanly on top of that scheme.
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

@@ -1,10 +1,11 @@
 import re
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.rate_limit import limiter
 from app.db.session import get_db
 from app.models.message import Message, MessageThread
 from app.models.user import User
@@ -35,7 +36,10 @@ def _flag_reason(content: str) -> str | None:
 
 
 @router.post("/threads", status_code=status.HTTP_201_CREATED)
-def create_thread(payload: ThreadCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+@limiter.limit("30/minute")
+def create_thread(
+    request: Request, payload: ThreadCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
     thread = MessageThread(
         project_id=payload.project_id,
         student_user_id=user.id if user.role.value == "student" else payload.other_user_id,
@@ -48,7 +52,10 @@ def create_thread(payload: ThreadCreate, db: Session = Depends(get_db), user: Us
 
 
 @router.post("", response_model=MessageOut, status_code=status.HTTP_201_CREATED)
-def send_message(payload: MessageCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+@limiter.limit("60/minute")
+def send_message(
+    request: Request, payload: MessageCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
     thread = db.query(MessageThread).filter(MessageThread.id == payload.thread_id).first()
     if thread is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Thread not found")

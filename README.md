@@ -291,8 +291,11 @@ CI (lint/type-check/test), university SAML SSO (see "Auth hardening" below).
 Integration points left as clearly-marked placeholders (each notes what to replace):
 Stripe PaymentIntent creation/capture, Firebase push delivery, verification emails are
 logged rather than actually sent (no ESP wired up — see "Auth hardening" below),
-Sentry error tracking is wired up but inactive without a real `SENTRY_DSN`, and uptime
-monitoring isn't configured anywhere (see "Observability" above).
+Sentry error tracking is wired up but inactive without a real `SENTRY_DSN`, uptime
+monitoring isn't configured anywhere (see "Observability" above), and CAPTCHA
+verification is wired up but inactive without a real `HCAPTCHA_SECRET_KEY` (no widget
+on the reference UIs' registration forms yet either — see "API hardening & abuse
+prevention" below).
 
 ## Auth hardening
 
@@ -355,6 +358,114 @@ monitoring isn't configured anywhere (see "Observability" above).
   idempotent re-login of an existing account, staff-affiliation-with-no-existing-account
   correctly rejected without creating an account, a tampered assertion correctly
   rejected, and a non-SSO-enabled university's login route correctly 404ing.
+
+## API hardening & abuse prevention
+
+Technical Implementation Plan Epic 2.c.
+
+- **Rate limiting** — `slowapi`, per-IP. Auth endpoints (login/register/
+  resend-verification/MFA-verify) at 10/minute since 2.a.ii; messaging added
+  in 2.c.i (`POST /messages/threads` 30/minute, `POST /messages` 60/minute)
+  — the other realistic abuse surface once an account exists (spamming new
+  conversations, or flooding a single one).
+- **Oversized-payload protection** — two layers. `MaxBodySizeMiddleware`
+  (`app/core/body_limit.py`) rejects any request body over
+  `MAX_REQUEST_BODY_BYTES` (2MB by default — comfortably above the largest
+  legitimate payload today, a SAML IdP metadata upload) before it reaches
+  routing at all. Underneath that, every free-text Pydantic field across the
+  API (names, titles, descriptions, message content, cover notes, milestone
+  descriptions, SAML config fields, ...) carries an explicit `max_length`,
+  and every list field a max item count — neither existed before this epic,
+  so a client could previously send an arbitrarily large string or list and
+  have it accepted and stored as-is.
+- **Injection audit** — every query in this codebase goes through the
+  SQLAlchemy ORM (confirmed via a full-repo grep for raw `.execute()`/`text()`
+  calls — there are none), so classic SQL injection isn't a live risk here.
+  The audit did find one genuine stored-XSS gap in the reference UI though:
+  `static/app/js/shared/contracts.js` was rendering a contract's project
+  title, counterpart name, and milestone descriptions via `innerHTML`
+  *without* the `esc()` helper every other view in `/app` already uses
+  consistently — fixed. `static/demo/app.html` (the older, lighter-weight
+  demo — see "What's stubbed vs. production-ready" below) has the same gap
+  in several places and was **not** fixed in this pass: it has no `esc()`
+  helper at all, and giving it one properly is Workstream 5 (real frontend)
+  territory, not a quick patch — known, tracked, not urgent given `/app` is
+  the actively-used reference implementation.
+- **Bot protection (CAPTCHA)** — `app/services/captcha.py` verifies a
+  `captcha_token` field on `POST /auth/register/student` and
+  `.../register/business` against hCaptcha's `siteverify` API, same
+  "real code, external account is the manual step" shape as Sentry
+  (1.c.ii): with no `HCAPTCHA_SECRET_KEY` set (the default everywhere right
+  now) it's a no-op and every registration passes, so local dev/demo is
+  completely unaffected. Fails open on a network error, same reasoning as
+  the HIBP breach check. **What's still missing**: the actual hCaptcha
+  *widget* on `/app`'s and `/demo`'s registration forms — that needs a real
+  site key (created alongside the secret key, same free hCaptcha account)
+  and is a frontend (Workstream 5) concern, so it's genuinely blocked, not
+  deprioritised, same pattern as 2.b.iv's metadata-upload screen. To turn
+  this on for real: sign up at hcaptcha.com, add the site key to the
+  registration forms' JS, set `HCAPTCHA_SECRET_KEY` in Render's dashboard
+  (already slotted into `render.yaml` as `sync: false`).
+- **Audit logging for admin/moderation actions** — `app/models/audit_log.py`
+  (`AuditLog`, write-once — no PATCH/DELETE route exists for it) records a
+  university admin's safeguarding-gate decision on a business agreement
+  (`PATCH /universities/{id}/business-agreements/{agreement_id}` — the
+  plan's own explicit example, and the single most safeguarding-critical
+  write in the platform), a platform admin onboarding a new university, and
+  a university admin's SAML SSO configuration changes (security-sensitive:
+  controls which IdP CAPLink trusts for that university). Readable via
+  `GET /audit-log` (platform-admin only, newest first). **Narrower than the
+  plan wording's illustrative examples on purpose**: "rating overrides" and
+  "account suspensions" aren't actual features in this codebase at all, so
+  nothing was invented to have something to log — see
+  `app/services/audit_log.py`'s docstring.
+
+## Cyber Essentials technical controls
+
+Technical Implementation Plan Epic 2.d — UK Cyber Essentials is a
+certification against real infrastructure/process, not application code, so
+most of this epic is a checklist for the account owner to actually action
+against GitHub/Render/hCaptcha accounts this workspace has no login access
+to, rather than something to build. Two items *are* real repo changes:
+
+- **Automated dependency vulnerability scanning (2.d.iii, done)** —
+  `.github/dependabot.yml` adds weekly version-update PRs for both `pip`
+  (`requirements*.txt`) and `github-actions` ecosystems. Security *alerts*
+  (as opposed to these update PRs) are already on by default for a public
+  GitHub repo like this one under Settings → Code security — nothing to add
+  there.
+- **Patch-management cadence (2.d.iv, done, as documentation)** — Dependabot
+  PRs (above) get reviewed and merged against a fixed SLA: **critical/high
+  severity within 7 days, medium within 30 days, low at the next routine
+  dependency pass**. The `python:3.13-slim` base image in `Dockerfile`
+  (1.d.i) should be bumped and rebuilt at least monthly regardless of
+  whether Dependabot flags anything, since OS-level package CVEs inside a
+  base image aren't something a Python-ecosystem scanner sees at all.
+- **MFA on internal infrastructure accounts (2.d.i, not done — needs the
+  account owner, not code)** — a Cyber Essentials baseline control, and one
+  this workspace cannot verify or configure itself (no login access to
+  these accounts). Checklist: enable 2FA/MFA on the GitHub account this
+  repo lives under, on the Render account (`caplink-api`/
+  `caplink-staging-db`), and on the hCaptcha/Sentry accounts once created
+  above. CAPLink's own admin-role MFA (2.a.iv, `pyotp`/TOTP) is a *separate*
+  thing — that protects `university_admin`/`platform_admin` accounts
+  *inside* the app; this item is about the humans' accounts on the
+  third-party services the app depends on.
+- **Restrict database/admin network access (2.d.ii, not done — needs the
+  account owner's Render dashboard, and a scoping note)**. "Admin-panel
+  access" doesn't map onto anything in CAPLink structurally: there's no
+  separate admin panel, university/platform admins use the same `/app`
+  reference UI as everyone else, gated by role-based auth (JWT + RBAC) —
+  not by network location, since university careers teams need to reach it
+  from wherever they work. "Database access" does apply for real: Render
+  Postgres exposes both an Internal Database URL (only reachable from
+  services in the same Render region — what `caplink-api` actually uses)
+  and an External Database URL (reachable from the public internet with
+  just a password) for direct `psql`/admin access. Action for the account
+  owner: check `caplink-staging-db`'s dashboard for an IP Allow List
+  feature and restrict the external URL to known IPs (or stop using it
+  entirely, relying only on the internal one) — not done here because it
+  requires the actual Render dashboard.
 
 ## Database migrations (Alembic)
 

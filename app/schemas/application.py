@@ -1,14 +1,14 @@
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import ApplicationStatus
 
 
 class ApplicationCreate(BaseModel):
-    project_id: str
-    cover_note: Optional[str] = None
-    proposed_rate_gbp: Optional[float] = None
+    project_id: str = Field(max_length=36)
+    cover_note: Optional[str] = Field(default=None, max_length=5_000)
+    proposed_rate_gbp: Optional[float] = Field(default=None, ge=0, le=10_000)
 
 
 class ApplicationStatusUpdate(BaseModel):

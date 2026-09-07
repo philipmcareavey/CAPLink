@@ -16,6 +16,7 @@ from app.schemas.university import (
 )
 from app.services import geo
 from app.services import saml as saml_service
+from app.services.audit_log import record_audit_event
 
 router = APIRouter(prefix="/universities", tags=["universities"])
 
@@ -36,7 +37,7 @@ def get_public_branding(slug: str, db: Session = Depends(get_db)):
 def onboard_university(
     payload: UniversityCreate,
     db: Session = Depends(get_db),
-    _admin=Depends(require_platform_admin),
+    admin: User = Depends(require_platform_admin),
 ):
     """CAPLink platform-admin-only: onboard a new licensed institution."""
     if db.query(University).filter(University.slug == payload.slug).first():
@@ -54,6 +55,17 @@ def onboard_university(
         university.longitude = geocoded.longitude
 
     db.add(university)
+    db.flush()
+
+    record_audit_event(
+        db,
+        actor_user_id=admin.id,
+        action="university_onboarded",
+        target_type="university",
+        target_id=university.id,
+        details={"name": university.name, "slug": university.slug, "license_tier": university.license_tier.value},
+    )
+
     db.commit()
     db.refresh(university)
     return university
@@ -109,6 +121,18 @@ def update_saml_config(
     university.saml_idp_sso_url = payload.saml_idp_sso_url
     university.saml_idp_x509_cert = payload.saml_idp_x509_cert
     university.saml_attribute_mapping = payload.saml_attribute_mapping
+
+    record_audit_event(
+        db,
+        actor_user_id=admin.id,
+        action="saml_config_updated",
+        target_type="university",
+        target_id=university.id,
+        # Deliberately excludes saml_idp_x509_cert — long, and a signing
+        # certificate has no business sitting in a plain audit-log column.
+        details={"saml_enabled": payload.saml_enabled, "saml_idp_entity_id": payload.saml_idp_entity_id},
+    )
+
     db.commit()
     db.refresh(university)
     return university
@@ -141,6 +165,16 @@ def upload_saml_idp_metadata(
     university.saml_idp_sso_url = parsed["sso_url"]
     university.saml_idp_x509_cert = parsed["x509_cert"]
     university.saml_enabled = payload.saml_enabled
+
+    record_audit_event(
+        db,
+        actor_user_id=admin.id,
+        action="saml_config_updated_via_metadata_upload",
+        target_type="university",
+        target_id=university.id,
+        details={"saml_enabled": payload.saml_enabled, "saml_idp_entity_id": parsed["entity_id"]},
+    )
+
     db.commit()
     db.refresh(university)
     return university

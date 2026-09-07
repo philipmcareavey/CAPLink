@@ -1,15 +1,15 @@
 from datetime import date
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import ContractStatus, MilestoneStatus
 
 
 class MilestoneCreate(BaseModel):
-    description: str
+    description: str = Field(min_length=1, max_length=2_000)
     due_date: Optional[date] = None
-    payment_amount_gbp: float
+    payment_amount_gbp: float = Field(ge=0, le=1_000_000)
 
 
 class MilestoneOut(BaseModel):
@@ -23,8 +23,8 @@ class MilestoneOut(BaseModel):
 
 
 class ContractCreate(BaseModel):
-    application_id: str
-    milestones: List[MilestoneCreate]
+    application_id: str = Field(max_length=36)
+    milestones: List[MilestoneCreate] = Field(min_length=1, max_length=50)
 
 
 class ContractOut(BaseModel):

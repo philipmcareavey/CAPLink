@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Annotated, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -6,10 +6,16 @@ from app.models.enums import RatingVisibility
 
 
 class RatingCreate(BaseModel):
-    contract_id: str
+    contract_id: str = Field(max_length=36)
     overall_score: float = Field(ge=1.0, le=5.0)
-    sub_scores: dict = {}
-    private_comment: Optional[str] = None
+    # Bounded rather than an unbounded arbitrary dict — a fixed, small set of
+    # named sub-scores (e.g. "communication", "quality") is all this is ever
+    # used for; capping key/value counts and value length forecloses an
+    # oversized-payload vector via nested/duplicated keys.
+    sub_scores: dict[Annotated[str, Field(max_length=50)], Annotated[float, Field(ge=0, le=5)]] = Field(
+        default_factory=dict, max_length=20
+    )
+    private_comment: Optional[str] = Field(default=None, max_length=2_000)
     visibility: RatingVisibility = RatingVisibility.PUBLIC
 
 

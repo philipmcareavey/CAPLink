@@ -69,6 +69,21 @@ class Settings(BaseSettings):
     ACCOUNT_LOCKOUT_BASE_MINUTES: int = 5
     PASSWORD_BREACH_CHECK_ENABLED: bool = True
 
+    # API hardening & abuse prevention (Technical Implementation Plan 2.c)
+    # Rejects any request body above this size before it reaches routing/
+    # Pydantic validation at all — a backstop behind the per-field
+    # max_length constraints on individual schemas, not a replacement for
+    # them (those still matter for e.g. an oversized list of short strings
+    # that never gets close to this ceiling). 2MB comfortably covers the
+    # largest legitimate payload today (a SAML IdP metadata XML upload).
+    MAX_REQUEST_BODY_BYTES: int = 2 * 1024 * 1024
+    # Empty = bot-protection disabled (matches SENTRY_DSN's pattern) — a real
+    # hCaptcha account/site is a manual step (Technical Implementation Plan
+    # step 2.c.iii), same "code is real, external account is a manual step"
+    # shape as Stripe/Firebase/Sentry above.
+    HCAPTCHA_SECRET_KEY: str = ""
+    CAPTCHA_ENABLED: bool = True  # only takes effect once HCAPTCHA_SECRET_KEY is actually set
+
     # Licensing
     DEFAULT_UNIVERSITY_TRIAL_DAYS: int = 30
 

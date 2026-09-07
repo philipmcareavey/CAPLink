@@ -7,6 +7,7 @@ from app.models.enums import AgreementStatus
 from app.models.policy import UniversityBusinessAgreement
 from app.models.user import BusinessProfile, User
 from app.schemas.policy import AgreementCreate, AgreementDecision, AgreementOut
+from app.services.audit_log import record_audit_event
 
 router = APIRouter(tags=["safeguarding-policies"])
 
@@ -104,6 +105,19 @@ def decide_agreement(
     agreement.requires_university_project_review = payload.requires_university_project_review
     agreement.university_notes = payload.university_notes
     agreement.reviewed_by_admin_id = admin.id
+
+    record_audit_event(
+        db,
+        actor_user_id=admin.id,
+        action="agreement_decision",
+        target_type="university_business_agreement",
+        target_id=agreement.id,
+        details={
+            "status": payload.status.value,
+            "allowed_bands": [b.value for b in payload.allowed_bands],
+            "allowed_categories": [c.value for c in payload.allowed_categories],
+        },
+    )
 
     db.commit()
     db.refresh(agreement)

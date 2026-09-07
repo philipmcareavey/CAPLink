@@ -1,22 +1,24 @@
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import ProjectCategory, ProjectStatus, StudentBand
 
+ShortListItem = Annotated[str, Field(min_length=1, max_length=100)]
+
 
 class ProjectCreate(BaseModel):
-    title: str
-    description: str
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(min_length=1, max_length=10_000)
     category: ProjectCategory
-    required_skills: List[str] = []
-    duration_label: str
-    estimated_hours: Optional[int] = None
-    hourly_rate_gbp: float
+    required_skills: List[ShortListItem] = Field(default=[], max_length=50)
+    duration_label: str = Field(min_length=1, max_length=100)
+    estimated_hours: Optional[int] = Field(default=None, ge=0, le=100_000)
+    hourly_rate_gbp: float = Field(ge=0, le=10_000)
     is_remote: bool = True
-    location_label: Optional[str] = None
-    target_university_ids: List[str] = []
-    target_bands: List[StudentBand] = []
+    location_label: Optional[str] = Field(default=None, max_length=200)
+    target_university_ids: List[Annotated[str, Field(max_length=36)]] = Field(default=[], max_length=200)
+    target_bands: List[StudentBand] = Field(default=[], max_length=20)
 
 
 class ProjectOut(BaseModel):

@@ -1,16 +1,21 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+# Technical Implementation Plan 2.c.ii — a message body is the highest-volume
+# free-text input in the whole API, so it gets an explicit cap rather than
+# relying on the Text column to be unbounded.
+CONTENT_MAX_LENGTH = 5_000
 
 
 class ThreadCreate(BaseModel):
-    project_id: str | None = None
-    other_user_id: str  # the business or student on the other side
+    project_id: str | None = Field(default=None, max_length=36)
+    other_user_id: str = Field(max_length=36)  # the business or student on the other side
 
 
 class MessageCreate(BaseModel):
-    thread_id: str
-    content: str
+    thread_id: str = Field(max_length=36)
+    content: str = Field(min_length=1, max_length=CONTENT_MAX_LENGTH)
 
 
 class MessageOut(BaseModel):

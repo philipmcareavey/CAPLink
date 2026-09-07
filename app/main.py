@@ -25,6 +25,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app import models  # noqa: F401 — ensures all models register with Base.metadata
 from app.api.v1.api import api_router
+from app.core.body_limit import MaxBodySizeMiddleware
 from app.core.config import settings
 from app.core.observability import configure_error_tracking, configure_logging
 from app.core.rate_limit import limiter
@@ -91,6 +92,13 @@ app.add_middleware(
 # Added after CORS so it wraps outermost — captures the full request
 # lifecycle (including CORS handling) and the final status code.
 app.add_middleware(RequestLoggingMiddleware)
+# Oversized-payload hardening (2.c.ii) — rejects any body over the cap
+# before it reaches routing/Pydantic validation. Starlette's add_middleware
+# actually makes the *most recently added* middleware the *outermost* layer
+# (each call inserts itself before the others in the stack it builds), so
+# adding this last puts it right after ServerErrorMiddleware — as early as
+# possible, ahead of CORS/logging/routing, closest to the raw ASGI request.
+app.add_middleware(MaxBodySizeMiddleware, max_bytes=settings.MAX_REQUEST_BODY_BYTES)
 
 
 @app.on_event("startup")

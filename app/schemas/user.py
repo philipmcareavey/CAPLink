@@ -1,33 +1,48 @@
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.enums import BusinessTrustTier, StudentBand, UserRole
 
+ShortListItem = Annotated[str, Field(min_length=1, max_length=100)]
+
 
 # ---------- Registration ----------
 
+# Technical Implementation Plan 2.c.ii — every free-text field below carries
+# an explicit max_length. Pydantic rejects an oversized payload before it
+# ever reaches a query or gets stored, rather than relying on the database
+# column (which, for SQLite/Postgres TEXT/VARCHAR here, wouldn't reject it
+# at all) to be the only backstop.
+NAME_MAX_LENGTH = 200
+SLUG_MAX_LENGTH = 100
+SHORT_TEXT_MAX_LENGTH = 500
+PASSWORD_MAX_LENGTH = 128  # bcrypt itself silently truncates past 72 bytes; this just caps the request body
+
+
 class StudentRegister(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8)
-    full_name: str
-    university_slug: str          # which licensed institution they belong to
-    degree_title: str
+    password: str = Field(min_length=8, max_length=PASSWORD_MAX_LENGTH)
+    full_name: str = Field(min_length=1, max_length=NAME_MAX_LENGTH)
+    university_slug: str = Field(min_length=1, max_length=SLUG_MAX_LENGTH)  # which licensed institution they belong to
+    degree_title: str = Field(min_length=1, max_length=NAME_MAX_LENGTH)
     band: StudentBand
+    captcha_token: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX_LENGTH)
 
 
 class BusinessRegister(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8)
-    full_name: str                # contact person
-    company_name: str
-    company_registration_number: Optional[str] = None
-    industry: Optional[str] = None
+    password: str = Field(min_length=8, max_length=PASSWORD_MAX_LENGTH)
+    full_name: str = Field(min_length=1, max_length=NAME_MAX_LENGTH)  # contact person
+    company_name: str = Field(min_length=1, max_length=NAME_MAX_LENGTH)
+    company_registration_number: Optional[str] = Field(default=None, max_length=50)
+    industry: Optional[str] = Field(default=None, max_length=NAME_MAX_LENGTH)
+    captcha_token: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX_LENGTH)
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(max_length=PASSWORD_MAX_LENGTH)
 
 
 class RegistrationResult(BaseModel):
@@ -38,8 +53,8 @@ class RegistrationResult(BaseModel):
 
 
 class ChangePasswordRequest(BaseModel):
-    current_password: str
-    new_password: str = Field(min_length=8)
+    current_password: str = Field(max_length=PASSWORD_MAX_LENGTH)
+    new_password: str = Field(min_length=8, max_length=PASSWORD_MAX_LENGTH)
 
 
 class ResendVerificationRequest(BaseModel):
@@ -66,12 +81,12 @@ class StudentProfileOut(BaseModel):
 
 
 class StudentProfileUpdate(BaseModel):
-    degree_title: Optional[str] = None
-    modules: Optional[List[str]] = None
-    skills: Optional[List[str]] = None
-    portfolio_urls: Optional[List[str]] = None
-    hourly_rate_expectation_gbp: Optional[float] = None
-    weekly_hours_available: Optional[int] = None
+    degree_title: Optional[str] = Field(default=None, min_length=1, max_length=NAME_MAX_LENGTH)
+    modules: Optional[List[ShortListItem]] = Field(default=None, max_length=100)
+    skills: Optional[List[ShortListItem]] = Field(default=None, max_length=100)
+    portfolio_urls: Optional[List[Annotated[str, Field(max_length=500)]]] = Field(default=None, max_length=20)
+    hourly_rate_expectation_gbp: Optional[float] = Field(default=None, ge=0, le=10_000)
+    weekly_hours_available: Optional[int] = Field(default=None, ge=0, le=168)
 
 
 class BusinessProfileOut(BaseModel):
@@ -93,12 +108,12 @@ class BusinessProfileOut(BaseModel):
 
 
 class BusinessProfileUpdate(BaseModel):
-    company_name: Optional[str] = None
-    industry: Optional[str] = None
-    company_size: Optional[str] = None
-    website: Optional[str] = None
-    description: Optional[str] = None
-    postcode: Optional[str] = None  # setting/changing this triggers re-geocoding server-side
+    company_name: Optional[str] = Field(default=None, min_length=1, max_length=NAME_MAX_LENGTH)
+    industry: Optional[str] = Field(default=None, max_length=NAME_MAX_LENGTH)
+    company_size: Optional[str] = Field(default=None, max_length=50)
+    website: Optional[str] = Field(default=None, max_length=500)
+    description: Optional[str] = Field(default=None, max_length=5_000)
+    postcode: Optional[str] = Field(default=None, max_length=20)  # setting/changing this triggers re-geocoding server-side
 
 
 class UserOut(BaseModel):

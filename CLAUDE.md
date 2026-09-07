@@ -90,7 +90,7 @@ against the seeded accounts and by actually clicking through every tab of
 three roles, including a full contract → milestone → rating lifecycle and a
 flagged-message exchange — not just an import/syntax check.
 
-## Technical Implementation Plan progress (Workstream 1 9/16, Workstream 2 4/16, 2026-08-30–09-05)
+## Technical Implementation Plan progress (Workstream 1 9/16, Workstream 2 12/16, 2026-08-30–09-06)
 
 `../CAPLink-Technical-Implementation-Plan.docx` (one level up, not in this
 repo) and its companion `../CAPLink-Technical-Tracker.xlsx` define a 104-step
@@ -661,6 +661,156 @@ far.
 
 Full test suite reran clean after this epic: `ruff` 0 errors, `mypy` 0
 errors (73 files), `pytest` 74/74 passing (65 pre-existing + 9 new).
+
+## Workstream 2 (Auth Hardening), Epics 2.c and 2.d — 6/8 steps done, 2 external-only, 2026-09-06
+
+Follows straight on from Epic 2.b above, completing the rest of Workstream 2.
+`2.c.i`, `2.c.ii`, `2.c.iv`, `2.d.iii`, `2.d.iv` are genuinely done;
+`2.c.iii` is real working backend code with only an external site key +
+frontend widget missing; `2.d.i`/`2.d.ii` are documentation/checklists only
+— both are literally about the account owner's own GitHub/Render account
+settings, which this workspace has no login access to.
+
+**2.c.i (rate limiting on messaging) — done.** `app/api/v1/endpoints/messages.py`'s
+`create_thread` (30/minute) and `send_message` (60/minute) now carry
+`@limiter.limit(...)`, same `slowapi` `Limiter` as 2.a.ii's auth endpoints.
+Verified via TestClient: repeated calls past the limit return a real 429.
+
+**2.c.ii (input sanitization / oversized-payload audit) — done, and the
+source of this session's one genuinely nasty bug, same flavour as 1.c.i's
+Alembic/logging gotcha:**
+
+- Every free-text field across every schema in `app/schemas/*.py` now
+  carries an explicit `max_length` (and every list field a max item count)
+  — none of that existed before, so a client could previously send an
+  arbitrarily large string or list and have it accepted and stored as-is.
+- **The bug**: the natural way to write a global request-body-size cap is
+  `BaseHTTPMiddleware` reading `request.stream()` in `dispatch()`. The first
+  attempt did exactly that (`app/core/body_limit.py`) and looked completely
+  correct — until actually exercising it via `TestClient` showed every
+  downstream request arriving with an **empty body**, not the real one.
+  Root cause, straight from Starlette's own source: `BaseHTTPMiddleware`
+  wraps the request in a `_CachedRequest` whose docstring says outright —
+  call `Request.body()` in `dispatch()` and the body gets cached and
+  replayed to downstream apps; call `Request.stream()` instead (the natural
+  choice for inspecting size without buffering) and downstream apps get an
+  empty body so they "don't hang forever." Fixed by rewriting
+  `MaxBodySizeMiddleware` as a **raw ASGI middleware** (wraps `receive`
+  directly at the ASGI level, no `Request`/`_CachedRequest` involved at
+  all) — checks `Content-Length` first, then raises a sentinel exception
+  from inside `receive()` if the streamed total exceeds the cap, caught
+  by the middleware itself to reply 413 (safe because nothing downstream
+  has sent a response yet at that point — an ASGI app must never call
+  `send` twice, so this only works because the exception fires before any
+  `http.response.start`). Full account in the module's own docstring.
+- Grepped the whole repo for raw SQL (`.execute()`/`text()`) — none exists;
+  every query goes through the SQLAlchemy ORM, so SQL injection was never a
+  live risk here.
+- **One real stored-XSS vulnerability found and fixed** in the actively-used
+  reference UI: `static/app/js/shared/contracts.js` rendered a contract's
+  project title, counterpart name, and milestone descriptions via
+  `innerHTML` **without** `dom.js`'s `esc()` helper — every other view in
+  `/app` (`student.js`, `business.js`, `messaging.js`, `university-admin.js`)
+  already uses it consistently; this one file was just missed. Concretely
+  exploitable: a business could set their contact name or a milestone
+  description to `<img src=x onerror=...>` and it would execute for
+  whoever next viewed that contract card. **Verified against the real
+  running app, not just by reading the diff**: started the dev server,
+  logged in via the real API as the seeded business account, actually
+  PATCHed a live business profile's `company_name` and posted a live
+  project/contract with genuine `<script>`/`<img onerror>` payloads, then
+  confirmed `esc()`'s exact escaping logic (reproduced faithfully, character
+  for character) neutralizes those exact strings. A real Chrome click-through
+  wasn't possible in this environment (browser extension not connected this
+  session) — noted here rather than silently claimed.
+- `static/demo/app.html` (the older, lighter-weight demo — see "The full
+  app" section above) has the same class of gap in several places and was
+  **deliberately left unfixed**: it has no `esc()` helper at all, and it's
+  Workstream 5 (real frontend) territory to fix properly, not a quick
+  patch — same "genuinely blocked, not deprioritised" reasoning as
+  `1.d.iii`/`2.b.iv`. Documented in README, not silently dropped.
+
+**2.c.iii (CAPTCHA bot protection) — in progress (~70%), real code verified
+live, widget missing.** `app/services/captcha.py` verifies a new
+`captcha_token` field (added to `StudentRegister`/`BusinessRegister`)
+against hCaptcha's `siteverify` API — same "real code, external account is
+the manual step" shape as Sentry (1.c.ii). No `HCAPTCHA_SECRET_KEY`
+configured (the default everywhere) means every registration passes
+regardless of token, so dev/demo is completely unaffected; fails open on a
+network error, same reasoning as the HIBP breach check. **Verified genuinely
+live, not mocked**: hCaptcha publishes a permanent, no-account-needed
+integration-testing key pair specifically for this
+(`https://docs.hcaptcha.com/#integration-testing-test-key-set` — secret
+`0x0000000000000000000000000000000000000000`, always-passes response token
+`10000000-aaaa-bbbb-cccc-000000000001`) — confirmed via a real network call
+in `tests/test_captcha.py` and again via a `TestClient` session hitting the
+actual registration endpoints (bad token → 400, real test token → 201).
+**What's missing**: the actual hCaptcha widget on `/app`'s and `/demo`'s
+registration forms, which needs a real site key (created alongside the
+secret key, same free account) — genuinely blocked on Workstream 5, same
+pattern as `2.b.iv`'s upload screen.
+
+**2.c.iv (audit logging for admin/moderation actions) — done.**
+`app/models/audit_log.py` (`AuditLog`, write-once — no PATCH/DELETE route
+exists) + `app/services/audit_log.py::record_audit_event`, migration
+`c2c089143636`. Records: a university admin's safeguarding-gate decision on
+a business agreement (`policies.py::decide_agreement` — the plan's own
+explicit example), a platform admin onboarding a new university
+(`universities.py::onboard_university`), and a university admin's SAML
+config changes (`update_saml_config`/`upload_saml_idp_metadata`).
+**Deliberately narrower than the plan wording's illustrative examples**:
+"rating overrides" and "account suspensions" aren't real features anywhere
+in this codebase, so nothing was invented just to have something to log —
+see the service module's own docstring for the reasoning. Readable via a
+new `GET /audit-log` (platform-admin only). Verified end-to-end via
+`TestClient`: a real agreement decision writes a row with the correct
+actor/action/target_id/details, a platform admin reads it back correctly,
+a university admin is correctly 403'd from the audit log itself. Migration
+verified fresh + downgrade/upgrade round-trip — no `NOT NULL`-without-
+`server_default` gotcha this time (unlike 2.a's and 2.b's migrations),
+since this is a brand-new table, not new columns on an existing one with
+real rows.
+
+**2.d.i (MFA on internal infrastructure accounts) — in progress (~10%,
+checklist only).** Purely a real-world account setting (GitHub, Render,
+hCaptcha/Sentry) — this workspace has no login access to any of those
+accounts to check or enable it, same limitation class as `1.c.iii`'s uptime
+monitoring. README's new "Cyber Essentials technical controls" section
+spells out the checklist and explicitly distinguishes it from CAPLink's own
+admin-role TOTP MFA (2.a.iv, which protects app accounts, not the humans'
+accounts on third-party services). Needs the account owner directly.
+
+**2.d.ii (restrict database/admin network access) — in progress (~10%,
+documentation/scoping only).** Worth reading the scoping note in README
+closely: "admin-panel access" doesn't map onto anything in CAPLink at all —
+there's no separate admin panel, university/platform admins use the same
+`/app` reference UI as everyone else, gated by role (JWT+RBAC) not network
+location, since university careers teams need to reach it from wherever
+they work — so nothing was force-fitted onto that half of the step.
+"Database access" does apply for real (Render Postgres's Internal vs.
+External connection URLs); README documents the actual dashboard action
+(check for an IP Allow List, restrict/retire the external URL) but it
+needs the account owner's actual Render dashboard, which this workspace
+doesn't have.
+
+**2.d.iii (automated dependency vulnerability scanning) — done.**
+`.github/dependabot.yml` — weekly version-update PRs for `pip`
+(`requirements*.txt`) and `github-actions`. GitHub's own Dependabot, not
+Snyk — no extra external account needed for a repo already on GitHub;
+security *alerts* (distinct from these update PRs) are already on by
+default for a public repo under Settings → Code security.
+
+**2.d.iv (patch-management cadence) — done, as documentation**, same
+"nothing left to actually automate" shape as `1.b.iv`. README documents a
+fixed SLA (critical/high within 7 days, medium within 30 days, low at the
+next routine pass) that 2.d.iii's Dependabot PRs get reviewed against, plus
+a monthly Dockerfile base-image bump/rebuild cadence independent of
+Dependabot (OS-level base-image CVEs aren't something a Python-ecosystem
+scanner ever sees).
+
+Full test suite reran clean after this epic: `ruff` 0 errors, `mypy` 0
+errors (79 files), `pytest` 80/80 passing (74 pre-existing + 6 new:
+`tests/test_captcha.py`, `tests/test_audit_log.py`).
 
 ## Dependency pinning — read this before touching requirements.txt
 
