@@ -1000,24 +1000,62 @@ new).
 
 A new migration (`eede1a0f59da`) adds `processed_webhook_events`, Stripe/
 payroll fields on `business_profiles`/`student_profiles`/`contracts`/
-`milestones`, and three new `MilestoneStatus` values. Two things worth
-knowing if this migration is ever touched again: (1) the usual
-autogenerate NOT-NULL-without-`server_default` bug hit twice more
-(`contracts.payment_rail`, `student_profiles.stripe_connect_onboarded`) —
-fixed by hand, verified against a DB with pre-existing rows (a real
-seeded contract/milestone), same pattern as every previous migration in
-this project; (2) a **different, new class of autogenerate bug**:
-`milestonestatus` is a genuine native Postgres ENUM type, and adding new
-values to an *existing* enum type needs explicit `ALTER TYPE ... ADD
-VALUE` statements — autogenerate instead produced a generic
-`alter_column(type_=Enum(...))`, which on real Postgres would not actually
-add the new labels (it was comparing against SQLite's fallback VARCHAR
-representation, since this was generated against local SQLite). Fixed by
-hand with dialect-gated raw SQL (`if op.get_bind().dialect.name ==
-"postgresql"`); the SQLite fresh/pre-existing-row/downgrade-upgrade
-verification cycle doesn't exercise this Postgres-only branch at all, so
-treat it as reviewed-but-not-test-verified until it actually runs against
-real staging Postgres.
+`milestones`, and three new `MilestoneStatus` values. Three separate bugs
+were caught in this one migration before it was genuinely done — worth
+reading closely if a migration ever needs a brand-new Postgres enum type
+again:
+
+1. The usual autogenerate NOT-NULL-without-`server_default` bug hit twice
+   more (`contracts.payment_rail`, `student_profiles.stripe_connect_onboarded`)
+   — fixed by hand, verified against a DB with pre-existing rows (a real
+   seeded contract/milestone), same pattern as every previous migration in
+   this project.
+2. `milestonestatus` is a genuine native Postgres ENUM type, and adding
+   new values to an *existing* enum type needs explicit `ALTER TYPE ...
+   ADD VALUE` statements — autogenerate instead produced a generic
+   `alter_column(type_=Enum(...))`, which on real Postgres would not
+   actually add the new labels (it was comparing against SQLite's
+   fallback VARCHAR representation, since this was generated against
+   local SQLite). Fixed by hand with dialect-gated raw SQL
+   (`if op.get_bind().dialect.name == "postgresql"`).
+3. **A real, genuinely broken deploy, not just a reviewed-but-unverified
+   risk**: pushing this migration to staging failed outright with
+   `psycopg2.errors.UndefinedObject: type "paymentrail" does not exist`.
+   Root cause: `op.add_column(...)` with a brand-new `sa.Enum(...)` type
+   on an *existing* table does **not** create the underlying Postgres
+   enum type first — unlike `op.create_table`, which creates any enum
+   types its columns need as a side effect of the table itself being
+   created. This is a completely different failure mode from #2 above
+   (that one was about adding values to an enum that already existed;
+   this one was about a brand-new enum type never being created at all),
+   and the SQLite verification cycle couldn't have caught either — SQLite
+   has no native enum type, so `add_column` there never needs one to
+   exist first. Confirmed via Render's actual deploy logs (the only way
+   to see this — no direct Postgres access from this workspace): Postgres
+   uses transactional DDL, so the whole migration rolled back cleanly on
+   both failed attempts, leaving staging safely on the previous revision
+   rather than half-migrated — worth knowing that this specific failure
+   mode is safe to hit, even if it shouldn't have shipped. Fixed with an
+   explicit `sa.Enum(...).create(op.get_bind(), checkfirst=True)` before
+   the `add_column` call (and a matching `.drop(..., checkfirst=True)` in
+   `downgrade()`) — `checkfirst=True` makes both calls safe/idempotent
+   no-ops on SQLite too. Re-verified the full SQLite cycle after the fix
+   (fresh DB, pre-existing-row DB, downgrade→upgrade round-trip) — all
+   clean — then pushed again and this time confirmed via the live
+   deploy log that `alembic upgrade` actually completed successfully
+   against real staging Postgres.
+
+**The general lesson, worth remembering for any future migration that
+introduces a brand-new Postgres enum type**: the SQLite dev-verification
+cycle this project relies on (fresh/pre-existing-row/downgrade-upgrade)
+is necessary but not sufficient — it cannot catch enum-type-specific
+bugs at all, since SQLite has no equivalent concept. A migration touching
+enum types for the first time needs either a real Postgres instance to
+test against beforehand, or — as happened here — has to be caught for
+real on staging and fixed in a fast follow-up. Docker's `docker-compose.yml`
+(1.d.i) would give a real local Postgres to test against instead of
+relying on a staging deploy to find this, if it's ever actually run — see
+this file's earlier note that it's still unverified.
 
 ## Dependency pinning — read this before touching requirements.txt
 

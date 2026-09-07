@@ -37,9 +37,25 @@ def upgrade() -> None:
     # Python enum MEMBER NAME ('SELF_EMPLOYED'), not its value
     # ('self_employed') — matches how every other str Enum column in this
     # schema is stored (see bb371d385f9a's UserRole/BusinessTrustTier etc.).
+    #
+    # ALSO hand-fixed after a real failed deploy against staging Postgres
+    # (2026-09-07): `op.add_column` with a brand-new `sa.Enum(...)` type on
+    # an EXISTING table does NOT create the underlying Postgres enum type
+    # first — unlike `op.create_table`, which creates any enum types its
+    # columns need as a side effect of the table itself being created.
+    # Without the explicit `.create()` below, this failed with
+    # `psycopg2.errors.UndefinedObject: type "paymentrail" does not exist`
+    # on the real `ALTER TABLE contracts ADD COLUMN ...` statement — the
+    # SQLite verification cycle (fresh/pre-existing-row/downgrade-upgrade)
+    # never caught this because SQLite has no native enum type at all, so
+    # `add_column` there never needed one to exist first. `checkfirst=True`
+    # makes this safe to run on SQLite too (a no-op there) and idempotent
+    # on Postgres if this step is ever retried.
+    payment_rail_enum = sa.Enum('SELF_EMPLOYED', 'PAYE_UMBRELLA', name='paymentrail')
+    payment_rail_enum.create(op.get_bind(), checkfirst=True)
     op.add_column('contracts', sa.Column(
         'payment_rail',
-        sa.Enum('SELF_EMPLOYED', 'PAYE_UMBRELLA', name='paymentrail'),
+        payment_rail_enum,
         nullable=False,
         server_default='SELF_EMPLOYED',
     ))
@@ -90,6 +106,10 @@ def downgrade() -> None:
     op.drop_column('milestones', 'authorized_at')
     op.drop_column('milestones', 'stripe_payment_intent_status')
     op.drop_column('contracts', 'payment_rail')
+    # Drop the enum type this column depended on too — see the matching
+    # explicit .create() in upgrade() for why this needs to be explicit at
+    # all on Postgres. checkfirst=True keeps this a safe no-op on SQLite.
+    sa.Enum(name='paymentrail').drop(op.get_bind(), checkfirst=True)
     op.drop_column('business_profiles', 'stripe_default_payment_method_id')
     op.drop_column('business_profiles', 'stripe_customer_id')
     op.drop_index(op.f('ix_processed_webhook_events_stripe_event_id'), table_name='processed_webhook_events')
