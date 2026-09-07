@@ -115,11 +115,19 @@ function renderLogin() {
         <div class="field"><label>University slug</label><input id="rs-slug" value="manchester"></div>
         <div class="field"><label>Degree title</label><input id="rs-degree" value="BSc Computer Science"></div>
         <div class="field"><label>Band</label><select id="rs-band">${BANDS.map(b => `<option value="${b}">${b.replace(/_/g, " ")}</option>`).join("")}</select></div>
+        <label class="row" style="align-items:flex-start; gap:8px; margin:10px 0">
+          <input type="checkbox" id="rs-consent" style="margin-top:3px">
+          <span class="muted" style="font-size:13px">I consent to CAPLink sharing my project engagement and outcome data with my university's careers team for reporting purposes.</span>
+        </label>
         <button data-action="register-student" style="width:100%; justify-content:center">Register</button>
       </div>
     `));
     body.querySelector('[data-action="register-student"]').addEventListener("click", async () => {
       try {
+        if (!document.getElementById("rs-consent").checked) {
+          toast("You must consent to data sharing with your university to register", "error");
+          return;
+        }
         const result = await api("/auth/register/student", { method: "POST", auth: false, body: {
           email: document.getElementById("rs-email").value,
           password: document.getElementById("rs-pass").value,
@@ -127,6 +135,7 @@ function renderLogin() {
           university_slug: document.getElementById("rs-slug").value,
           degree_title: document.getElementById("rs-degree").value,
           band: document.getElementById("rs-band").value,
+          data_sharing_consent: true,
         }});
         // Local dev auto-verifies and logs straight in; staging/production
         // require a real clicked verification link instead (no ESP is wired
