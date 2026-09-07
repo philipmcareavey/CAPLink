@@ -49,6 +49,22 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     mfa_backup_codes: Mapped[list] = mapped_column(JSON, default=list)
 
+    # --- Data protection & privacy engineering (Technical Implementation
+    # Plan Workstream 7) ---
+
+    # 7.a.i — the automated retention job's inactivity clock. Set on every
+    # successful login (app/services/account_lockout.py::register_successful_login);
+    # never on registration itself, so a never-logged-into (e.g. abandoned
+    # mid-registration, pre-email-verification) account is correctly judged
+    # by ITS OWN separate, shorter rule instead — see
+    # scripts/data_retention.py.
+    last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    # 7.c.ii — self-service account deletion anonymizes rather than hard-
+    # deletes (see DELETE /users/me's docstring for why); this timestamp is
+    # the durable record that it happened, for compliance evidence, kept
+    # even though the row itself no longer identifies who it was.
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     student_profile: Mapped[Optional["StudentProfile"]] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
@@ -83,6 +99,16 @@ class StudentProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     # everyone rather than being a hard registration requirement.
     stripe_connect_account_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     stripe_connect_onboarded: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Technical Implementation Plan 7.b.i — explicit, timestamped opt-in
+    # covering exactly what's shared with the student's own university
+    # (engagement/outcome data for their careers team's reporting — see
+    # README's "Data protection & privacy" section for the exact wording
+    # shown at signup). Required at registration (StudentRegister validates
+    # it's True) so this is always set for every real account; nullable
+    # only because a handful of pre-Workstream-7 seeded/demo accounts
+    # predate the field.
+    data_sharing_consent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     # Reputation (denormalised for fast reads; recomputed by rating service)
     average_rating: Mapped[float] = mapped_column(Float, default=0.0)

@@ -138,6 +138,16 @@ async def saml_acs(slug: str, request: Request, db: Session = Depends(get_db)):
                 university_id=university.id,
                 degree_title=mapped["degree_title"] or saml_service.PLACEHOLDER_DEGREE_TITLE,
                 band=band,
+                # Known, honest gap (Technical Implementation Plan 7.b.i):
+                # data_sharing_consent_at is left unset here deliberately
+                # rather than backfilled with "now" — a JIT-provisioned SSO
+                # account has never actually seen or agreed to the consent
+                # wording shown on the ordinary registration form, so
+                # recording a timestamp here would be fabricating consent
+                # that was never really given. Needs a real one-time
+                # post-login consent screen for SSO students before this
+                # can be closed out — a Workstream 5 (frontend) concern,
+                # same shape as the CAPTCHA widget/SSO metadata-upload gaps.
             )
         )
         db.commit()

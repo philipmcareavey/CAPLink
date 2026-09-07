@@ -29,6 +29,7 @@ from app.core.body_limit import MaxBodySizeMiddleware
 from app.core.config import settings
 from app.core.observability import configure_error_tracking, configure_logging
 from app.core.rate_limit import limiter
+from app.core.security_headers import HSTSMiddleware
 from app.db.migrations import run_migrations
 from app.db.session import SessionLocal, engine
 from app.models.university import University
@@ -99,6 +100,10 @@ app.add_middleware(RequestLoggingMiddleware)
 # adding this last puts it right after ServerErrorMiddleware — as early as
 # possible, ahead of CORS/logging/routing, closest to the raw ASGI request.
 app.add_middleware(MaxBodySizeMiddleware, max_bytes=settings.MAX_REQUEST_BODY_BYTES)
+# HSTS (7.d.ii) — only outside development; see security_headers.py's
+# module docstring for why localhost/no-TLS dev shouldn't get this header.
+if settings.ENVIRONMENT != "development":
+    app.add_middleware(HSTSMiddleware)
 
 
 @app.on_event("startup")

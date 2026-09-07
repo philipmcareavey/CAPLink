@@ -34,3 +34,8 @@ def register_failed_attempt(user: User) -> None:
 def register_successful_login(user: User) -> None:
     user.failed_login_attempts = 0
     user.locked_until = None
+    # Technical Implementation Plan 7.a.i — the retention job's inactivity
+    # clock (scripts/data_retention.py). Deliberately set here, not at
+    # registration, so an abandoned pre-verification signup is judged by
+    # its own separate, shorter rule instead.
+    user.last_login_at = datetime.utcnow()

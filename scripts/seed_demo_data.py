@@ -4,6 +4,8 @@ a student, a business, and a project so you can explore the API immediately.
 
 Run with:  python -m scripts.seed_demo_data
 """
+from datetime import datetime
+
 from app.core.security import hash_password
 from app.db.migrations import run_migrations
 from app.db.session import SessionLocal, engine
@@ -75,6 +77,7 @@ def run():
         university_id=university.id,
         degree_title="BSc Data Science",
         band=StudentBand.YEAR_3,
+        data_sharing_consent_at=datetime.utcnow(),
         modules=["Statistics II", "Machine Learning", "Databases"],
         skills=["Python", "SQL", "Data Visualisation"],
         hourly_rate_expectation_gbp=19.0,

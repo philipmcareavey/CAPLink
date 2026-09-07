@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, List, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -28,6 +29,14 @@ class StudentRegister(BaseModel):
     degree_title: str = Field(min_length=1, max_length=NAME_MAX_LENGTH)
     band: StudentBand
     captcha_token: Optional[str] = Field(default=None, max_length=SHORT_TEXT_MAX_LENGTH)
+    # Technical Implementation Plan 7.b.i — explicit opt-in, not a
+    # pre-ticked default and not inferred from registering at all. `bool`
+    # rather than `Optional[bool] = False` deliberately: a client that
+    # forgets to send this field gets a 422, not a silent False, since this
+    # is a genuine consent requirement, not an ordinary optional setting.
+    data_sharing_consent: bool = Field(
+        description="Must be true — explicit consent to share engagement/outcome data with the student's university"
+    )
 
 
 class BusinessRegister(BaseModel):
@@ -78,6 +87,7 @@ class StudentProfileOut(BaseModel):
     average_rating: float
     completed_projects_count: int
     on_time_rate: float
+    data_sharing_consent_at: Optional[datetime]
 
 
 class StudentProfileUpdate(BaseModel):

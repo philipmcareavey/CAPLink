@@ -105,6 +105,12 @@ def register_student(request: Request, payload: StudentRegister, db: Session = D
     except PasswordPolicyError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
 
+    if not payload.data_sharing_consent:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "You must consent to sharing engagement/outcome data with your university to register.",
+        )
+
     # Domain match still confirms *which* university, but real verification
     # (2.a.iii) now needs an actual clicked link, not just an email suffix.
     user = User(
@@ -123,6 +129,7 @@ def register_student(request: Request, payload: StudentRegister, db: Session = D
         university_id=university.id,
         degree_title=payload.degree_title,
         band=payload.band,
+        data_sharing_consent_at=datetime.utcnow(),
     )
     db.add(profile)
     _start_email_verification(user)
