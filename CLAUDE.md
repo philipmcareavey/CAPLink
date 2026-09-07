@@ -812,6 +812,76 @@ Full test suite reran clean after this epic: `ruff` 0 errors, `mypy` 0
 errors (79 files), `pytest` 80/80 passing (74 pre-existing + 6 new:
 `tests/test_captcha.py`, `tests/test_audit_log.py`).
 
+## A real gap found 2026-09-07: verified work sat uncommitted for a full session
+
+**Standing lesson, added to the top-of-file rule above**: at the start of this
+session, `git status` showed the *entire* Epic 2.c/2.d session above —
+genuinely implemented, tested, and TestClient-verified — had never actually
+been committed or pushed. It only ever existed on this Mac's local disk,
+one accident away from being lost, despite CLAUDE.md and the tracker
+already describing it as "Done." The existing standing rule at the top of
+this file (update the tracker/CLAUDE.md before ending a session) doesn't by
+itself catch this — it's possible to update the *documentation* correctly
+while never actually running `git commit`/`git push` on the code the
+documentation describes. **Before ending any session that changed code, run
+`git status` and confirm nothing meaningful is sitting uncommitted or
+unpushed** — a green test suite on disk is not the same thing as a green
+test suite the rest of the world (Render, GitHub Actions, a future session
+on a different machine) can actually see.
+
+This session's uncommitted backlog was found, confirmed safe (no secrets in
+the diff — checked explicitly before staging), and pushed as three commits
+(`32c7d87` the Epic 2.c/2.d work, `0741078` a missed contracts.js fix,
+`a0c2a79` this session's Workstream 1 additions below) — see git log for
+the real, final commit messages.
+
+## Workstream 1 (Backend & Infrastructure), 1.b.ii and 1.b.iii closed out, 2026-09-07
+
+Picking up Workstream 1 specifically (Phil's explicit choice — finish the
+foundations before starting new surface area, having separately decided the
+employer-discovery/outreach gap a stakeholder raised is not a blocker to
+the existing roadmap — see the top-level `CLAUDE.md`'s Roadmap section for
+that decision, it belongs there, not here).
+
+- **1.b.ii ("Docker image build on merge") — done, and genuinely verified,
+  not just wired up.** Was blocked since `1.d.i`'s `Dockerfile` didn't
+  exist; it now does (previous session), but had never actually been run
+  anywhere — no Docker in any environment this project has been worked on
+  from. Added a `docker-build` job to `.github/workflows/ci.yml`
+  (`docker build -t caplink:ci .`, no push to a registry — `render.yaml`
+  deploys from source via Render's own Python buildpack, not this image, so
+  there's nothing to publish to yet). Checked wheel availability for the
+  two dependencies most likely to break a Linux container build before
+  trusting this (`xmlsec`'s manylinux_2_28/manylinux2014 cp313 wheels,
+  `psycopg2-binary`'s manylinux2014 cp313 wheel — both confirmed present on
+  PyPI), then **pushed and actually watched the real CI run**: all four
+  jobs (`lint`, `typecheck`, `test`, `docker-build`) came back
+  `completed`/`success` — https://api.github.com/repos/philipmcareavey/CAPLink/actions/runs/34107613105.
+  This is the first real confirmation the Dockerfile builds at all; running
+  the container (and `docker-compose.yml` against real Postgres) is still
+  unverified and shouldn't be assumed to work just because the build does.
+- **1.b.iii ("staging auto-deploy + gated production deploy") — done for
+  the applicable half, genuinely confirmed, not assumed.** `render.yaml`
+  now declares `autoDeploy: true` explicitly for `caplink-api` instead of
+  relying on Render's default — but the real confirmation came from
+  watching what actually happened after the push above: **staging
+  auto-deployed on its own**, no manual Render dashboard action taken by
+  anyone. Confirmed two ways: `GET /health` stayed `200` throughout, and
+  `GET /api/v1/audit-log` (a route that only exists in the code just
+  pushed) returned `401` rather than `404` — a 401 means the route is
+  registered and the new code is live; a 500 would have meant the new
+  `audit_logs` migration broke against the real database with existing
+  rows, which it didn't. "Gated production deploy," the other half of this
+  step, remains not-applicable — there's still no production service to
+  gate. Note for later: the `autoDeploy: true` line itself only actually
+  takes effect on Render's side via a Blueprint **Sync**, not a plain
+  push/deploy (same gotcha as `DATABASE_URL` elsewhere in `render.yaml`) —
+  today's proof was of Render's *existing* behaviour, not of this specific
+  line having taken effect yet.
+
+Full test suite unaffected by either change (still 80/80, 0 lint/type
+errors) — these were CI/infra-config additions, not application code.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The
