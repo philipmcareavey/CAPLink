@@ -75,6 +75,15 @@ class StudentProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     visa_weekly_hour_cap: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # enforced if set
     is_id_verified: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Technical Implementation Plan 3.a.i — Stripe Connect Express account,
+    # needed to receive any payout at all. `visa_weekly_hour_cap is not None`
+    # is this project's existing signal for "visa-restricted" (see
+    # app/services/payroll.py) — such a student is routed to the PAYE rail
+    # instead and never needs a Connect account, so this stays nullable for
+    # everyone rather than being a hard registration requirement.
+    stripe_connect_account_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    stripe_connect_onboarded: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # Reputation (denormalised for fast reads; recomputed by rating service)
     average_rating: Mapped[float] = mapped_column(Float, default=0.0)
     completed_projects_count: Mapped[int] = mapped_column(Integer, default=0)
@@ -110,5 +119,12 @@ class BusinessProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     average_rating: Mapped[float] = mapped_column(Float, default=0.0)
     completed_projects_count: Mapped[int] = mapped_column(Integer, default=0)
     payment_promptness_score: Mapped[float] = mapped_column(Float, default=0.0)
+
+    # Technical Implementation Plan 3.a.i/3.a.ii — a business pays as a
+    # Stripe Customer with a saved default payment method, not a Connect
+    # account (only payout recipients need Connect) — see
+    # app/services/stripe_payments.py.
+    stripe_customer_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    stripe_default_payment_method_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="business_profile")

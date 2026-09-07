@@ -1,9 +1,9 @@
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.enums import ContractStatus, MilestoneStatus
+from app.models.enums import ContractStatus, MilestoneStatus, PaymentRail
 
 
 class MilestoneCreate(BaseModel):
@@ -20,6 +20,12 @@ class MilestoneOut(BaseModel):
     due_date: Optional[date]
     payment_amount_gbp: float
     status: MilestoneStatus
+    # Stripe's own PaymentIntent status string, not our workflow status
+    # above — see app/models/contract.py's comment on why these are kept
+    # separate. Never exposes stripe_payment_intent_id itself; that's an
+    # internal reference, not something a client needs.
+    stripe_payment_intent_status: Optional[str] = None
+    captured_at: Optional[datetime] = None
 
 
 class ContractCreate(BaseModel):
@@ -37,6 +43,7 @@ class ContractOut(BaseModel):
     status: ContractStatus
     ip_assignment_accepted: bool
     nda_accepted: bool
+    payment_rail: PaymentRail
     milestones: List[MilestoneOut]
 
 

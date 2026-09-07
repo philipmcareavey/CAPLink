@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     local_search,
     messages,
     mobile,
+    payments,
     policies,
     projects,
     ratings,
@@ -35,3 +36,4 @@ api_router.include_router(recommendations.router)
 api_router.include_router(mobile.router)
 api_router.include_router(local_search.router)
 api_router.include_router(audit_log.router)
+api_router.include_router(payments.router)

@@ -97,6 +97,27 @@ class MilestoneStatus(str, enum.Enum):
     APPROVED = "approved"
     PAID = "paid"
     DISPUTED = "disputed"
+    # Technical Implementation Plan 3.a/3.b — the initial authorization
+    # (holding funds at milestone-creation time, see app/services/stripe_payments.py)
+    # can fail outright (declined card, no payment method on file yet) before
+    # any work has even started; distinct from DISPUTED, which is a
+    # post-payment chargeback/dispute.
+    AUTHORIZATION_FAILED = "authorization_failed"
+    REFUNDED = "refunded"
+    # A business rejects a submitted deliverable before ever capturing
+    # payment (3.b.iii) — distinct from AUTHORIZATION_FAILED (the card
+    # itself failed) and from REFUNDED (money that was already captured
+    # being given back).
+    REJECTED = "rejected"
+
+
+class PaymentRail(str, enum.Enum):
+    """Technical Implementation Plan 3.c — which route a contract's payments
+    take. A hard, non-overridable rule (see app/services/payroll.py) forces
+    PAYE_UMBRELLA for any visa-restricted student; SELF_EMPLOYED is the
+    default for everyone else."""
+    SELF_EMPLOYED = "self_employed"
+    PAYE_UMBRELLA = "paye_umbrella"
 
 
 class RatingVisibility(str, enum.Enum):

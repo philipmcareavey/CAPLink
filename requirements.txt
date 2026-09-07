@@ -31,3 +31,10 @@ pyotp>=2.9.0
 # wheel-availability problem this file otherwise avoids. Re-check this if
 # installs ever start failing here.
 python3-saml>=1.16.0
+# Real Stripe Connect/PaymentIntent integration (Technical Implementation
+# Plan Workstream 3) — moved here from requirements-integrations.txt now
+# that app/services/stripe_*.py import it at module load time (the app
+# fails to boot without it, unlike the truly-optional firebase-admin,
+# which nothing imports yet). Pure Python (an HTTP client wrapper, no C
+# extension), same "no wheel-build risk" reasoning as sentry-sdk above.
+stripe>=10.12.0

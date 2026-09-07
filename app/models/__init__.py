@@ -14,3 +14,4 @@ from app.models.message import MessageThread, Message  # noqa: F401
 from app.models.device import Device                   # noqa: F401
 from app.models.recommendation import RecommendationLog  # noqa: F401
 from app.models.audit_log import AuditLog               # noqa: F401
+from app.models.webhook_event import ProcessedWebhookEvent  # noqa: F401
