@@ -1,5 +1,5 @@
 import { api } from "../api.js";
-import { toast, badgeClass, gbp } from "../dom.js";
+import { toast, badgeClass, esc, gbp } from "../dom.js";
 
 // role: "student" | "business". onMessage(counterpartUserId, projectId) lets
 // the caller decide what "message this person" means (switch tabs, open
@@ -23,13 +23,13 @@ function renderContractCard(c, role) {
   return `
     <div class="ledger-card" id="contract-${c.id}">
       <div class="lc-head">
-        <span class="lc-title">${c.project_title || "Untitled project"}</span>
+        <span class="lc-title">${esc(c.project_title || "Untitled project")}</span>
         <span class="badge ${badgeClass(c.status)}">${c.status}</span>
       </div>
-      <p class="muted" style="margin:-6px 0 10px">With <strong>${c.counterpart_name}</strong></p>
+      <p class="muted" style="margin:-6px 0 10px">With <strong>${esc(c.counterpart_name)}</strong></p>
       ${c.milestones.map(m => `
         <div class="lc-row" data-milestone="${m.id}">
-          <span>${m.description} — ${gbp(m.payment_amount_gbp)}${m.due_date ? " · due " + m.due_date : ""}</span>
+          <span>${esc(m.description)} — ${gbp(m.payment_amount_gbp)}${m.due_date ? " · due " + m.due_date : ""}</span>
           <span class="row" style="gap:8px">
             <span class="badge ${badgeClass(m.status)}">${m.status}</span>
             ${role === "student" && m.status === "pending" ? `<button class="small ghost" data-submit-milestone="${m.id}">Submit</button>` : ""}
@@ -39,7 +39,7 @@ function renderContractCard(c, role) {
       `).join("")}
       <div class="row" style="margin-top:14px">
         ${termsNeeded ? `<button class="small ghost" data-accept-terms="${c.id}">Accept IP/NDA terms</button>` : `<span class="muted" style="font-size:12px">Terms accepted by you</span>`}
-        <button class="small ghost" data-message="${c.counterpart_user_id}" data-project="${c.project_id}">Message ${c.counterpart_name}</button>
+        <button class="small ghost" data-message="${c.counterpart_user_id}" data-project="${c.project_id}">Message ${esc(c.counterpart_name)}</button>
         <button class="small ghost" data-rate="${c.id}">Rate this contract</button>
       </div>
       <div class="rate-form" id="rate-form-${c.id}" style="display:none; margin-top:12px; border-top:1px dashed var(--rule); padding-top:12px">
