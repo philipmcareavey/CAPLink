@@ -882,6 +882,143 @@ that decision, it belongs there, not here).
 Full test suite unaffected by either change (still 80/80, 0 lint/type
 errors) — these were CI/infra-config additions, not application code.
 
+## Workstream 3 (Payments & Payroll) — 10/15 done, 2/15 in progress, 2026-09-07
+
+Phil's explicit direction: he agrees the employer-discovery/outreach gap a
+stakeholder raised is real, but decided it's not a blocker to the existing
+roadmap (see top-level `CLAUDE.md`'s Roadmap section — that decision lives
+there, not here). Having just closed out `1.b.ii`/`1.b.iii`, he chose to
+proceed with Workstream 3 next rather than the frontend (Workstream 5).
+This is the single largest body of work completed in one session so far —
+real financial infrastructure, not a documentation/config epic.
+
+**The single most important design decision, worth understanding before
+touching any of this again**: escrow (3.b.i/3.b.ii) and the platform-fee
+split (3.a.iii) are the SAME mechanism, not two features. Every milestone
+gets one PaymentIntent, `capture_method="manual"`, created at contract-
+creation time — authorizing it (holding funds) IS the escrow. On the
+self-employed rail it's also a **destination charge**
+(`transfer_data.destination` = student's Connect account,
+`application_fee_amount` = CAPLink's cut): capturing it later is the one
+action that both takes the fee and pays the student, atomically. There is
+deliberately no separate "now send the money" step. The PAYE rail
+(3.c) skips `transfer_data`/`application_fee_amount` entirely — see
+`app/services/stripe_payments.py`'s module docstring for the full
+reasoning (a visa-restricted student must never look self-employed for
+tax purposes via a personal Connect transfer).
+
+**A genuine regression caught and fixed mid-session, worth knowing about
+if this ever needs debugging again**: the first working version of this
+correctly failed closed (`StripeNotConfigured`) whenever `STRIPE_SECRET_KEY`
+was empty — technically correct for staging/production, but it would have
+broken the existing zero-setup `/app`/`/demo` reference UIs outright, since
+local dev has never had a real Stripe key and now every contract creation
+requires one. Caught by actually running the existing demo flow via
+`TestClient` after building the "real" path, not by reasoning about it in
+the abstract. Fixed with `app/services/stripe_dev_mode.py`: every
+`stripe_*.py` module now simulates (fake-but-consistent IDs, no real SDK
+call) whenever `ENVIRONMENT=development` **and** the key is empty;
+staging/production never simulate regardless. **A second, related bug**
+surfaced while verifying this: `.env.example`'s `STRIPE_SECRET_KEY` held a
+placeholder-looking value (`sk_test_xxx`) left over from before this
+workstream existed and nothing ever read it — a fresh clone copying that
+file verbatim would have a *non-empty* key, defeating the simulation check
+and trying to call the real Stripe API with garbage credentials. Fixed in
+`.env.example` (now genuinely empty, matching `HCAPTCHA_SECRET_KEY`'s
+existing pattern) **and** in this Mac's own real `.env`, which had the
+exact same stale value sitting in it.
+
+**Status against the plan's 15 steps**:
+
+- **3.a (Stripe Connect Core) — all 4 done.** `3.a.i`: student gets a real
+  Connect Express account (`app/services/stripe_connect.py`); a business
+  becomes an ordinary Stripe Customer with a saved default payment method
+  (`app/services/stripe_customers.py`), **not** a Connect account — only
+  payout recipients need one, and a business only ever pays. `3.a.ii`/
+  `3.a.iii`/`3.a.iv` — real PaymentIntents, the fee split, and an
+  idempotent webhook (`processed_webhook_events` table, verified via a
+  hand-constructed real HMAC signature through `TestClient` — correct
+  signature accepted, tampered signature 400s, redelivery of the same
+  event id correctly no-ops) are all described together above since
+  they're one mechanism.
+- **3.b (Escrow & Milestone Flow) — all 4 done.** `3.b.i`/`3.b.ii` are the
+  authorize/capture mechanism above. `3.b.iii` (refund/dispute) has two
+  distinct endpoints, not one: `POST .../reject` (business rejects a
+  submitted-but-unpaid milestone — cancels the authorization outright, no
+  money ever moved) and `POST .../refund` (reverses a milestone already
+  captured/paid — Stripe auto-reverses the associated Connect transfer
+  too). `charge.dispute.created` webhook events also mark a milestone
+  `DISPUTED`. `3.b.iv` — `scripts/reconcile_payments.py`, read-only,
+  compares every Milestone against Stripe's live PaymentIntent record and
+  logs drift; not wired into a scheduler (Render Cron Jobs is the natural
+  home, a dashboard step this workspace can't perform).
+- **3.c (Student Payroll Rail) — 2/4 done, 2/4 in progress.** `3.c.ii`
+  (payment-rail field on Contract) and `3.c.iii` (hard PAYE-routing rule)
+  are done — `app/services/payroll.py::determine_payment_rail` reuses the
+  existing `visa_weekly_hour_cap is not None` signal rather than adding a
+  second, potentially-inconsistent flag; verified both as a unit test and
+  end-to-end (a visa-restricted student's contract lands on the PAYE rail
+  and never even needs a Connect account). `3.c.i`/`3.c.iv` are
+  genuinely, not just nominally, blocked on a real decision only Phil can
+  make: **no umbrella/employer-of-record provider has been chosen** — this
+  is a real commercial/legal relationship, not a technical one, so
+  nothing here guesses at a specific vendor's API or file format. Built as
+  a clean `PayrollProvider` interface + `LoggingPayrollProvider` stub
+  (same shape as `email.py`/`notifications.py`) plus a generic CSV export
+  (`GET /payments/payroll/export.csv`, platform-admin only) — real,
+  working, tested code, just not pointed at any real provider yet.
+- **3.d (Financial Reporting) — not started, deliberately.** All three
+  steps are P2/post-launch in the plan itself; no time spent here this
+  session, matching the plan's own prioritisation.
+
+**A real, pre-existing security gap found and fixed while wiring this
+up, unrelated to Stripe itself**: `accept-terms`, `submit`, and
+`approve-and-pay` had no check that the caller was actually a party to the
+contract — any authenticated business could previously act on *any*
+contract, not just their own. Harmless while payment was a placeholder
+string (`"pi_placeholder_replace_with_real_stripe_call"`); a real
+vulnerability the moment approve-and-pay actually captures money. Fixed
+via `_assert_is_contract_party`/`_assert_is_contract_business` in
+`app/api/v1/endpoints/contracts.py`, applied to every mutating endpoint
+on a contract or milestone, and verified via `TestClient`: a second,
+unrelated business gets a real 403 trying to approve-and-pay, refund, or
+reject someone else's milestone.
+
+**Genuinely unverified against the real Stripe API** — Stripe has no
+keyless or public-test-credential path (unlike hCaptcha/HaveIBeenPwned
+elsewhere in this codebase), so nothing here has touched a real account.
+What was actually verified: every Stripe SDK call written against
+`stripe-python` 10.12.0's real installed, typed API; the simulated
+dev-mode path end-to-end via `TestClient` with zero Stripe configuration
+(the actual default everywhere); and the "real" code paths (destination-
+charge/fee parameters, ownership checks, PAYE routing, webhook signature
+verification/idempotency) via a second `TestClient` session with every
+Stripe SDK function monkeypatched. New test files: `tests/test_stripe_payments.py`
+(15 tests), `tests/test_payroll.py` (4 tests). Full suite: `ruff` 0 errors,
+`mypy` 0 errors (87 files), `pytest` 96/96 passing (80 pre-existing + 16
+new).
+
+A new migration (`eede1a0f59da`) adds `processed_webhook_events`, Stripe/
+payroll fields on `business_profiles`/`student_profiles`/`contracts`/
+`milestones`, and three new `MilestoneStatus` values. Two things worth
+knowing if this migration is ever touched again: (1) the usual
+autogenerate NOT-NULL-without-`server_default` bug hit twice more
+(`contracts.payment_rail`, `student_profiles.stripe_connect_onboarded`) —
+fixed by hand, verified against a DB with pre-existing rows (a real
+seeded contract/milestone), same pattern as every previous migration in
+this project; (2) a **different, new class of autogenerate bug**:
+`milestonestatus` is a genuine native Postgres ENUM type, and adding new
+values to an *existing* enum type needs explicit `ALTER TYPE ... ADD
+VALUE` statements — autogenerate instead produced a generic
+`alter_column(type_=Enum(...))`, which on real Postgres would not actually
+add the new labels (it was comparing against SQLite's fallback VARCHAR
+representation, since this was generated against local SQLite). Fixed by
+hand with dialect-gated raw SQL (`if op.get_bind().dialect.name ==
+"postgresql"`); the SQLite fresh/pre-existing-row/downgrade-upgrade
+verification cycle doesn't exercise this Postgres-only branch at all, so
+treat it as reviewed-but-not-test-verified until it actually runs against
+real staging Postgres.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The

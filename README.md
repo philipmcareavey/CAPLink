@@ -284,18 +284,112 @@ distance sort.
 
 Fully implemented: auth (including hardening — see below), multi-tenant licensing,
 safeguarding access control, rules-based matching + recommendation logging, applications,
-contracts/milestones, mutual blind ratings, messaging with off-platform-contact flagging,
+contracts/milestones with real Stripe payment authorization/capture/refund (see "Payments
+& payroll" below), mutual blind ratings, messaging with off-platform-contact flagging,
 mobile device registration, Alembic-managed schema migrations, structured JSON logging,
 CI (lint/type-check/test), university SAML SSO (see "Auth hardening" below).
 
 Integration points left as clearly-marked placeholders (each notes what to replace):
-Stripe PaymentIntent creation/capture, Firebase push delivery, verification emails are
-logged rather than actually sent (no ESP wired up — see "Auth hardening" below),
-Sentry error tracking is wired up but inactive without a real `SENTRY_DSN`, uptime
-monitoring isn't configured anywhere (see "Observability" above), and CAPTCHA
-verification is wired up but inactive without a real `HCAPTCHA_SECRET_KEY` (no widget
-on the reference UIs' registration forms yet either — see "API hardening & abuse
-prevention" below).
+Firebase push delivery, verification emails are logged rather than actually sent (no ESP
+wired up — see "Auth hardening" below), Sentry error tracking is wired up but inactive
+without a real `SENTRY_DSN`, uptime monitoring isn't configured anywhere (see
+"Observability" above), CAPTCHA verification is wired up but inactive without a real
+`HCAPTCHA_SECRET_KEY` (no widget on the reference UIs' registration forms yet either —
+see "API hardening & abuse prevention" below), and the payroll rail for visa-restricted
+students has a real, enforced routing rule but no actual umbrella/EOR provider chosen or
+integrated yet (see "Payments & payroll" below).
+
+## Payments & payroll
+
+Technical Implementation Plan Workstream 3. Real Stripe Connect integration
+— not a placeholder — covering student payouts, business charges, the
+escrow-style milestone flow, and a hard payroll-routing rule for
+visa-restricted students. `stripe>=10.12.0` is a hard runtime dependency
+(`requirements.txt`, not `requirements-integrations.txt` — several
+`app/services/stripe_*.py` modules import it at module load time).
+
+- **Two separate Stripe identities per milestone.** A student gets a
+  **Connect Express account** (`app/services/stripe_connect.py`) — the only
+  way to actually receive a payout. A business becomes an ordinary
+  **Customer with a saved default payment method**
+  (`app/services/stripe_customers.py`), not a Connect account — it only
+  ever pays, never receives. `POST /payments/connect/onboarding-link` +
+  `GET /payments/connect/status` (student); `POST /payments/setup-intent` +
+  `GET /payments/setup-status` (business).
+- **Escrow via a single mechanism, not two bolted together**
+  (`app/services/stripe_payments.py`). Every milestone gets its own
+  PaymentIntent, created at contract-creation time with
+  `capture_method="manual"` — the card is authorized (funds held) then,
+  which *is* the escrow. On the self-employed rail it's also a destination
+  charge (`transfer_data.destination` = the student's Connect account,
+  `application_fee_amount` = CAPLink's cut): capturing it later — wired
+  into the existing `POST /contracts/milestones/{id}/approve-and-pay` — is
+  the single action that both takes the platform fee and pays the student,
+  atomically. `POST .../reject` releases an unpaid authorization outright
+  (`cancel`, not a refund); `POST .../refund` reverses money already
+  captured (Stripe auto-reverses the associated Connect transfer too).
+- **Idempotent webhook.** `POST /payments/webhook` verifies Stripe's
+  signature against the *raw* request body, then de-duplicates via a
+  `processed_webhook_events` table before acting — Stripe explicitly
+  documents that the same event can be delivered more than once. Handles
+  `payment_intent.succeeded`/`.payment_failed` and `charge.dispute.created`.
+- **PAYE payroll routing (`app/services/payroll.py`) is a real, enforced
+  business rule, not a stub**: any student with `visa_weekly_hour_cap` set
+  (this project's existing "visa-restricted" signal) is automatically
+  routed to the PAYE/umbrella rail on contract creation, never the
+  self-employed rail, and never per-contract overridable. A PAYE-rail
+  milestone deliberately skips `transfer_data`/`application_fee_amount`
+  entirely — a visa-restricted student is never paid via a personal
+  Connect transfer, since that would make them look self-employed for tax
+  purposes, exactly what this rail exists to prevent. **What genuinely
+  isn't built**: which umbrella/employer-of-record company actually
+  receives that money. No provider has been chosen — this is a real
+  commercial/legal relationship, not a technical decision this codebase
+  can make on its own — so `PayrollProvider` is a clean, swappable
+  interface (same "provider-agnostic stub" shape as `email.py`/
+  `notifications.py`) with a logging placeholder implementation, plus a
+  generic CSV export (`GET /payments/payroll/export.csv`, platform-admin
+  only) rather than a guess at a specific provider's file format.
+- **Nightly reconciliation** (`scripts/reconcile_payments.py`, step 3.b.iv)
+  — compares every Milestone with a Stripe PaymentIntent against Stripe's
+  own live record, read-only (flags drift, never auto-corrects). Not wired
+  into a scheduler; Render's Cron Jobs (a separate dashboard-configured
+  service type) is the natural home for it, same "code is real, the
+  schedule is a manual step" shape as everything in the CI/CD notes.
+- **Zero-friction local dev is preserved deliberately.** Stripe has no
+  keyless or public-test-credential path (unlike hCaptcha/HaveIBeenPwned
+  elsewhere in this codebase) — failing closed with no key configured
+  would have broken the existing zero-setup `/app`/`/demo` reference UIs
+  outright. `app/services/stripe_dev_mode.py` simulates every Stripe call
+  with fake-but-consistent IDs whenever `ENVIRONMENT=development` **and**
+  `STRIPE_SECRET_KEY` is empty — `staging`/`production` never simulate,
+  regardless of key state, since a "successful" simulated payment there
+  would be a real, expensive lie. `.env.example`'s `STRIPE_SECRET_KEY` used
+  to hold a placeholder-looking value (`sk_test_xxx`) that nothing ever
+  actually read — now that this workstream reads it for real, that
+  placeholder was changed to genuinely empty, since a non-empty fake value
+  would make dev try to call the real API with garbage credentials instead
+  of simulating.
+- **A real, pre-existing security gap found and fixed while wiring this
+  up**: `accept-terms`, `submit`, and `approve-and-pay` had no check that
+  the caller was actually a party to the contract in question — any
+  authenticated business could previously approve-and-pay (or a student
+  submit a milestone) on *any* contract. Harmless while payment was a
+  placeholder string; a real vulnerability once approve-and-pay actually
+  captures money. Fixed in `app/api/v1/endpoints/contracts.py` via
+  `_assert_is_contract_party`/`_assert_is_contract_business`, applied to
+  every mutating endpoint on a contract or milestone.
+- **Genuinely unverified against the real Stripe API** — Stripe's complete
+  absence of a keyless test path means nothing here has been exercised
+  against a real account. What has been verified: every Stripe SDK call
+  written against `stripe-python` 10.12.0's actual typed API; the
+  simulated dev-mode path, end-to-end, via `TestClient` and this project's
+  test suite (`tests/test_stripe_payments.py`, `tests/test_payroll.py`);
+  and the real (mocked-SDK) code paths — correct destination-charge/fee
+  parameters, the ownership-check fix, PAYE routing, webhook signature
+  verification and idempotency — via a `TestClient` session with every
+  Stripe SDK function monkeypatched. A real Stripe account and test-mode
+  keys are needed before any of this is trustworthy in a real deployment.
 
 ## Auth hardening
 

@@ -47,11 +47,14 @@
 # `sync: false`, Render's mechanism for "this service needs this var, but
 # its value is set once by a human in the Render dashboard, never committed
 # or templated here" — same principle as Doppler/AWS Secrets Manager, just
-# Render's own built-in version of it, adequate while there's a single host
-# and no integration is live yet (Stripe/Firebase are still stubbed — see
-# README's "What's stubbed" section). Swapping to Doppler or AWS Secrets
-# Manager later needs no code changes: the app only ever reads process env
-# vars, never cares who injected them.
+# Render's own built-in version of it, adequate while there's a single host.
+# Firebase push is still a genuine stub either way; Stripe's *code* is real
+# (Workstream 3, see README's "Payments & payroll" section) and will start
+# actually charging/paying out the moment a real STRIPE_SECRET_KEY and
+# STRIPE_WEBHOOK_SECRET are set here — don't set these to real values on a
+# whim, since that's a real, live financial integration, not a feature flag.
+# Swapping to Doppler or AWS Secrets Manager later needs no code changes:
+# the app only ever reads process env vars, never cares who injected them.
 
 databases:
   - name: caplink-staging-db
