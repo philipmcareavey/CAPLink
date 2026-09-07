@@ -49,7 +49,23 @@ async function renderProjectsTab(app) {
     });
   } catch (e) { toast("Couldn't load profile: " + e.message, "error"); }
 
+  await ensurePaymentSetup();
   await loadMyProjects();
+}
+
+// Technical Implementation Plan 3.a.i — a business needs a saved payment
+// method before it can create a contract (see contracts.py::create_contract,
+// which now authorizes a real hold on every milestone at creation time).
+// In local dev/demo (no real Stripe key configured) this completes
+// instantly with no card ever actually collected — see
+// app/services/stripe_dev_mode.py. A real deployment would need this to
+// instead redirect through Stripe's own card-collection UI (Workstream 5,
+// not built yet) rather than silently completing like this.
+async function ensurePaymentSetup() {
+  try {
+    const status = await api("/payments/setup-status");
+    if (!status.ready) await api("/payments/setup-intent", { method: "POST" });
+  } catch (e) { console.warn("Payment setup check failed:", e.message); }
 }
 
 function renderPostProjectForm() {

@@ -37,6 +37,8 @@ async function renderFeed(app) {
     document.getElementById("edit-skills-btn").addEventListener("click", () => openEditProfile(profile));
   } catch (e) { toast("Couldn't load profile: " + e.message, "error"); }
 
+  await ensureConnectOnboarding();
+
   try {
     const feed = await api("/projects/feed?page=1&page_size=20");
     document.getElementById("student-feed").innerHTML = feed.length
@@ -51,6 +53,20 @@ async function renderFeed(app) {
       ? suggestions.map(s => `<p style="margin:0 0 10px"><span class="chip reason">${esc(s.employer_type)}</span> <span class="muted">${esc(s.reason)}</span></p>`).join("")
       : `<p class="muted">No suggestions yet — add more skills to your profile.</p>`;
   } catch (e) { document.getElementById("employer-suggestions").innerHTML = `<p class="muted">Couldn't load suggestions: ${e.message}</p>`; }
+}
+
+// Technical Implementation Plan 3.a.i — a student needs a Stripe Connect
+// account (to receive a payout) before a business can create a contract
+// with them. In local dev/demo (no real Stripe key configured) this
+// completes instantly with no real identity/bank verification — see
+// app/services/stripe_dev_mode.py. A real deployment would need this to
+// redirect through Stripe's own hosted onboarding UI instead (Workstream
+// 5's job, same as ensurePaymentSetup in business.js).
+async function ensureConnectOnboarding() {
+  try {
+    const status = await api("/payments/connect/status");
+    if (!status.onboarded) await api("/payments/connect/onboarding-link", { method: "POST" });
+  } catch (e) { console.warn("Connect onboarding check failed:", e.message); }
 }
 
 function renderStudentProfileCard(p) {
