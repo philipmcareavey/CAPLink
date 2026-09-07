@@ -41,3 +41,18 @@ jobs:
           python-version: "3.13"
       - run: pip install -r requirements.txt -r requirements-dev.txt
       - run: pytest tests/ -v
+
+  docker-build:
+    # Technical Implementation Plan step 1.b.ii — was blocked until 1.d.i's
+    # Dockerfile existed; it now does, so this job both closes out 1.b.ii and
+    # doubles as the first real verification that Dockerfile actually builds
+    # (it had only ever been written and reviewed, never run — no Docker was
+    # available in the environment that wrote it). Only builds the image
+    # (catches a broken Dockerfile/dependency on every push), doesn't push it
+    # anywhere — Render deploys from source via its own Python buildpack
+    # (see render.yaml's `env: python`), not from this image, so there's no
+    # registry to publish to yet. Revisit if that ever changes.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t caplink:ci .

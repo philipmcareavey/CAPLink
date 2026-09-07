@@ -73,6 +73,16 @@ services:
     name: caplink-api
     env: python
     plan: free
+    # Technical Implementation Plan step 1.b.iii — Render almost certainly
+    # already defaults new git-connected services to auto-deploy on push to
+    # the connected branch, but that was never actually confirmed (no Render
+    # dashboard access from this workspace), so it sat as an assumption
+    # rather than a documented fact. Declaring it explicitly here removes
+    # the ambiguity going forward — this takes effect on the next Blueprint
+    # Sync (a plain "Manual Deploy" does not re-read this file, same gotcha
+    # as the DATABASE_URL note above), so it still needs that one Render
+    # dashboard action to actually apply.
+    autoDeploy: true
     buildCommand: "pip install -r requirements.txt -r requirements-postgres.txt"
     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     envVars:
@@ -126,6 +136,10 @@ services:
 #     env: python
 #     region: oregon  # MUST match caplink-production-db's region above
 #     plan: starter  # NOT free — production shouldn't sleep on inactivity
+#     autoDeploy: true  # reconsider this for production specifically once a
+#                   # real launch is planned — a gated/manual production
+#                   # deploy (the other half of 1.b.iii) may be preferable to
+#                   # auto-deploying on every push once real users are on it
 #     buildCommand: "pip install -r requirements.txt -r requirements-postgres.txt"
 #     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 #     envVars:
