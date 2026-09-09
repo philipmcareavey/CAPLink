@@ -1336,15 +1336,18 @@ local seed, not just reviewed as a diff. Full `ruff`/`mypy`/`pytest` suite
 unaffected as expected (105/105, 0 lint/type errors) since this was a
 CSS/JS-only change with no Python touched.
 
-**Deliberately not touched, flagged rather than silently expanded into**:
-the marketing landing page (`docs/index.html` / the standalone
-`../caplink-university-landing.html`) wasn't touched — the artifact's more
-elaborate interactive concepts (a persona-switching hero, the live
-chat-flagging demo, the escrow stepper) were built and approved as
-*mockups* for a home page, not as something implemented into a real page
-yet, since CAPLink doesn't have a built marketing home page in this repo
-to put them on. That's a separate, larger piece of work than this session
-covered — raised with Phil rather than assumed either way.
+**Not touched, and still a real scope boundary worth knowing**: CAPLink's
+*official* marketing site — `docs/index.html`, mirrored at the standalone
+`../caplink-university-landing.html` outside git — was never touched by
+any of this. Everything described below (persona hero, gate demo, escrow
+stepper, chat-flagging demo, rating modal) landed on `static/demo/index.html`
+instead — the lighter-weight, API-server-hosted "reference demo" landing
+page, a different file with a different purpose (it exists to hand a
+technical reviewer a working login, not to pitch a university's careers
+office). It happened to have the same landing-page shape (hero, feature
+grid, role cards) so the artifact's concepts transplanted onto it
+directly; `docs/index.html` would need the same work done separately if
+Phil wants it there too — not assumed, raise it explicitly first.
 
 **`static/demo/` got the same repalette too, straight after, on request**
 ("update the demo with these features too"). Both `static/demo/app.html`
@@ -1358,17 +1361,50 @@ file already called them — kept as-is, same "don't rename for zero visual
 benefit" reasoning as everywhere else this session. The same password
 show/hide toggle was added to `app.html`'s three password fields too
 (inline `wirePasswordToggles()`, no separate `main.js` to put it in here).
-**One real, known cosmetic gap, not silently ignored**: `index.html`'s
-hero still displays `assets/bridge-logo.png`, a raster image using the
-*old* navy/teal colour scheme baked into the pixels — CSS can't recolour
-a PNG, and regenerating the logo asset itself is a separate, real design
-task, not something to attempt with a CSS filter hack. Verified in a real
+
+**Then, the same day — Phil asked where the dynamic elements from the
+artifact actually were** (they'd only ever existed in the standalone
+artifact, never shipped), and asked for all four built into the real
+`static/demo/index.html`: the persona-switching hero, the off-platform-
+contact flagging demo, the escrow milestone tracker, and the stat
+counters + rating modal. All four are now real, working client-side
+JS/CSS on that page (one new `<script>` block at the bottom, ~250 lines —
+this file had no JS at all before), each placed inside the existing
+section that already discusses that concept rather than dumped in one
+block: the persona tabs replace the static hero content, the gate-pill
+demo sits at the end of `#safeguarding`, and the escrow/chat/rating demos
+got a new `#see-it-work` section between `#how-it-works` and `#roles`.
+**One real product decision made along the way, not just styling**: the
+persona hero's live-card replaces what used to be the static
+`assets/bridge-logo.png` image in that spot — which also incidentally
+resolved the earlier-flagged gap where that raster logo's baked-in old
+navy/teal colours no longer matched the new palette (the logo simply
+isn't shown there anymore). The image file itself is untouched and still
+exists; nothing else on the page references it now. Verified in a real
 browser (both files) the same way as the main app: clicked through
 `index.html` top to bottom and logged into `app.html` as the seeded
 university admin to confirm the permit-pill agreement view still renders
 correctly under the new palette. Full `ruff`/`mypy`/`pytest` suite
 unaffected (105/105) — both files are static HTML/CSS/JS with zero Python
 involvement.
+
+The four new interactive elements were separately verified for real too,
+not just reviewed as a diff: clicked every persona tab and confirmed the
+headline/live-card actually swap (including the business "why this
+match?" breakdown expanding and the university approve/reject buttons
+updating the status pill with a working reset link); toggled a
+safeguarding-gate pill between permitted/not-permitted; stepped the
+escrow tracker through all three states to "paid" and back; typed a real
+UK-format phone number and "let's move to WhatsApp" into the chat demo
+and confirmed the flag banner appeared for both; and opened the rating
+modal, clicked through the star picker, and closed it both via the × and
+via submit. Checked the browser console after a full page load too — no
+JS errors. `getComputedStyle` was used to double-check one thing that
+looked wrong in a screenshot (the reason-chip text appeared almost
+invisible) — it was genuinely fine (`rgb(68,72,214)` text on
+`rgb(237,236,251)`, opacity 1), just JPEG screenshot compression washing
+out a low-saturation colour pairing; worth remembering if a future
+screenshot-based check flags something similar as broken.
 
 ## Dependency pinning — read this before touching requirements.txt
 

@@ -107,6 +107,95 @@
 
   footer{ border-top:1px solid var(--rule); padding:36px 0; }
   footer .wrap{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; font-size:12.5px; color:var(--slate); }
+
+  /* ===== 2026-09-09 — interactive demos added to the landing page ===== */
+  .btn.btn-sm{ padding:9px 16px; font-size:13px; }
+  .badge{ display:inline-flex; align-items:center; gap:5px; border-radius:100px; padding:3px 10px 3px 8px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; }
+  .badge.good{ background:var(--teal-soft); color:#0FA968; }
+  .badge .bdot{ width:5px; height:5px; border-radius:50%; background:currentColor; display:inline-block; }
+  .muted{ color:var(--slate); font-size:13px; }
+
+  /* persona-switching hero */
+  .persona-tabs{ display:flex; gap:6px; margin-top:22px; flex-wrap:wrap; }
+  .persona-tabs button{ font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; padding:8px 14px; border:1px solid var(--rule); background:transparent; color:var(--slate); cursor:pointer; border-radius:8px; transition:all 150ms ease; }
+  .persona-tabs button.active{ background:var(--teal); color:#fff; border-color:var(--teal); }
+  .live-card{ background:var(--paper-raised); border:1px solid var(--rule); border-radius:10px; padding:22px; min-height:230px; width:100%; max-width:440px; }
+  .live-card .lc-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+  .live-card .lc-name{ font-family:'Sora',sans-serif; font-weight:700; font-size:16px; color:var(--navy); }
+  .reason-stream{ display:flex; flex-direction:column; gap:6px; min-height:76px; }
+  .reason-item{ font-size:11.5px; padding:6px 10px; border-radius:8px; background:var(--teal-soft); color:#4448D6; font-family:'JetBrains Mono',monospace; opacity:0; transform:translateY(4px); animation:reasonIn 400ms ease forwards; }
+  @keyframes reasonIn{ to{ opacity:1; transform:translateY(0); } }
+  @media (prefers-reduced-motion: reduce){ .reason-item{ animation:none; opacity:1; transform:none; } }
+  .dial{ position:relative; display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px; flex-shrink:0; }
+  .dial.sm{ width:38px; height:38px; }
+  .dial svg{ transform:rotate(-90deg); }
+  .dial .dlabel{ position:absolute; font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:var(--navy); }
+  .dial.sm .dlabel{ font-size:10px; }
+  .breakdown{ margin-top:12px; padding-top:12px; border-top:1px dashed var(--rule); display:flex; flex-direction:column; gap:8px; overflow:hidden; max-height:0; transition:max-height 260ms ease; }
+  .breakdown.open{ max-height:220px; }
+  .bd-row{ font-size:11.5px; display:flex; justify-content:space-between; gap:10px; color:var(--slate); }
+  .bd-row .bd-bar{ flex:1; height:5px; border-radius:3px; background:var(--rule); margin:0 8px; overflow:hidden; align-self:center; }
+  .bd-row .bd-bar div{ height:100%; background:var(--teal); }
+  .why-match-btn{ font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:6px 12px; border-radius:6px; border:1px solid var(--rule); background:transparent; color:var(--navy); cursor:pointer; }
+  .why-match-btn:hover{ border-color:var(--teal); color:var(--teal); }
+  .agreement-actions{ display:flex; gap:8px; margin-top:4px; }
+  .agreement-actions .btn{ padding:8px 14px; font-size:12.5px; }
+
+  /* stat strip */
+  .stat-strip{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:44px; padding-top:32px; border-top:1px solid var(--rule); }
+  @media (max-width:760px){ .stat-strip{ grid-template-columns:1fr; } }
+  .stat-tile .stat-num{ font-family:'Sora',sans-serif; font-weight:700; font-size:32px; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; color:var(--navy); }
+  .stat-tile .stat-label{ font-size:12.5px; color:var(--slate); margin-top:4px; line-height:1.45; max-width:260px; }
+
+  /* safeguarding-gate try-it widget */
+  .try-card{ background:var(--paper-raised); border:1px solid var(--rule); border-radius:10px; padding:24px 26px; margin-top:36px; }
+  .gate-row{ display:grid; grid-template-columns:160px 1fr; gap:14px; align-items:center; padding:12px 0; border-bottom:1px solid var(--rule); }
+  .gate-row:last-child{ border-bottom:none; }
+  .gate-row .g-label{ font-size:13px; font-weight:600; color:var(--navy-soft); }
+  .gate-track{ display:flex; flex-wrap:wrap; gap:6px; }
+  .gate-pill{ font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:6px 13px; border-radius:100px; border:1px solid var(--rule); background:transparent; cursor:pointer; transition:all 150ms ease; color:var(--slate); }
+  .gate-pill.allow{ background:#E1F5EC; color:#0FA968; border-color:transparent; }
+  .gate-pill.deny{ background:#FBEAE7; color:#D8442F; border-color:transparent; }
+  .gate-pill:hover{ transform:translateY(-1px); }
+
+  /* escrow / chat / rating demos */
+  .demo-block{ background:var(--paper-raised); border:1px solid var(--rule); border-radius:10px; padding:26px 28px; margin-bottom:20px; }
+  .demo-block h3{ font-size:17px; margin-bottom:6px; }
+  .escrow-track{ display:flex; align-items:center; gap:0; margin:18px 0 16px; }
+  .escrow-step{ display:flex; flex-direction:column; align-items:center; gap:8px; flex:1; position:relative; }
+  .escrow-dot{ width:30px; height:30px; border-radius:50%; border:2px solid var(--rule); background:var(--paper); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--slate); transition:all 200ms ease; z-index:1; }
+  .escrow-step.done .escrow-dot{ background:#0FA968; border-color:#0FA968; color:#fff; }
+  .escrow-step.current .escrow-dot{ border-color:var(--teal); color:var(--teal); }
+  .escrow-line{ position:absolute; top:15px; left:50%; width:100%; height:2px; background:var(--rule); z-index:0; }
+  .escrow-step.done .escrow-line{ background:#0FA968; }
+  .escrow-step:last-child .escrow-line{ display:none; }
+  .escrow-label{ font-size:11.5px; font-weight:600; color:var(--slate); text-align:center; }
+  .escrow-step.current .escrow-label{ color:var(--navy); }
+  .escrow-amount{ font-family:'JetBrains Mono',monospace; font-size:21px; font-weight:600; margin:14px 0 2px; color:var(--navy); }
+  .escrow-status{ font-size:13px; color:var(--slate); margin-bottom:16px; }
+
+  .chat-window{ max-width:480px; }
+  .chat-bubble{ background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:9px 13px; font-size:13.5px; margin-bottom:10px; max-width:80%; color:var(--navy); }
+  .chat-bubble.mine{ margin-left:auto; background:var(--teal-soft); border-color:transparent; }
+  .chat-compose{ display:flex; gap:8px; margin-top:12px; }
+  .chat-compose input{ flex:1; padding:10px 12px; border:1px solid var(--rule); border-radius:6px; font-family:'Inter',sans-serif; font-size:13.5px; background:#fff; color:var(--navy); }
+  .flag-banner{ display:flex; align-items:center; gap:8px; background:#FBEAE7; color:#D8442F; font-size:12.5px; font-weight:600; padding:9px 13px; border-radius:8px; margin-top:10px; opacity:0; max-height:0; overflow:hidden; transition:opacity 160ms ease, max-height 160ms ease; }
+  .flag-banner.show{ opacity:1; max-height:60px; }
+  .chat-hint{ font-size:11.5px; color:var(--slate); margin-top:10px; font-family:'JetBrains Mono',monospace; }
+
+  .item-card{ border:1px solid var(--rule); border-radius:8px; padding:18px 20px; background:var(--paper); }
+  .item-card.clickable-demo{ cursor:pointer; display:block; width:100%; text-align:left; font:inherit; color:inherit; transition:border-color 150ms ease, transform 150ms ease; }
+  .item-card.clickable-demo:hover{ border-color:var(--teal); transform:translateY(-1px); }
+  .modal-demo-wrap{ position:relative; max-width:440px; }
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(22,22,27,0.5); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 180ms ease; z-index:200; }
+  .modal-backdrop.open{ opacity:1; pointer-events:auto; }
+  .rating-modal{ position:relative; background:var(--paper-raised); border:1px solid var(--rule); border-radius:10px; padding:24px; width:300px; transform:translateY(8px); transition:transform 180ms ease; }
+  .modal-backdrop.open .rating-modal{ transform:translateY(0); }
+  .stars{ display:flex; gap:6px; margin:12px 0 18px; }
+  .stars button{ background:none; border:none; font-size:28px; line-height:1; cursor:pointer; color:var(--rule); padding:0; transition:color 120ms ease, transform 120ms ease; }
+  .stars button.filled{ color:#C4890A; }
+  .stars button:hover{ transform:scale(1.12); }
+  .modal-close{ position:absolute; top:14px; right:16px; background:none; border:none; color:var(--slate); font-size:18px; cursor:pointer; line-height:1; }
 </style>
 </head>
 <body>
@@ -126,16 +215,28 @@
 <section class="hero">
   <div class="wrap hero-grid">
     <div>
-      <div class="eyebrow">Licensed institutional platform · reference demo</div>
-      <h1>A safer <em>bridge</em> between students and paid work.</h1>
-      <p class="lede">Bridge connects a university's students with vetted businesses for paid projects and internships — with the careers team deciding exactly which employers can reach which year groups, before anyone can make contact.</p>
+      <div class="eyebrow" id="persona-eyebrow">Licensed institutional platform · reference demo</div>
+      <h1 id="persona-headline">A safer <em>bridge</em> between students and paid work.</h1>
+      <p class="lede" id="persona-sub">Bridge connects a university's students with vetted businesses for paid projects and internships — with the careers team deciding exactly which employers can reach which year groups, before anyone can make contact.</p>
       <div class="cta-row">
         <a href="app.html" class="btn primary">Login</a>
         <a href="#how-it-works" class="btn ghost">See how it works</a>
       </div>
+      <div class="persona-tabs" id="persona-tabs">
+        <button type="button" data-persona="student" class="active">For students</button>
+        <button type="button" data-persona="business">For businesses</button>
+        <button type="button" data-persona="university">For universities</button>
+      </div>
     </div>
     <div class="hero-visual">
-      <img src="assets/bridge-logo.png" alt="Bridge by CAPLink — trusted access, paid experience, real impact">
+      <div class="live-card" id="persona-card"></div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="stat-strip" id="stat-strip">
+      <div class="stat-tile"><div class="stat-num" data-target="6">0</div><div class="stat-label">scoring factors explained behind every match, not just a percentage</div></div>
+      <div class="stat-tile"><div class="stat-num" data-target="3">0</div><div class="stat-label">approval layers a business passes before it can see a single student</div></div>
+      <div class="stat-tile"><div class="stat-num" data-target="0" data-prefix="£">0</div><div class="stat-label">released from escrow until a milestone is actually approved</div></div>
     </div>
   </div>
 </section>
@@ -187,6 +288,30 @@
         </div>
       </div>
     </div>
+
+    <div class="try-card">
+      <div class="eyebrow" style="margin-top:8px">Try it yourself</div>
+      <p class="muted" style="margin:0 0 4px">Click a year group or category below — this is the exact control a university's careers team gets, per business.</p>
+      <div class="gate-row">
+        <span class="g-label">Year group access</span>
+        <div class="gate-track" data-gate="years">
+          <button type="button" class="gate-pill deny">Foundation</button>
+          <button type="button" class="gate-pill deny">Year 1</button>
+          <button type="button" class="gate-pill allow">Year 2</button>
+          <button type="button" class="gate-pill allow">Year 3</button>
+          <button type="button" class="gate-pill allow">Postgrad</button>
+        </div>
+      </div>
+      <div class="gate-row">
+        <span class="g-label">Project categories</span>
+        <div class="gate-track" data-gate="categories">
+          <button type="button" class="gate-pill allow">Data analytics</button>
+          <button type="button" class="gate-pill allow">Research</button>
+          <button type="button" class="gate-pill deny">Marketing</button>
+          <button type="button" class="gate-pill deny">Sales</button>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -228,6 +353,77 @@
         <div class="f-num">06</div>
         <h3>Mobile-ready by design</h3>
         <p>Paginated feeds, long-lived refresh tokens, and a single combined home payload — built for a phone on a patchy connection, not just a desktop.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="see-it-work">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Not just a description</div>
+      <h2>Three of these mechanics, working right here.</h2>
+      <p>No login needed for these — a real escrow lifecycle, the actual off-platform-contact flagging, and the rating flow, all running client-side on this page.</p>
+    </div>
+
+    <div class="demo-block">
+      <h3>Watch the escrow actually move</h3>
+      <p class="muted" style="margin:0 0 4px">Every milestone is authorised up front and only released on approval. Step through a real milestone's lifecycle.</p>
+      <h4 style="font-size:15px;margin:14px 0 2px">Milestone 1 — First half of the work</h4>
+      <div class="escrow-track" id="escrow-track">
+        <div class="escrow-step current" data-step="0"><div class="escrow-line"></div><div class="escrow-dot">1</div><div class="escrow-label">Authorised</div></div>
+        <div class="escrow-step" data-step="1"><div class="escrow-line"></div><div class="escrow-dot">2</div><div class="escrow-label">Submitted</div></div>
+        <div class="escrow-step" data-step="2"><div class="escrow-dot">3</div><div class="escrow-label">Approved &amp; paid</div></div>
+      </div>
+      <div class="escrow-amount" id="escrow-amount">£80.00 held in escrow</div>
+      <div class="escrow-status" id="escrow-status">Funds authorised at contract creation — nothing has moved yet.</div>
+      <button class="btn primary btn-sm" id="escrow-advance" type="button">Advance to next step →</button>
+    </div>
+
+    <div class="demo-block">
+      <h3>Try the off-platform-contact flag</h3>
+      <p class="muted" style="margin:0 0 4px">Type into the box below the way a student or business actually would.</p>
+      <div class="chat-window">
+        <div class="chat-bubble">Hi! Really keen on the landing page copy project.</div>
+        <div class="chat-bubble mine">Great — can you start Monday?</div>
+        <div class="chat-compose">
+          <input type="text" id="chat-input" placeholder="Type a message… try a phone number">
+        </div>
+        <div class="flag-banner" id="chat-flag">⚠ Possible off-platform contact — this message would be flagged for review</div>
+        <p class="chat-hint" id="chat-hint">try: "call me on 07911 123456" or "let's move to WhatsApp"</p>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <h3>The rating flow, for real</h3>
+      <p class="muted" style="margin:0 0 4px">Click the contract card below.</p>
+      <div class="modal-demo-wrap" id="modal-demo-wrap">
+        <div class="item-card clickable-demo" id="open-rating-demo">
+          <div class="row" style="justify-content:space-between; align-items:flex-start">
+            <div>
+              <h4 style="font-size:15px; margin:0 0 2px">DataCraft Analytics</h4>
+              <p class="muted" style="margin:0">Landing page copy review · 2 milestones paid</p>
+            </div>
+            <span class="badge good">Completed</span>
+          </div>
+          <p class="muted" style="margin-top:10px;font-size:12px">Click to rate this contract →</p>
+        </div>
+
+        <div class="modal-backdrop" id="rating-backdrop">
+          <div class="rating-modal">
+            <button class="modal-close" id="rating-close" type="button">&times;</button>
+            <h4 style="font-size:15px;margin-bottom:2px">Rate DataCraft Analytics</h4>
+            <p class="muted" style="margin:0 0 4px">Overall score</p>
+            <div class="stars" id="rating-stars">
+              <button type="button" data-star="1">★</button>
+              <button type="button" data-star="2">★</button>
+              <button type="button" data-star="3">★</button>
+              <button type="button" data-star="4">★</button>
+              <button type="button" data-star="5">★</button>
+            </div>
+            <button class="btn primary" style="width:100%;justify-content:center" id="rating-submit" type="button">Submit rating</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -316,5 +512,221 @@
   </div>
 </footer>
 
+<script>
+// 2026-09-09 — interactive demos added to the landing page. Everything
+// here runs client-side against hardcoded example data, same as the
+// approved comparison artifact this was built from — none of it calls
+// the real API (that's what app.html is for).
+(function () {
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var CIRC = 132;
+  var heroTimers = [];
+  function clearHeroTimers() { heroTimers.forEach(clearInterval); heroTimers.forEach(clearTimeout); heroTimers = []; }
+
+  var PERSONAS = {
+    student: {
+      eyebrow: "For students",
+      headline: 'A safer <em>bridge</em> between students and paid work.',
+      sub: "Every match on Bridge comes with its reasons attached. No black box — just the factors, in order, before you ever apply.",
+      render: function (el) {
+        el.innerHTML =
+          '<div class="lc-top">' +
+            '<div><div class="lc-name">Aisha Rahman</div><p class="muted" style="margin:2px 0 0">BSc Data Science · Manchester</p></div>' +
+            '<div class="dial" id="hero-dial"><svg width="52" height="52" viewBox="0 0 52 52"><circle cx="26" cy="26" r="21" stroke="var(--rule)" stroke-width="4.5" fill="none"/><circle id="hero-dial-fill" cx="26" cy="26" r="21" stroke="var(--teal)" stroke-width="4.5" fill="none" stroke-dasharray="132" stroke-dashoffset="132" stroke-linecap="round"/></svg><span class="dlabel" id="hero-dial-label">0%</span></div>' +
+          "</div>" +
+          '<div class="reason-stream" id="reason-stream"></div>';
+        var reasons = ["Matched skills: python, sql", "Within budget", "Available hours fit", "Strong track record"];
+        var streamEl = el.querySelector("#reason-stream");
+        var dialFill = el.querySelector("#hero-dial-fill");
+        var dialLabel = el.querySelector("#hero-dial-label");
+        function play() {
+          streamEl.innerHTML = "";
+          if (reduced) {
+            dialFill.style.strokeDashoffset = CIRC * (1 - 0.82);
+            dialLabel.textContent = "82%";
+            reasons.forEach(function (r) { var d = document.createElement("div"); d.className = "reason-item"; d.textContent = r; streamEl.appendChild(d); });
+            return;
+          }
+          var pct = 0, target = 82;
+          var t = setInterval(function () {
+            pct += 2;
+            if (pct >= target) { pct = target; clearInterval(t); }
+            dialFill.style.strokeDashoffset = CIRC * (1 - pct / 100);
+            dialLabel.textContent = pct + "%";
+          }, 24);
+          heroTimers.push(t);
+          reasons.forEach(function (r, i) {
+            var timeout = setTimeout(function () { var d = document.createElement("div"); d.className = "reason-item"; d.textContent = r; streamEl.appendChild(d); }, 500 + i * 500);
+            heroTimers.push(timeout);
+          });
+        }
+        play();
+        heroTimers.push(setInterval(play, 7000));
+      },
+    },
+    business: {
+      eyebrow: "For businesses",
+      headline: "No black-box hiring. See the scoring, not just the score.",
+      sub: "Every shortlisted candidate comes with a full, real breakdown — click through to the exact factors behind the number.",
+      render: function (el) {
+        el.innerHTML =
+          '<div class="lc-top">' +
+            '<div><div class="lc-name">Aisha Rahman</div><p class="muted" style="margin:2px 0 0">BSc Data Science · ★ 4.9 (7 completed)</p></div>' +
+            '<div class="dial sm"><svg width="38" height="38" viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" stroke="var(--rule)" stroke-width="4" fill="none"/><circle cx="19" cy="19" r="15" stroke="var(--teal)" stroke-width="4" fill="none" stroke-dasharray="94" stroke-dashoffset="18" stroke-linecap="round"/></svg><span class="dlabel">81%</span></div>' +
+          "</div>" +
+          '<button type="button" class="why-match-btn" id="why-match-btn">Why this match?</button>' +
+          '<div class="breakdown" id="why-match-breakdown">' +
+            row("Skill overlap", 78) + row("Rate compatibility", 100) + row("Availability", 100) + row("Reputation", 90) +
+          "</div>";
+        function row(name, pct) {
+          return '<div class="bd-row"><span>' + name + '</span><span class="bd-bar"><div style="width:' + pct + '%"></div></span><span>' + pct + "%</span></div>";
+        }
+        var btn = el.querySelector("#why-match-btn");
+        var panel = el.querySelector("#why-match-breakdown");
+        btn.addEventListener("click", function () {
+          panel.classList.toggle("open");
+          btn.textContent = panel.classList.contains("open") ? "Hide breakdown" : "Why this match?";
+        });
+      },
+    },
+    university: {
+      eyebrow: "For universities",
+      headline: "Nothing reaches your students without your sign-off.",
+      sub: "Every new business partnership sits in your queue until someone on your team decides — approve, reject, or ask for more.",
+      render: function (el) {
+        el.innerHTML =
+          '<div class="lc-top">' +
+            '<div><div class="lc-name">DataCraft Analytics</div><p class="muted" style="margin:2px 0 0">Requesting: Year 2–3, Data &amp; Research</p></div>' +
+            '<span class="badge" id="agreement-badge" style="background:#FBF1DF;color:#C4890A"><span class="bdot"></span>Pending</span>' +
+          "</div>" +
+          '<p class="muted" style="margin:10px 0 14px">First request from this business — no prior history on Bridge.</p>' +
+          '<div class="agreement-actions" id="agreement-actions"><button type="button" class="btn primary btn-sm" id="approve-btn">Approve</button><button type="button" class="btn ghost btn-sm" id="reject-btn">Reject</button></div>' +
+          '<p class="muted" id="agreement-result" style="margin-top:10px;display:none"></p>';
+        var badge = el.querySelector("#agreement-badge");
+        var actions = el.querySelector("#agreement-actions");
+        var result = el.querySelector("#agreement-result");
+        function decide(text, bg, fg) {
+          badge.style.background = bg; badge.style.color = fg;
+          badge.innerHTML = '<span class="bdot"></span>' + text;
+          actions.style.display = "none";
+          result.style.display = "block";
+          result.textContent = text + " — logged to the audit trail. ";
+          var reset = document.createElement("a");
+          reset.href = "#"; reset.textContent = "reset demo"; reset.style.color = "var(--teal)";
+          reset.addEventListener("click", function (ev) { ev.preventDefault(); PERSONAS.university.render(el); });
+          result.appendChild(reset);
+        }
+        el.querySelector("#approve-btn").addEventListener("click", function () { decide("Approved", "#E1F5EC", "#0FA968"); });
+        el.querySelector("#reject-btn").addEventListener("click", function () { decide("Rejected", "#FBEAE7", "#D8442F"); });
+      },
+    },
+  };
+
+  function showPersona(name) {
+    clearHeroTimers();
+    document.getElementById("persona-eyebrow").textContent = PERSONAS[name].eyebrow;
+    document.getElementById("persona-headline").innerHTML = PERSONAS[name].headline;
+    document.getElementById("persona-sub").textContent = PERSONAS[name].sub;
+    var card = document.getElementById("persona-card");
+    PERSONAS[name].render(card);
+    document.querySelectorAll("#persona-tabs button").forEach(function (b) { b.classList.toggle("active", b.dataset.persona === name); });
+  }
+  var personaTabs = document.getElementById("persona-tabs");
+  if (personaTabs) {
+    personaTabs.addEventListener("click", function (ev) {
+      var btn = ev.target.closest("button[data-persona]");
+      if (btn) showPersona(btn.dataset.persona);
+    });
+    showPersona("student");
+  }
+
+  // stat strip — count up once, when scrolled into view
+  var statStrip = document.getElementById("stat-strip");
+  if (statStrip) {
+    var statPlayed = false;
+    function playStats() {
+      if (statPlayed) return;
+      statPlayed = true;
+      statStrip.querySelectorAll(".stat-num").forEach(function (el) {
+        var target = Number(el.dataset.target);
+        var prefix = el.dataset.prefix || "";
+        if (target === 0) { el.textContent = prefix + "0"; return; }
+        if (reduced) { el.textContent = prefix + target; return; }
+        var cur = 0;
+        var step = Math.max(1, Math.round(target / 24));
+        var t = setInterval(function () {
+          cur += step;
+          if (cur >= target) { cur = target; clearInterval(t); }
+          el.textContent = prefix + cur;
+        }, 40);
+      });
+    }
+    new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) playStats(); });
+    }, { threshold: 0.4 }).observe(statStrip);
+  }
+
+  // safeguarding gate — click a pill to toggle allow/deny
+  document.querySelectorAll("[data-gate] .gate-pill").forEach(function (btn) {
+    btn.addEventListener("click", function () { btn.classList.toggle("allow"); btn.classList.toggle("deny"); });
+  });
+
+  // escrow milestone tracker
+  var escrowSteps = document.querySelectorAll("#escrow-track .escrow-step");
+  var escrowAmount = document.getElementById("escrow-amount");
+  var escrowStatus = document.getElementById("escrow-status");
+  var escrowBtn = document.getElementById("escrow-advance");
+  if (escrowBtn) {
+    var ESCROW_COPY = [
+      { amount: "£80.00 held in escrow", status: "Funds authorised at contract creation — nothing has moved yet.", btn: "Student submits work →" },
+      { amount: "£80.00 held in escrow", status: "Student has marked this milestone as delivered — awaiting your review.", btn: "Approve & release payment →" },
+      { amount: "£80.00 paid to student", status: "Released the moment you approved it — Bridge's fee was taken from the same transaction.", btn: "Reset demo" },
+    ];
+    var escrowIdx = 0;
+    function renderEscrow() {
+      var finished = escrowIdx === ESCROW_COPY.length - 1;
+      escrowSteps.forEach(function (s, i) {
+        s.classList.toggle("done", i < escrowIdx || (finished && i <= escrowIdx));
+        s.classList.toggle("current", i === escrowIdx && !finished);
+      });
+      escrowAmount.textContent = ESCROW_COPY[escrowIdx].amount;
+      escrowStatus.textContent = ESCROW_COPY[escrowIdx].status;
+      escrowBtn.textContent = ESCROW_COPY[escrowIdx].btn;
+    }
+    escrowBtn.addEventListener("click", function () {
+      escrowIdx = (escrowIdx + 1) % ESCROW_COPY.length;
+      renderEscrow();
+    });
+    renderEscrow();
+  }
+
+  // off-platform-contact flagging demo
+  var chatInput = document.getElementById("chat-input");
+  if (chatInput) {
+    var chatFlag = document.getElementById("chat-flag");
+    var chatHint = document.getElementById("chat-hint");
+    var FLAG_PATTERNS = [/\b0\d{9,10}\b/, /\b\d{5}\s?\d{6}\b/, /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i, /whatsapp/i, /instagram/i, /\bcall me\b/i, /\btext me\b/i, /\bmy number\b/i];
+    chatInput.addEventListener("input", function () {
+      var flagged = FLAG_PATTERNS.some(function (p) { return p.test(chatInput.value); });
+      chatFlag.classList.toggle("show", flagged);
+      chatHint.style.display = chatInput.value ? "none" : "block";
+    });
+  }
+
+  // rating modal demo
+  var openBtn = document.getElementById("open-rating-demo");
+  if (openBtn) {
+    var backdrop = document.getElementById("rating-backdrop");
+    var stars = document.querySelectorAll("#rating-stars button");
+    var selected = 5;
+    function paintStars() { stars.forEach(function (s) { s.classList.toggle("filled", Number(s.dataset.star) <= selected); }); }
+    stars.forEach(function (s) { s.addEventListener("click", function () { selected = Number(s.dataset.star); paintStars(); }); });
+    paintStars();
+    openBtn.addEventListener("click", function () { backdrop.classList.add("open"); });
+    document.getElementById("rating-close").addEventListener("click", function () { backdrop.classList.remove("open"); });
+    document.getElementById("rating-submit").addEventListener("click", function () { backdrop.classList.remove("open"); });
+  }
+})();
+</script>
 </body>
 </html>
