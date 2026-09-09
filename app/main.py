@@ -17,7 +17,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -149,6 +149,17 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 @app.get("/health", tags=["meta"])
 def health_check():
     return {"status": "ok", "app": settings.APP_NAME, "environment": settings.ENVIRONMENT}
+
+
+# The bare root URL had no route at all — anyone visiting
+# https://caplink-api.onrender.com directly (rather than a specific
+# /demo or /app link) hit a raw {"detail":"Not Found"}. /demo/index.html
+# is the intended public entry point (the marketing-style landing page,
+# with its own links into /app), so redirect there rather than leaving
+# the root a dead end.
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/demo/index.html")
 
 
 app.include_router(api_router, prefix="/api/v1")
