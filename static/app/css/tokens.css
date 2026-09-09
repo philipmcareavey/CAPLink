@@ -7,29 +7,47 @@
  * app.css should now read every value it uses from here, not invent a new
  * one inline — that's the actual point of a token file: one place to
  * change CAPLink's visual language, not forty.
+ *
+ * 2026-09-09 — repalette. Phil asked for something more modern after
+ * comparing the original cream/serif "editorial ledger" look against
+ * Render's own site (dark canvas, hairline borders instead of shadows, one
+ * confident accent, monospace used deliberately for anything technical).
+ * Approved direction, worked out and signed off in an artifact mockup
+ * first (light as the default theme, dark available as a genuine second
+ * theme — see the artifact history): light background, an indigo-violet
+ * accent replacing brass/gold, flat hairline borders, larger corner radii,
+ * Sora for headings instead of Fraunces, JetBrains Mono instead of IBM
+ * Plex Mono. Variable *names* are unchanged from the original palette
+ * (--brass, --moss, --slate, etc.) even though what they now represent has
+ * shifted — renaming them would mean touching every file that references
+ * them for no visual benefit; treat the names as legacy labels, the
+ * *values* below as current.
  */
 
 :root {
-  /* --- Colour: the CAPLink "editorial ledger" palette --- */
-  --ink:          #1B2A45; /* primary text, headings, the wordmark */
-  --ink-soft:     #3C4B68; /* secondary text on the paper background */
-  --paper:        #F6F3EC; /* page background */
-  --paper-raised: #FFFDF8; /* card/surface background, one step "up" from paper */
-  --brass:        #A87C2A; /* accent — active states, eyebrows, match-score fill */
-  --brass-soft:   #E9D9B8; /* brass at low opacity, for badge/chip backgrounds */
-  --moss:         #4C6B54; /* positive/success accent */
-  --moss-soft:    #DCE6DD;
-  --slate:        #6B7280; /* muted/secondary text, placeholders */
-  --rule:         #DDD6C7; /* borders, dividers, the colour of a ruled line */
-  --danger:       #A6452F; /* destructive/error accent */
-  --danger-soft:  #F3E3DE;
+  /* --- Colour --- */
+  --ink:          #16161B; /* primary text, headings, the wordmark */
+  --ink-soft:     #4A4854; /* secondary text on the page background */
+  --paper:        #FAFAFC; /* page background */
+  --paper-raised: #FFFFFF; /* card/surface background, one step "up" from paper */
+  --brass:        #5457E5; /* primary accent (indigo-violet) — active states, eyebrows, match-score fill, links */
+  --brass-soft:   #EDECFB; /* accent at low opacity, for badge/chip backgrounds */
+  --moss:         #0FA968; /* positive/success accent (approved, paid, permitted) */
+  --moss-soft:    #E1F5EC;
+  --warn:         #C4890A; /* pending/in-progress accent — deliberately separate from --brass, since status colour and brand accent shouldn't be the same hue */
+  --warn-soft:    #FBF1DF;
+  --slate:        #7A7886; /* muted/secondary text, placeholders */
+  --rule:         #E4E3EC; /* borders, dividers — a thin hairline, not a heavy line */
+  --danger:       #D8442F; /* destructive/error accent */
+  --danger-soft:  #FBEAE7;
 
   /* --- Focus (Technical Implementation Plan 5.e.ii) ---
    * A single, deliberately high-contrast colour used ONLY for the focus
    * ring, distinct from --brass (which is also used for non-interactive
    * decoration like the eyebrow rule) so a focus indicator is never
-   * ambiguous with ordinary accent colour. */
-  --focus-ring: #1D6FDB;
+   * ambiguous with ordinary accent colour. Kept as a clear blue, distinct
+   * from the new indigo-violet accent, for the same reason. */
+  --focus-ring: #2563EB;
 
   /* --- Spacing scale (4px base) ---
    * app.css previously hard-coded one-off values (10px, 14px, 18px, 22px,
@@ -45,14 +63,17 @@
   --space-8: 32px;
   --space-10: 40px;
 
-  /* --- Radius scale --- */
-  --radius-sm: 3px;   /* buttons, inputs */
-  --radius-md: 5px;   /* item cards */
-  --radius-lg: 6px;   /* cards, ledger cards */
+  /* --- Radius scale ---
+   * Larger and more consistent than the original ad-hoc 3-6px values —
+   * part of the flatter, hairline-bordered look replacing the old soft
+   * card style. */
+  --radius-sm: 6px;   /* buttons, inputs, chips-adjacent controls */
+  --radius-md: 8px;   /* item cards */
+  --radius-lg: 10px;  /* cards, ledger cards, modals */
   --radius-pill: 100px; /* chips, badges, pills */
 
   /* --- Type scale (font-size only — family/weight stay on the semantic
-   * selectors in app.css, e.g. h1-h4 already set Fraunces/600) --- */
+   * selectors in app.css, e.g. h1-h4 set Sora/700) --- */
   --text-xs: 10.5px;
   --text-sm: 11.5px;
   --text-base: 13.5px;
@@ -64,7 +85,10 @@
   --transition-fast: 120ms ease;
   --transition-base: 200ms ease;
 
-  /* --- Elevation --- */
-  --shadow-toast: 0 10px 30px rgba(27, 42, 69, 0.25);
-  --shadow-modal: 0 20px 60px rgba(27, 42, 69, 0.35);
+  /* --- Elevation ---
+   * Flat, hairline-bordered surfaces are the default now — shadow is
+   * reserved for things that genuinely float above the page (toasts,
+   * modals), not ordinary cards. */
+  --shadow-toast: 0 10px 30px rgba(22, 22, 27, 0.16);
+  --shadow-modal: 0 20px 60px rgba(22, 22, 27, 0.22);
 }

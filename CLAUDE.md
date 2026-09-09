@@ -1278,6 +1278,78 @@ Not yet done this session, left for next time: a full screen-reader
 pass, the ARIA-tabs pattern on the tab strips, and 5.d.iii. Tracker/README
 updated to reflect exactly this partial state, not rounded up to "done."
 
+### Visual repalette, same session, 2026-09-09
+
+Straight after the above, Phil said the live result looked "clunky and
+dated" and asked for something more modern, specifically citing Render's
+own site/dashboard as a look he liked. Rather than guess at a redesign
+blind, went and looked at render.com and dashboard.render.com directly
+(both dark-by-default: near-black canvas, hairline borders instead of
+shadows, one confident accent, monospace for anything technical), then
+built the proposed direction as a standalone comparison artifact — applied
+to CAPLink's real components (login panel, project card, dial, badges),
+side by side with what was live — rather than describing hex codes in
+prose. Iterated through several rounds on that artifact (dark → dark+light
+toggle → light as the default → progressively more interactive demos: a
+persona-switching hero, a live off-platform-contact-flagging chat demo, an
+escrow milestone stepper, a working rating modal) before Phil approved it
+and asked to implement it for real.
+
+**What actually shipped, once approved — light as the default theme, not
+dark**: `static/app/css/tokens.css`'s colour values changed (variable
+*names* did not — `--brass`, `--moss`, etc. are kept as legacy labels since
+renaming would touch every file that references them for zero visual
+benefit; the file's own header comment now says so explicitly). Indigo-
+violet (`#5457E5`) replaces brass/gold as the primary accent; a genuinely
+new `--warn`/`--warn-soft` pair (amber) was added and wired into
+`.badge.warn` — previously "pending"-type statuses reused the accent
+colour itself, which stopped making sense once the accent became the
+brand's primary colour rather than a muted decorative gold. Headings moved
+from Fraunces (serif) to Sora (geometric sans), and technical/mono text
+from IBM Plex Mono to JetBrains Mono — both loaded via the same Google
+Fonts `@import` `app.css` already used, just a different family list.
+Radius scale grew (3-6px hardcoded values → a `--radius-sm/md/lg` scale at
+6/8/10px) and several hardcoded shadow/background values that had never
+been tokenised (the header's translucent background, the modal backdrop,
+the toast's box-shadow) were updated to match by hand since they weren't
+reading from a token to begin with.
+
+**One real, small usability fix came out of this, not just restyling**:
+none of the three password fields on `/app` (login, student registration,
+business registration) had any way to check what you'd typed before
+submitting — added a real show/hide toggle (`.pw-toggle` in `app.css`,
+`wirePasswordToggles()` in `main.js`), the one thing from the mockup that
+was a genuine product gap rather than a visual preference.
+
+**Verified in a real browser this time** — the claude-in-chrome extension,
+disconnected for the rest of this session, got reconnected specifically to
+do this (see the extension-troubleshooting exchange earlier in this
+session if it drops again: check `chrome://extensions` is enabled, sign
+into the extension with the same account as this session, then a full
+Chrome quit-and-reopen, not just a new window). Clicked through the
+reskinned login (including the new password toggle actually revealing/
+hiding real typed text), the student feed's match dial, the business
+shortlist + "why this match?" breakdown (5.c.ii, still working correctly
+under the new palette), and the university admin's safeguarding permit
+pills — all four screens confirmed rendering correctly against a fresh
+local seed, not just reviewed as a diff. Full `ruff`/`mypy`/`pytest` suite
+unaffected as expected (105/105, 0 lint/type errors) since this was a
+CSS/JS-only change with no Python touched.
+
+**Deliberately not touched, flagged rather than silently expanded into**:
+`static/demo/` (the older, separate reference app) keeps its own original
+Fraunces/IBM Plex Mono styling untouched — it's always been treated as
+lower-priority than `/app` in this project (see "The full app" section
+above), and re-skinning it wasn't part of what was approved. The marketing
+landing page (`docs/index.html` / the standalone
+`../caplink-university-landing.html`) also wasn't touched — the artifact's
+more elaborate interactive concepts (a persona-switching hero, the live
+chat-flagging demo, the escrow stepper) were built and approved as
+*mockups* for a home page, not as something implemented into a real page
+yet, since CAPLink doesn't have a built marketing home page in this repo
+to put them on. That's a separate, larger piece of work than this session
+covered — raised with Phil rather than assumed either way.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The

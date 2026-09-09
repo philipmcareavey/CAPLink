@@ -92,7 +92,7 @@ function renderLogin() {
         </div>
         <div class="divider">or sign in manually</div>
         <div class="field"><label>Email</label><input id="li-email"></div>
-        <div class="field"><label>Password</label><input id="li-pass" type="password"></div>
+        <div class="field pw-field"><label>Password</label><input id="li-pass" type="password"><button type="button" class="pw-toggle" data-toggle="li-pass">Show</button></div>
         <button data-action="manual-login" style="width:100%; justify-content:center">Log in</button>
         <p class="muted" style="margin-top:12px">All seeded passwords are <code class="idval">ChangeMe123!</code>. Run <code class="idval">python -m scripts.seed_demo_data</code> first if these don't work.</p>
       </div>
@@ -110,7 +110,7 @@ function renderLogin() {
         <h4 class="section">Register a student</h4>
         <p class="muted">Email must end in the university's domain (seeded demo university is <code class="idval">manchester</code>, domain <code class="idval">manchester.ac.uk</code>).</p>
         <div class="field"><label>Email</label><input id="rs-email" placeholder="you@manchester.ac.uk"></div>
-        <div class="field"><label>Password</label><input id="rs-pass" type="password" value="ChangeMe123!"></div>
+        <div class="field pw-field"><label>Password</label><input id="rs-pass" type="password" value="ChangeMe123!"><button type="button" class="pw-toggle" data-toggle="rs-pass">Show</button></div>
         <div class="field"><label>Full name</label><input id="rs-name"></div>
         <div class="field"><label>University slug</label><input id="rs-slug" value="manchester"></div>
         <div class="field"><label>Degree title</label><input id="rs-degree" value="BSc Computer Science"></div>
@@ -157,7 +157,7 @@ function renderLogin() {
         <h4 class="section">Register a business</h4>
         <p class="muted">A brand-new business has <strong>zero</strong> visibility of any student until a university approves it — try posting a project right after registering to see it get rejected.</p>
         <div class="field"><label>Email</label><input id="rb-email"></div>
-        <div class="field"><label>Password</label><input id="rb-pass" type="password" value="ChangeMe123!"></div>
+        <div class="field pw-field"><label>Password</label><input id="rb-pass" type="password" value="ChangeMe123!"><button type="button" class="pw-toggle" data-toggle="rb-pass">Show</button></div>
         <div class="field"><label>Contact full name</label><input id="rb-name"></div>
         <div class="field"><label>Company name</label><input id="rb-company"></div>
         <button data-action="register-business" style="width:100%; justify-content:center">Register</button>
@@ -183,7 +183,23 @@ function renderLogin() {
       } catch (e) { toast("Registration failed: " + e.message, "error"); }
     });
   }
+  wirePasswordToggles(wrap);
   return wrap;
+}
+
+// A real usability fix that came out of the 2026-09-09 visual reskin, not
+// just decoration: none of the three password fields on this page had a
+// way to check what you'd typed before submitting. `.pw-toggle` sits next
+// to whichever input it targets (`data-toggle` holds that input's id).
+function wirePasswordToggles(root) {
+  root.querySelectorAll(".pw-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const input = document.getElementById(btn.dataset.toggle);
+      const showing = input.type === "text";
+      input.type = showing ? "password" : "text";
+      btn.textContent = showing ? "Show" : "Hide";
+    });
+  });
 }
 
 // Technical Implementation Plan 2.b — a successful university SSO login
