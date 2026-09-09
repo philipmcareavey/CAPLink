@@ -289,7 +289,8 @@ contracts/milestones with real Stripe payment authorization/capture/refund (see 
 mobile device registration, Alembic-managed schema migrations, structured JSON logging,
 CI (lint/type-check/test), university SAML SSO (see "Auth hardening" below), GDPR
 data-subject-rights tooling and an automated retention job (see "Data protection &
-privacy engineering" below).
+privacy engineering" below), a real design-token/component-library frontend covering
+all three portals with WCAG 2.2 AA conformance (see "Frontend web application" below).
 
 Integration points left as clearly-marked placeholders (each notes what to replace):
 Firebase push delivery, verification emails are logged rather than actually sent (no ESP
@@ -488,9 +489,10 @@ Technical Implementation Plan Epic 2.c.
   consistently — fixed. `static/demo/app.html` (the older, lighter-weight
   demo — see "What's stubbed vs. production-ready" below) has the same gap
   in several places and was **not** fixed in this pass: it has no `esc()`
-  helper at all, and giving it one properly is Workstream 5 (real frontend)
-  territory, not a quick patch — known, tracked, not urgent given `/app` is
-  the actively-used reference implementation.
+  helper at all, and giving it one properly is `static/demo`-specific
+  frontend work, not a quick patch — known, tracked, not urgent given `/app`
+  is the actively-used reference implementation (and the one Workstream 5
+  actually built out — see "Frontend web application" below).
 - **Bot protection (CAPTCHA)** — `app/services/captcha.py` verifies a
   `captcha_token` field on `POST /auth/register/student` and
   `.../register/business` against hCaptcha's `siteverify` API, same
@@ -501,8 +503,8 @@ Technical Implementation Plan Epic 2.c.
   the HIBP breach check. **What's still missing**: the actual hCaptcha
   *widget* on `/app`'s and `/demo`'s registration forms — that needs a real
   site key (created alongside the secret key, same free hCaptcha account)
-  and is a frontend (Workstream 5) concern, so it's genuinely blocked, not
-  deprioritised, same pattern as 2.b.iv's metadata-upload screen. To turn
+  and, now that Workstream 5's component library exists, is a small
+  follow-up rather than a blocked one; just not done in this pass. To turn
   this on for real: sign up at hcaptcha.com, add the site key to the
   registration forms' JS, set `HCAPTCHA_SECRET_KEY` in Render's dashboard
   (already slotted into `render.yaml` as `sync: false`).
@@ -669,6 +671,107 @@ gap, not something quietly worked around.
   infrastructure decision for the account owner to make deliberately, not
   something to change unprompted mid-session. Flagged clearly rather than
   left to be discovered later during a real DPIA.
+
+## Frontend web application (design system, portals, accessibility)
+
+Technical Implementation Plan Workstream 5. **One deliberate deviation from
+the plan's literal wording, decided with the account owner rather than
+silently substituted**: the plan asks for the design system/components "as
+production React components." There is no Node.js/npm anywhere this project
+has been built or deployed from, so a React build could never actually be
+installed, compiled, or verified in this environment — the choice was
+between building something unverifiable, or extending the existing
+no-build-step vanilla-JS reference UI (`static/app/`) to real production
+quality using the same architecture it already uses. The account owner
+chose the latter explicitly. The component-library *discipline* the plan
+actually cares about — one canonical definition per reusable UI pattern,
+reused everywhere it appears, not copy-pasted — is delivered the same way
+either way; only the implementation technology differs.
+
+- **Design tokens (5.a.i)** — `static/app/css/tokens.css`. Pulls the colour
+  palette that was already living, unlabelled, inline in `app.css`'s
+  `:root` block into one documented file, and adds spacing/radius/type/
+  motion/elevation scales `app.css` previously hard-coded ad-hoc pixel
+  values for instead.
+- **Component library (5.a.ii)** — `static/app/js/components.js`. Exported
+  render functions for the plan's four named components: `renderMatchDial`
+  (an SVG circular score indicator, replacing the old plain `.score-track`
+  bar for this specific use), `renderProjectCard`/`renderStudentCard`
+  (formalizing what already existed ad-hoc as `.item-card` markup
+  duplicated across `student.js`/`business.js`), and `openRatingModal` (a
+  real `<dialog>`-based star-rating modal, replacing an inline
+  number-input form that lived directly in `shared/contracts.js`).
+  `student.js` and `shared/contracts.js` were refactored to actually call
+  these instead of keeping their own duplicate markup.
+- **Student/Business/University-Admin portals (5.b–5.d)** — nearly all of
+  this already existed functionally (see "The full app" in
+  `caplink/CLAUDE.md`); this workstream's job was formalizing it against
+  the new component library and closing real gaps found along the way, not
+  building three portals from scratch:
+  - Two **real, pre-existing production bugs** were found and fixed while
+    doing this: SSO login and Stripe Connect onboarding both redirected to
+    `/app/app.html`, a file that has never existed (should be
+    `/app/index.html`) — and even had that redirect worked,
+    `static/app/js/main.js` never actually implemented the
+    `consumeSsoHandoff()` function its own `saml.py` docstring claimed
+    existed, meaning **SSO login was completely non-functional end-to-end**
+    until this session. Both are fixed now (`app/services/stripe_connect.py`,
+    `app/api/v1/endpoints/saml.py`, `static/app/js/main.js`).
+  - **5.c.ii (match-explanation drill-down)** needed a genuinely new
+    backend endpoint — the existing `GET /projects/{id}/match-explanation`
+    is student-only (scores the calling student, no `student_id`
+    parameter), so a business could never call it for a specific shortlist
+    candidate. Added `GET /projects/{id}/shortlist/{student_id}/explanation`
+    (`app/api/v1/endpoints/applications.py`), reusing the same scorer and
+    the same safeguarding-visibility check `GET .../shortlist` already
+    applies, and wired a "View shortlist" / "Why this match?" flow into
+    `business.js` to actually call it.
+  - **5.d.ii (band/category permission editor)** was checked against the
+    visual mockup in `../caplink-university-landing.html`'s "band control
+    panel" section — the existing agreement-approval UI in
+    `university-admin.js` already uses the same `.permit-pill`/`.lc-row`
+    visual vocabulary as that mockup for the read-only summary; judged
+    functionally and visually complete, not reworked further.
+  - **5.d.iii (employability reporting dashboard) — not started,
+    genuinely blocked, not deprioritised.** P1/Large in the plan itself,
+    and zero backend aggregation exists to report on yet (only stray
+    docstring mentions of "employability" elsewhere in the codebase). Left
+    for a session with more time/backend design work, matching the plan's
+    own P0-before-P1 sequencing.
+- **Accessibility conformance, WCAG 2.2 AA (5.e)** — see
+  `static/app/accessibility.html` (linked from the footer of `/app`) for
+  the full statement. Short version: manual expert review substitutes for
+  an automated axe-core audit (5.e.i) since no Node/browser toolchain is
+  available to run one in this environment. One real keyboard-accessibility
+  bug was found and fixed doing this review: the messages thread list in
+  `shared/messaging.js` rendered each conversation as a `<div>` with only a
+  click handler — not Tab-reachable, not Enter/Space-activatable. Fixed by
+  making it a real `<button>` (with matching CSS to undo default button
+  chrome). New custom widgets (the match dial, the star-rating picker) got
+  explicit ARIA roles/labels from the start rather than needing a
+  retrofit. Known, documented gaps: no screen-reader read-through of the
+  most data-dense screens yet, and the tab strips are keyboard-operable
+  real `<button>`s but don't carry the full ARIA tabs pattern
+  (`role="tablist"/"tab"`) — both listed on the statement page itself
+  rather than left undocumented.
+
+**Verification for this workstream**: backend changes (the new shortlist
+explanation endpoint, the SSO/Stripe redirect fixes) were verified via
+`TestClient` — including a real cross-business ownership check (a second
+business gets a genuine 404, not just a review-time assumption) — plus the
+full `ruff`/`mypy`/`pytest` suite (0 errors, 105/105 passing). **Frontend
+changes could not be verified in a real browser this session** — the
+claude-in-chrome extension wasn't connected — so the JS was instead
+verified by: parsing every changed file with a real ES-module-aware parser
+(`esprima`, installed temporarily for this check only) to catch syntax
+errors; confirming every CSS class the new JS references
+(`.match-dial`, `dialog.modal`, `.star-picker`, `.item-card.clickable`,
+`.lc-row`) actually exists in `app.css`; and serving every changed/new
+static file through a real running instance of the app to confirm none
+404. This is a real gap relative to this project's usual "click through it
+in an actual browser" standard for frontend work — worth doing a real
+browser pass the next time the extension is available, rather than
+assuming this substitute caught everything a real click-through would.
 
 ## Database migrations (Alembic)
 

@@ -1161,6 +1161,123 @@ export endpoint returns real nested data across every table touched;
 account deletion correctly requires the current password, then genuinely
 anonymizes; the anonymized account can no longer log in at all.
 
+## Workstream 5 (Frontend Web Application Build) — in progress, 2026-09-09
+
+Picked next per Phil's explicit direction ("proceed with workstream 5")
+after Workstreams 3 and 7 substantially closed out. This entry covers the
+session's decisions and bugs; see README's new "Frontend web application"
+section for the user-facing detail on what was actually built.
+
+**The technology decision, made explicitly with Phil, not silently
+resolved either way**: the plan's own wording asks for the design
+system/components "as production React components." This environment has
+never had Node.js/npm at any point in this project's history — there was
+no way to install, compile, or verify a single line of React here, unlike
+lower-risk unverified artifacts elsewhere in this project (e.g. the
+Dockerfile, one standard file with well-understood syntax) where an
+unverified-but-reasonable draft was an acceptable tradeoff. Presented this
+tradeoff via `AskUserQuestion` rather than picking an extreme unprompted;
+Phil chose "extend the existing vanilla-JS approach" — build all three
+portals to real production quality (design tokens, a real component
+library, full accessibility work) using the same no-build-step
+architecture `static/app/` already uses, fully verifiable end-to-end
+rather than a compile-unverified React tree.
+
+**Two real, pre-existing production bugs found and fixed, both predating
+this session** (from Epic 2.b/Workstream 3 respectively, never caught
+because nothing had exercised these exact paths end-to-end before):
+
+1. SSO login and Stripe Connect onboarding both redirected to
+   `/app/app.html` — a file that has never existed anywhere in this
+   repo's history (the real entry point is `/app/index.html`). Fixed via
+   `sed` across `app/services/stripe_connect.py` (3 occurrences) and
+   `app/api/v1/endpoints/saml.py` (2 occurrences).
+2. Worse, independent of bug #1: `static/app/js/main.js` never actually
+   implemented `consumeSsoHandoff()` — the function `saml.py`'s own
+   docstring claimed existed and read the tokens back out of the redirect
+   URL fragment. It didn't exist at all. **SSO login was completely
+   non-functional end-to-end** the whole time Epic 2.b called itself
+   "done" — the backend half was genuinely correct and well-tested (see
+   Epic 2.b's own entry above), but nothing ever consumed its output on
+   the frontend. Fixed by writing the function from scratch and wiring it
+   to run before the first `render()` call on script load.
+
+**What got built**:
+- `static/app/css/tokens.css` (new) — 5.a.i. Pulled the colour palette out
+  of `app.css`'s previously-unlabelled inline `:root` block, documented
+  what each token is *for*, added spacing/radius/type/motion/elevation
+  scales that didn't exist before (every value in `app.css` was ad-hoc
+  pixels).
+- `static/app/js/components.js` (new) — 5.a.ii. `renderMatchDial`,
+  `renderProjectCard`, `renderStudentCard`, `openRatingModal` — vanilla-JS
+  render functions substituting for the plan's named React components
+  (see the technology decision above). `openRatingModal` uses a real
+  `<dialog>` element specifically for the free focus-trapping/Escape/
+  backdrop behaviour a hand-rolled overlay div would have to reimplement.
+  `student.js`'s `renderProjectMatchCard` and `shared/contracts.js`'s
+  inline rating form were refactored to actually call these instead of
+  keeping duplicate ad-hoc markup — the point of a component library only
+  holds if things actually import from it.
+- **5.c.ii's match-explanation drill-down needed a genuinely new backend
+  endpoint**, not just frontend wiring: the existing
+  `GET /projects/{id}/match-explanation` in `projects.py` is
+  student-only — it scores whoever's calling it, with no `student_id`
+  parameter, so a business could never have called it for a specific
+  shortlist candidate. Added
+  `GET /projects/{id}/shortlist/{student_id}/explanation` in
+  `applications.py`, reusing `matching.score_student_against_project()`
+  and the same `access_control.filter_students_visible_to_business()`
+  check `get_shortlist` already applies (verified via `TestClient`: a
+  second, unrelated business gets a genuine 404, not just a
+  code-review-time assumption that the check would work). Wired into
+  `business.js` as a "View shortlist" / "Why this match?" flow.
+- **5.d.ii checked against the actual mockup**, not assumed adequate:
+  `../caplink-university-landing.html`'s "band control panel" section (a
+  labelled-row-of-permit-pills visual) turned out to already match what
+  `university-admin.js`'s agreement-approval UI does for its read-only
+  summary (`.permit-pill`/`.lc-row`, same classes) — judged complete
+  rather than reworked for cosmetic parity alone.
+- **5.d.iii (employability reporting dashboard) — genuinely not started,
+  not silently skipped.** P1/Large in the plan, zero backend aggregation
+  exists to report on. Flagged rather than attempted half-built.
+- **Accessibility (5.e)** — `static/app/accessibility.html` (new, linked
+  from `/app`'s footer) is the real statement, not boilerplate: it names
+  what was actually done, what's genuinely still a gap (no
+  screen-reader read-through yet, tab strips lack the full ARIA tabs
+  pattern despite being keyboard-operable), and how it was tested (manual
+  expert review substituting for an unavailable axe-core toolchain — see
+  5.e.i). Found and fixed one real keyboard-accessibility bug doing this:
+  `shared/messaging.js`'s thread list was `<div class="item-card
+  clickable">` elements with only a click handler — not Tab-reachable,
+  not Enter/Space-activatable. Fixed by making them real `<button>`s (plus
+  matching CSS in `app.css` to strip default button chrome so they still
+  read as cards).
+
+**Verification, and its real limit this session**: backend changes
+verified via `TestClient` against a freshly seeded SQLite DB (this Mac's
+existing dev `caplink.db` predates several recent migrations and isn't
+safe to run ad-hoc scripts against without upgrading it first — used a
+throwaway `DATABASE_URL` pointed at `/tmp` instead). Full suite: `ruff` 0
+errors, `mypy` 0 errors (91 files), `pytest` 105/105 passing — no test
+count change, since no new backend logic needed new unit tests beyond
+what `TestClient` exercised directly for the one new endpoint. **The
+claude-in-chrome browser extension was not connected this session**, so
+none of the new/changed frontend code has been visually verified in a
+real browser — a real gap relative to this project's usual standard for
+frontend work (see "The full app" section above, which *was* verified via
+real Chrome click-through). Substituted with: parsing every changed JS
+file with `esprima` (installed temporarily, removed after) to catch
+syntax errors; confirming every CSS class the new JS references actually
+exists in `app.css`; and serving every changed/new static file through a
+real running app instance to confirm none 404. **Do a real browser
+click-through the next time the extension is available** — this
+substitute is reasonable but not equivalent, and shouldn't be treated as
+having fully closed out 5.e.i/5.e.ii/5.e.iii.
+
+Not yet done this session, left for next time: a full screen-reader
+pass, the ARIA-tabs pattern on the tab strips, and 5.d.iii. Tracker/README
+updated to reflect exactly this partial state, not rounded up to "done."
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The
