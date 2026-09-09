@@ -1337,18 +1337,38 @@ unaffected as expected (105/105, 0 lint/type errors) since this was a
 CSS/JS-only change with no Python touched.
 
 **Deliberately not touched, flagged rather than silently expanded into**:
-`static/demo/` (the older, separate reference app) keeps its own original
-Fraunces/IBM Plex Mono styling untouched — it's always been treated as
-lower-priority than `/app` in this project (see "The full app" section
-above), and re-skinning it wasn't part of what was approved. The marketing
-landing page (`docs/index.html` / the standalone
-`../caplink-university-landing.html`) also wasn't touched — the artifact's
-more elaborate interactive concepts (a persona-switching hero, the live
+the marketing landing page (`docs/index.html` / the standalone
+`../caplink-university-landing.html`) wasn't touched — the artifact's more
+elaborate interactive concepts (a persona-switching hero, the live
 chat-flagging demo, the escrow stepper) were built and approved as
 *mockups* for a home page, not as something implemented into a real page
 yet, since CAPLink doesn't have a built marketing home page in this repo
 to put them on. That's a separate, larger piece of work than this session
 covered — raised with Phil rather than assumed either way.
+
+**`static/demo/` got the same repalette too, straight after, on request**
+("update the demo with these features too"). Both `static/demo/app.html`
+and `static/demo/index.html` are self-contained single files with their
+own inline `<style>` — they don't import `tokens.css`, so the same colour/
+radius/font values from the section above were inlined directly into each
+file's own `:root` block, with a comment pointing back at `tokens.css` as
+the source of truth. `index.html` uses different variable *names*
+(`--navy`/`--teal` rather than `--ink`/`--brass`) since that's what the
+file already called them — kept as-is, same "don't rename for zero visual
+benefit" reasoning as everywhere else this session. The same password
+show/hide toggle was added to `app.html`'s three password fields too
+(inline `wirePasswordToggles()`, no separate `main.js` to put it in here).
+**One real, known cosmetic gap, not silently ignored**: `index.html`'s
+hero still displays `assets/bridge-logo.png`, a raster image using the
+*old* navy/teal colour scheme baked into the pixels — CSS can't recolour
+a PNG, and regenerating the logo asset itself is a separate, real design
+task, not something to attempt with a CSS filter hack. Verified in a real
+browser (both files) the same way as the main app: clicked through
+`index.html` top to bottom and logged into `app.html` as the seeded
+university admin to confirm the permit-pill agreement view still renders
+correctly under the new palette. Full `ruff`/`mypy`/`pytest` suite
+unaffected (105/105) — both files are static HTML/CSS/JS with zero Python
+involvement.
 
 ## Dependency pinning — read this before touching requirements.txt
 
