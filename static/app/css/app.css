@@ -1,12 +1,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('tokens.css');
 
-:root{
-  --ink:#1B2A45; --ink-soft:#3C4B68; --paper:#F6F3EC; --paper-raised:#FFFDF8;
-  --brass:#A87C2A; --brass-soft:#E9D9B8; --moss:#4C6B54; --moss-soft:#DCE6DD;
-  --slate:#6B7280; --rule:#DDD6C7; --danger:#A6452F; --danger-soft:#F3E3DE;
-}
 *{ box-sizing:border-box; }
 body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+
+/* Technical Implementation Plan 5.e.ii — every interactive element gets a
+ * visible focus indicator when reached by keyboard. :focus-visible (not
+ * plain :focus) so a mouse click doesn't show the ring too — keyboard
+ * users get it, pointer users don't, matching how native browser controls
+ * already behave. Uses --focus-ring (app/css/tokens.css) specifically,
+ * never --brass, so a focus indicator is never confusable with ordinary
+ * accent-colour decoration elsewhere on the page. */
+:focus{ outline:none; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, [tabindex]:focus-visible, .item-card.clickable:focus-visible{
+  outline:2px solid var(--focus-ring); outline-offset:2px; border-radius:var(--radius-sm);
+}
+/* Skip-to-content link (5.e.ii) — invisible until focused, then the very
+ * first stop for a keyboard user, so they're never forced to tab through
+ * the entire header/nav on every single page just to reach the content. */
+.skip-link{
+  position:absolute; left:8px; top:-48px; z-index:200; background:var(--ink); color:var(--paper-raised);
+  padding:10px 16px; border-radius:var(--radius-sm); font-size:var(--text-base); font-weight:600;
+  transition:top var(--transition-base);
+}
+.skip-link:focus{ top:8px; }
 h1,h2,h3,h4,.display{ font-family:'Fraunces',serif; font-weight:600; letter-spacing:-0.01em; color:var(--ink); margin:0; }
 .mono{ font-family:'IBM Plex Mono', monospace; }
 a{ color:inherit; }
@@ -70,7 +88,11 @@ label{ display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); 
 
 .item-card{ border:1px solid var(--rule); border-radius:5px; padding:16px 18px; margin-bottom:12px; background:var(--paper-raised); }
 .item-card h4{ font-size:15.5px; margin:0 0 4px; }
-.item-card.clickable{ cursor:pointer; }
+/* .item-card.clickable is a real <button> (not a click-handled <div>) so it's
+   Tab-reachable and Enter/Space-activatable — Technical Implementation Plan
+   5.e.ii. These undo the browser's default button chrome so it still reads
+   as a card, not a form control. */
+.item-card.clickable{ cursor:pointer; display:block; width:100%; text-align:left; font:inherit; color:inherit; }
 .item-card.clickable:hover{ border-color:var(--brass); }
 
 /* ledger-card — echoes the landing page's partner-agreement visual */
@@ -112,3 +134,47 @@ details summary{ cursor:pointer; font-size:13px; color:var(--brass); font-weight
 .compose-row textarea{ flex:1; }
 
 .empty-state{ text-align:center; padding:28px 16px; color:var(--slate); font-size:13px; }
+
+/* --- Component library (Technical Implementation Plan 5.a.ii) ---
+ * Rendered by static/app/js/components.js. Vanilla-JS render functions,
+ * not React components (see CLAUDE.md's Workstream 5 section for why) —
+ * but treated with the same discipline: one canonical place each is
+ * defined, one canonical set of styles for it, reused everywhere the
+ * pattern appears rather than re-implemented per screen. */
+
+/* MatchDial — a circular match-score indicator (SVG ring + centred %),
+ * deliberately distinct from the linear .score-track bar it replaces on
+ * project/candidate cards: a dial reads as "a score", a bar reads as "a
+ * loading/progress state" — the wrong metaphor for something that isn't
+ * progressing toward anything. */
+.match-dial{ display:inline-flex; align-items:center; justify-content:center; position:relative; flex-shrink:0; }
+.match-dial svg{ transform:rotate(-90deg); }
+.match-dial .dial-track{ fill:none; stroke:var(--rule); }
+.match-dial .dial-fill{ fill:none; stroke:var(--brass); stroke-linecap:round; transition:stroke-dashoffset var(--transition-base); }
+.match-dial .dial-label{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--ink);
+}
+.match-dial.size-sm{ width:36px; height:36px; }
+.match-dial.size-sm .dial-label{ font-size:10px; }
+.match-dial.size-md{ width:56px; height:56px; }
+.match-dial.size-md .dial-label{ font-size:13px; }
+
+/* RatingModal — a real dialog (native <dialog>, not a div toggled with
+ * style.display) so focus-trapping, Escape-to-close, and the backdrop are
+ * all handled by the browser itself rather than hand-rolled. */
+dialog.modal{
+  border:1px solid var(--rule); border-radius:var(--radius-lg); padding:0; max-width:440px; width:calc(100% - 40px);
+  box-shadow:var(--shadow-modal); background:var(--paper-raised); color:var(--ink);
+}
+dialog.modal::backdrop{ background:rgba(27,42,69,0.45); }
+dialog.modal .modal-inner{ padding:var(--space-6); }
+dialog.modal .modal-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:var(--space-4); }
+dialog.modal .modal-close{ background:transparent; border:none; color:var(--slate); padding:4px; font-size:18px; line-height:1; }
+.star-picker{ display:flex; gap:6px; margin:var(--space-2) 0 var(--space-4); }
+.star-picker button{ background:transparent; border:none; color:var(--rule); font-size:26px; padding:2px; line-height:1; }
+.star-picker button.filled{ color:var(--brass); }
+
+/* StudentCard / ProjectCard already existed visually as .item-card — the
+ * component library formalises them (see components.js) without changing
+ * the established look, so nothing above needed new styling for those two. */

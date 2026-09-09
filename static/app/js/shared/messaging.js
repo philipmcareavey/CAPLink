@@ -17,10 +17,10 @@ export async function renderMessagesSection(container) {
     const threads = await api("/messages/threads");
     listEl.innerHTML = threads.length
       ? threads.map(t => `
-        <div class="item-card clickable" data-open-thread="${t.thread_id}">
+        <button type="button" class="item-card clickable" data-open-thread="${t.thread_id}">
           <h4>${esc(t.counterpart_name)} ${t.unread_count ? `<span class="badge warn">${t.unread_count} unread</span>` : ""}</h4>
           <p class="muted">${esc(t.last_message_preview || "No messages yet")} ${t.last_message_at ? "· " + formatDateTime(t.last_message_at) : ""}</p>
-        </div>
+        </button>
       `).join("")
       : `<div class="empty-state">No conversations yet — start one from an applicant or a contract card.</div>`;
     listEl.querySelectorAll("[data-open-thread]").forEach(node => node.addEventListener("click", () => {

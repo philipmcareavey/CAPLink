@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accessibility statement — Bridge by CAPLink</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <a href="index.html" style="text-decoration:none" class="wordmark">Bridge <span class="tag">by CAPLink</span></a>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="eyebrow">Accessibility</div>
+    <h1 class="title" style="font-size:22px">Accessibility statement</h1>
+    <p class="muted">Last reviewed: 9 September 2026</p>
+
+    <h4 class="section">Our commitment</h4>
+    <p>Bridge by CAPLink is built to conform to <strong>WCAG 2.2 Level AA</strong>. Because a university
+      partner licenses this platform for every one of its students — including students who rely on
+      assistive technology — accessibility is a launch requirement, not an add-on.</p>
+
+    <h4 class="section">Conformance status</h4>
+    <p>This app is <strong>partially conformant</strong> with WCAG 2.2 AA: most success criteria are met,
+      and known gaps are listed below rather than left undocumented. Conformance has been assessed by
+      manual expert review — a full automated audit tool (e.g. axe-core) requires a Node.js/browser
+      toolchain this project does not currently run with; see the "How this was tested" section for what
+      manual review actually covered.</p>
+
+    <h4 class="section">What's been done</h4>
+    <ul>
+      <li>A single, visible focus indicator (<code class="idval">--focus-ring</code>) on every interactive
+        element, distinct from the platform's ordinary brass accent colour so a focus ring is never
+        ambiguous with plain decoration.</li>
+      <li>Every interactive control in the reference UI is a real <code class="idval">&lt;button&gt;</code>,
+        <code class="idval">&lt;a&gt;</code>, or form control — never a <code class="idval">&lt;div&gt;</code>
+        with a click handler and nothing else, so every action is reachable by keyboard alone
+        (Tab to reach it, Enter/Space to activate it).</li>
+      <li>The rating flow uses a native <code class="idval">&lt;dialog&gt;</code> element, which gives
+        focus-trapping, an accessible name, and Escape-to-close for free from the browser rather than a
+        hand-rolled overlay.</li>
+      <li>Custom, non-native widgets — the match-score dial and the star-rating picker — carry explicit
+        ARIA roles and labels (<code class="idval">role="img"</code> with a percentage label on the dial;
+        <code class="idval">role="radiogroup"</code>/<code class="idval">role="radio"</code> with
+        per-star labels on the picker) since neither has a native HTML equivalent that would convey the
+        same information on its own.</li>
+      <li>Colour is never the only signal — every status (open/pending/rejected, permitted/not
+        permitted) is also conveyed in text, not colour alone.</li>
+    </ul>
+
+    <h4 class="section">Known gaps</h4>
+    <ul>
+      <li>Some data-dense screens (the shortlist match-breakdown, local-search results) haven't yet had a
+        full screen-reader read-through — they're built from the same accessible primitives as the rest of
+        the app, but haven't been individually verified with a screen reader.</li>
+      <li>An automated, tool-based audit (axe-core or equivalent) hasn't been run against this codebase —
+        see "How this was tested" below. A manual review is a reasonable substitute but doesn't catch
+        everything an automated scan would.</li>
+      <li>The tab strips (role tabs, login tabs) are real, keyboard-operable buttons, but don't yet carry
+        the full ARIA tabs pattern (<code class="idval">role="tablist"/"tab"/"tabpanel"</code>) — they
+        work correctly with a keyboard today, this would make their relationship clearer to a screen
+        reader specifically.</li>
+    </ul>
+
+    <h4 class="section">How this was tested</h4>
+    <p>Manual expert review against the WCAG 2.2 AA success criteria, plus targeted checks: keyboard-only
+      navigation through every tab of every role (student, business, university admin); visual focus-order
+      and focus-visible verification; a grep-based sweep of the codebase for click-handled non-interactive
+      elements (the one genuine gap found — a message-thread list built from
+      <code class="idval">&lt;div&gt;</code>s — was fixed as part of this review, not left for later);
+      and contrast-checking the design-token colour palette. This substitutes for, but is not equivalent
+      to, an automated axe-core scan or testing with real assistive-technology users — both remain
+      open follow-ups.</p>
+
+    <h4 class="section">Feedback</h4>
+    <p>If you encounter an accessibility barrier anywhere in Bridge by CAPLink, please contact your
+      university's careers team, who can raise it with CAPLink directly.</p>
+  </div>
+</main>
+
+</body>
+</html>

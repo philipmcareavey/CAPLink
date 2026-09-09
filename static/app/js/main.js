@@ -186,5 +186,35 @@ function renderLogin() {
   return wrap;
 }
 
+// Technical Implementation Plan 2.b — a successful university SSO login
+// (app/api/v1/endpoints/saml.py::saml_acs) redirects the browser back here
+// with fresh tokens in the URL *fragment* (never the query string or a log
+// line, so they never end up in server access logs or browser history in
+// a readable form), or an sso_error reason if it failed. This is the other
+// half of that handoff that actually reads it back out — referenced by
+// saml.py's own docstring, but never actually built until now.
+function consumeSsoHandoff() {
+  const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
+  if (!hash) return false;
+  const params = new URLSearchParams(hash);
+  const ssoError = params.get("sso_error");
+  const accessToken = params.get("access_token");
+  const refreshToken = params.get("refresh_token");
+
+  if (ssoError) {
+    history.replaceState(null, "", window.location.pathname);
+    toast("University sign-in failed: " + ssoError.replace(/_/g, " "), "error");
+    return false;
+  }
+  if (accessToken && refreshToken) {
+    history.replaceState(null, "", window.location.pathname);
+    setSession({ access_token: accessToken, refresh_token: refreshToken });
+    toast("Signed in via your university", "success");
+    return true;
+  }
+  return false;
+}
+
 window.__caplinkRerender = render; // lets role modules trigger a full re-render after tab-affecting actions
+consumeSsoHandoff();
 render();

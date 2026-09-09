@@ -1,7 +1,8 @@
 import { api, state } from "./api.js";
-import { el, toast, badgeClass, pct, gbp, esc, titleCase } from "./dom.js";
+import { el, toast, pct, gbp, esc, titleCase } from "./dom.js";
 import { renderContractsSection } from "./shared/contracts.js";
 import { renderMessagesSection, startThread } from "./shared/messaging.js";
+import { renderProjectCard } from "./components.js";
 
 export const STUDENT_TABS = [
   { key: "feed", label: "Feed" },
@@ -112,17 +113,7 @@ function openEditProfile(profile) {
 }
 
 function renderProjectMatchCard(p) {
-  return `
-    <div class="item-card">
-      <h4>${esc(p.title)} <span class="badge ${badgeClass(p.status)}">${titleCase(p.status)}</span></h4>
-      <p class="muted">${titleCase(p.category)} · ${gbp(p.hourly_rate_gbp)}/hr · ${esc(p.duration_label)} · ${p.is_remote ? "remote" : (p.location_label || "on-site")}</p>
-      <p style="font-size:13px">${esc(p.description)}</p>
-      <div class="score-track"><div style="width:${pct(p.match_score)}"></div></div>
-      <p class="muted" style="margin:2px 0 8px">${pct(p.match_score)} match</p>
-      <div>${p.match_reasons.map(r => `<span class="chip reason">${esc(r)}</span>`).join("")}</div>
-      <div style="margin-top:12px"><button class="small" data-apply="${p.id}" data-title="${esc(p.title)}">Apply</button></div>
-    </div>
-  `;
+  return renderProjectCard(p, { matchScore: p.match_score, matchReasons: p.match_reasons, showApplyButton: true, showStatus: true });
 }
 
 async function applyToProject(projectId, title) {

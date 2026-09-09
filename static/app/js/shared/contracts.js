@@ -1,5 +1,6 @@
 import { api } from "../api.js";
 import { toast, badgeClass, esc, gbp } from "../dom.js";
+import { openRatingModal } from "../components.js";
 
 // role: "student" | "business". onMessage(counterpartUserId, projectId) lets
 // the caller decide what "message this person" means (switch tabs, open
@@ -40,14 +41,7 @@ function renderContractCard(c, role) {
       <div class="row" style="margin-top:14px">
         ${termsNeeded ? `<button class="small ghost" data-accept-terms="${c.id}">Accept IP/NDA terms</button>` : `<span class="muted" style="font-size:12px">Terms accepted by you</span>`}
         <button class="small ghost" data-message="${c.counterpart_user_id}" data-project="${c.project_id}">Message ${esc(c.counterpart_name)}</button>
-        <button class="small ghost" data-rate="${c.id}">Rate this contract</button>
-      </div>
-      <div class="rate-form" id="rate-form-${c.id}" style="display:none; margin-top:12px; border-top:1px dashed var(--rule); padding-top:12px">
-        <div class="grid">
-          <div class="field"><label>Overall score (1-5)</label><input type="number" min="1" max="5" value="5" class="rf-score"></div>
-          <div class="field"><label>Comment (private)</label><input class="rf-comment"></div>
-        </div>
-        <button class="small" data-submit-rating="${c.id}">Submit rating</button>
+        <button class="small ghost" data-rate="${c.id}" data-rate-name="${esc(c.counterpart_name)}">Rate this contract</button>
       </div>
     </div>
   `;
@@ -79,20 +73,19 @@ function wireContractCards(listEl, container, role, onMessage) {
     onMessage(btn.dataset.message, btn.dataset.project);
   }));
   listEl.querySelectorAll("[data-rate]").forEach(btn => btn.addEventListener("click", () => {
-    const form = document.getElementById("rate-form-" + btn.dataset.rate);
-    form.style.display = form.style.display === "none" ? "block" : "none";
-  }));
-  listEl.querySelectorAll("[data-submit-rating]").forEach(btn => btn.addEventListener("click", async () => {
-    const contractId = btn.dataset.submitRating;
-    const form = document.getElementById("rate-form-" + contractId);
-    try {
-      const rating = await api("/ratings", { method: "POST", body: {
-        contract_id: contractId,
-        overall_score: Number(form.querySelector(".rf-score").value),
-        private_comment: form.querySelector(".rf-comment").value || null,
-      }});
-      toast(`Rating submitted${rating.is_released ? " — both sides have now rated, released!" : " — hidden until the other side rates too"}`, "success");
-      form.style.display = "none";
-    } catch (e) { toast("Couldn't submit rating: " + e.message, "error"); }
+    const contractId = btn.dataset.rate;
+    openRatingModal({
+      title: `Rate ${btn.dataset.rateName}`,
+      onSubmit: async (score, comment) => {
+        try {
+          const rating = await api("/ratings", { method: "POST", body: {
+            contract_id: contractId,
+            overall_score: score,
+            private_comment: comment,
+          }});
+          toast(`Rating submitted${rating.is_released ? " — both sides have now rated, released!" : " — hidden until the other side rates too"}`, "success");
+        } catch (e) { toast("Couldn't submit rating: " + e.message, "error"); }
+      },
+    });
   }));
 }

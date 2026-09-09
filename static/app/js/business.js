@@ -3,6 +3,7 @@ import { el, toast, badgeClass, pct, gbp, esc, titleCase } from "./dom.js";
 import { BANDS, CATEGORIES, APPLICATION_STATUSES } from "./constants.js";
 import { renderContractsSection } from "./shared/contracts.js";
 import { renderMessagesSection, startThread } from "./shared/messaging.js";
+import { renderStudentCard } from "./components.js";
 
 export const BUSINESS_TABS = [
   { key: "projects", label: "My Projects" },
@@ -149,12 +150,17 @@ async function loadMyProjects() {
           <h4>${esc(p.title)} <span class="badge ${badgeClass(p.status)}">${titleCase(p.status)}</span></h4>
           <p class="muted">${titleCase(p.category)} · ${gbp(p.hourly_rate_gbp)}/hr · ${esc(p.duration_label)}</p>
           <p class="muted">id: <code class="idval">${p.id}</code></p>
-          <button class="small ghost" data-view-applicants="${p.id}">View applicants</button>
+          <div class="row">
+            <button class="small ghost" data-view-applicants="${p.id}">View applicants</button>
+            <button class="small ghost" data-view-shortlist="${p.id}">View shortlist</button>
+          </div>
           <div class="applicants" id="applicants-${p.id}"></div>
+          <div class="shortlist" id="shortlist-${p.id}"></div>
         </div>
       `).join("")
       : `<p class="muted">No projects yet — post one above.</p>`;
     container.querySelectorAll("[data-view-applicants]").forEach(b => b.addEventListener("click", () => loadApplicants(b.dataset.viewApplicants)));
+    container.querySelectorAll("[data-view-shortlist]").forEach(b => b.addEventListener("click", () => loadShortlist(b.dataset.viewShortlist)));
   } catch (e) {
     container.innerHTML = `<p class="muted">Couldn't load projects: ${e.message}</p>`;
   }
@@ -200,6 +206,46 @@ async function loadApplicants(projectId) {
   } catch (e) {
     container.innerHTML = `<p class="muted">Couldn't load applicants: ${e.message}</p>`;
   }
+}
+
+// Technical Implementation Plan 5.c.ii — the ranked-candidate shortlist
+// (distinct from "View applicants", which only shows people who have
+// actually applied; this is every visible candidate the matching engine
+// would recommend, ranked, whether or not they've applied yet) plus a
+// drill-down into exactly why each one scored the way they did, via
+// app/api/v1/endpoints/applications.py::get_shortlist_candidate_explanation.
+async function loadShortlist(projectId) {
+  const container = document.getElementById("shortlist-" + projectId);
+  container.innerHTML = "<p class='muted'>Loading shortlist…</p>";
+  try {
+    const shortlist = await api(`/projects/${projectId}/shortlist`);
+    container.innerHTML = shortlist.length
+      ? shortlist.map(renderStudentCard).join("")
+      : `<p class="muted">No visible candidates for this project yet.</p>`;
+    container.querySelectorAll("[data-explain]").forEach(btn => btn.addEventListener("click", () => showMatchExplanation(projectId, btn.dataset.explain, container)));
+  } catch (e) {
+    container.innerHTML = `<p class="muted">Couldn't load shortlist: ${esc(e.message)}</p>`;
+  }
+}
+
+async function showMatchExplanation(projectId, studentId, container) {
+  const existing = document.getElementById("explain-" + studentId);
+  if (existing) { existing.remove(); return; }
+  try {
+    const explanation = await api(`/projects/${projectId}/shortlist/${studentId}/explanation`);
+    const card = el(`
+      <div class="item-card" id="explain-${studentId}" style="background:var(--paper)">
+        <h4 class="section">Match breakdown — ${pct(explanation.score)} overall</h4>
+        ${explanation.breakdown.map(f => `
+          <div class="lc-row">
+            <span>${esc(titleCase(f.name))}${f.detail ? ` — ${esc(f.detail)}` : ""}</span>
+            <span class="muted">${pct(f.raw_score)} raw × ${pct(f.weight)} weight = ${pct(f.contribution)}</span>
+          </div>
+        `).join("")}
+      </div>
+    `);
+    container.appendChild(card);
+  } catch (e) { toast("Couldn't load match explanation: " + e.message, "error"); }
 }
 
 function openContractForm(applicationId, projectId) {
