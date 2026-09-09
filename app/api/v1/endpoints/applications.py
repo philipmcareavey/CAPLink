@@ -14,6 +14,7 @@ from app.schemas.application import (
     ApplicationStatusUpdate,
     StudentShortlistEntry,
 )
+from app.schemas.project import MatchExplanationOut, MatchFactorOut
 from app.services import access_control, matching
 from app.services.notifications import notify_from_template
 
@@ -85,6 +86,44 @@ def get_shortlist(
             )
         )
     return results
+
+
+@router.get("/projects/{project_id}/shortlist/{student_id}/explanation", response_model=MatchExplanationOut)
+def get_shortlist_candidate_explanation(
+    project_id: str, student_id: str, db: Session = Depends(get_db), business_user: User = Depends(require_business)
+):
+    """Technical Implementation Plan 5.c.ii's drill-down — the business-side
+    counterpart to projects.py::get_match_explanation, which is student-only
+    (it scores the *calling* student against a project, with no student_id
+    parameter at all, so a business could never have called it for a
+    specific shortlist candidate). Same underlying scorer, same response
+    shape, different caller and an explicit student_id plus the same
+    safeguarding visibility check get_shortlist itself applies."""
+    business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
+    assert business is not None, "require_business guarantees a BusinessProfile row exists"
+    project = db.query(Project).filter(Project.id == project_id, Project.business_id == business.id).first()
+    if project is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+
+    student = db.query(StudentProfile).filter(StudentProfile.id == student_id).first()
+    if student is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Student not found")
+    if not access_control.filter_students_visible_to_business(db, business, [student]):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "This student is not visible to your business")
+
+    match = matching.score_student_against_project(student, project, db=db)
+    return MatchExplanationOut(
+        score=match.score,
+        algorithm_version=match.algorithm_version,
+        reasons=match.reasons,
+        breakdown=[
+            MatchFactorOut(
+                name=f.name, raw_score=f.raw_score, weight=f.weight,
+                contribution=f.contribution, detail=f.detail,
+            )
+            for f in match.breakdown
+        ],
+    )
 
 
 @router.get("/projects/{project_id}/applications", response_model=list[ApplicantOut])

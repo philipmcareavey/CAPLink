@@ -89,14 +89,14 @@ def create_onboarding_link(account_id: str) -> str:
     whether onboarding is complete, per Stripe's own documented pattern
     (a completed redirect does not guarantee completed onboarding)."""
     if is_simulated():
-        return f"{settings.PUBLIC_APP_URL.rstrip('/')}/app/app.html#stripe-connect-return"
+        return f"{settings.PUBLIC_APP_URL.rstrip('/')}/app/index.html#stripe-connect-return"
 
     _require_stripe_configured()
     base = settings.PUBLIC_APP_URL.rstrip("/")
     link = stripe.AccountLink.create(
         account=account_id,
-        refresh_url=f"{base}/app/app.html#stripe-connect-refresh",
-        return_url=f"{base}/app/app.html#stripe-connect-return",
+        refresh_url=f"{base}/app/index.html#stripe-connect-refresh",
+        return_url=f"{base}/app/index.html#stripe-connect-return",
         type="account_onboarding",
     )
     return link.url

@@ -35,7 +35,7 @@ def _get_university_or_404(slug: str, db: Session) -> University:
 def _error_redirect(reason: str) -> RedirectResponse:
     # Deliberately generic in the URL — internal exception text never
     # reaches the browser's address bar/history.
-    return RedirectResponse(f"{settings.PUBLIC_APP_URL}/app/app.html#sso_error={reason}", status_code=302)
+    return RedirectResponse(f"{settings.PUBLIC_APP_URL}/app/index.html#sso_error={reason}", status_code=302)
 
 
 @router.get("/{slug}/metadata")
@@ -160,6 +160,6 @@ async def saml_acs(slug: str, request: Request, db: Session = Depends(get_db)):
     access_token = create_access_token(user.id, user.role.value, user.university_id)
     refresh_token = create_refresh_token(user.id)
     return RedirectResponse(
-        f"{settings.PUBLIC_APP_URL}/app/app.html#access_token={access_token}&refresh_token={refresh_token}",
+        f"{settings.PUBLIC_APP_URL}/app/index.html#access_token={access_token}&refresh_token={refresh_token}",
         status_code=302,
     )
