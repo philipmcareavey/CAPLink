@@ -77,6 +77,17 @@ def _start_email_verification(user: User) -> None:
     send_verification_email(user.email, user.email_verification_token)
 
 
+@router.get("/captcha-site-key")
+def get_captcha_site_key():
+    """Unauthenticated by design — a site key is meant to be embedded in
+    public frontend HTML (Technical Implementation Plan 2.c.iii), same trust
+    model as a Stripe publishable key. Lets the registration forms load
+    whatever key is actually configured server-side (today: hCaptcha's own
+    test key, see Settings.HCAPTCHA_SITE_KEY) without hardcoding it into the
+    JS, so swapping in a real key later is a pure config change."""
+    return {"site_key": settings.HCAPTCHA_SITE_KEY}
+
+
 @router.post(
     "/register/student", response_model=RegistrationResult | TokenPair, status_code=status.HTTP_201_CREATED
 )

@@ -1534,6 +1534,126 @@ Full test suite after this workstream: `ruff` 0 errors, `mypy` 0 errors (114 fil
 `test_messaging_e2e.py` ×2, `test_saml_endpoints_e2e.py` ×4), `bandit` 0 findings,
 `pip-audit` 0 unignored vulnerabilities.
 
+## Clearing the remaining unblocked backlog: 2.b.iv, 2.c.iii, 5.d.iii — 2026-09-10
+
+Straight after Workstream 8, Phil asked what was currently blocked across every
+workstream and what could be proceeded with — a full triage found `2.b.iv` (SSO
+metadata-upload screen) and `2.c.iii` (CAPTCHA widget) were no longer really
+blocked at all (both had been waiting on Workstream 5's frontend existing, which
+it now does) and `5.d.iii` (employability report) was the last unstarted P1 with
+no external dependency. All three are now genuinely done, not partially — see the
+top-level `CLAUDE.md`'s Roadmap section for the plain-English summary; this entry
+covers the real implementation detail and the bugs found along the way.
+
+**2.b.iv — SSO metadata-upload admin screen.** Before writing any frontend code,
+checked whether a way to *read* current SSO config even existed — it didn't:
+`app/api/v1/endpoints/universities.py` had `PATCH .../saml-config` (manual entry)
+and `POST .../saml-idp-metadata` (XML upload), but both only ever returned
+`SamlConfigOut` as the response to a *write*. An admin's screen needs to show
+current state (SSO enabled? which entity ID is on file?) before letting them
+overwrite it blind, so a new `GET /universities/{id}/saml-config` was added first
+— same auth/ownership checks as the other two, no new schema needed since
+`SamlConfigOut` already existed and already deliberately excludes the signing
+certificate. The actual screen (`static/app/js/university-admin.js`, a new
+"Single Sign-On" tab, `ADMIN_TABS`) offers both paths side by side: upload IdP
+metadata XML (calls the existing POST, autofills nothing else) or fill in the
+three fields by hand (calls the existing PATCH) — both re-fetch and re-render
+the current-state banner on success. Verified for real in Chrome, not just via
+`TestClient`: uploaded a genuine (if synthetic) SAML metadata document and
+watched the entity ID/SSO URL get extracted and displayed; separately saved
+manual-entry fields and confirmed the same round-trip.
+
+**2.c.iii — hCaptcha widget, and a real script-loading race worth knowing about
+if this pattern (a third-party widget on a form that doesn't exist at page load)
+ever comes up again.** `app/core/config.py` gained `HCAPTCHA_SITE_KEY`, defaulting
+to hCaptcha's own permanent, no-account, always-passes integration-testing site
+key (`10000000-ffff-ffff-ffff-000000000001` — the sibling of the secret key
+`tests/test_captcha.py` already used) — not secret, so safe to ship as a real
+default rather than leaving the widget entirely absent until Phil creates a real
+hCaptcha account. A new unauthenticated `GET /auth/captcha-site-key` lets the
+frontend read whichever key is actually configured, so swapping in a real one
+later needs zero frontend change. `static/app/js/main.js`'s registration forms
+now mount a real hCaptcha widget (`hcaptcha.render()`) and send its response as
+`captcha_token`.
+
+The first version of this looked completely correct and did nothing: hCaptcha's
+script was loaded with `render=explicit` (required, since the registration forms
+this widget lives in don't exist in the DOM until a user switches tabs, well
+after hCaptcha's own one-time automatic scan has already run) and
+`onload=onHcaptchaLoaded`, with `onHcaptchaLoaded` defined inside `main.js`.
+Nothing ever rendered. Root cause: `main.js` is loaded as an ES module
+(`<script type="module">`), which browsers always defer — the async hCaptcha
+script can finish loading and call `window.onHcaptchaLoaded()` *before* that
+deferred module has run far enough to define it, and the resulting
+`TypeError: onHcaptchaLoaded is not a function` happens silently inside
+hCaptcha's own script with nothing surfaced to the page's own console in an
+obvious way. Fixed by moving the callback into a tiny plain classic
+`<script>` in `index.html` itself (guaranteed to run synchronously, in document
+order, before the async hCaptcha script tag below it can possibly fire its
+callback) — it just sets `window.__hcaptchaReady = true` and dispatches a
+`hcaptcha-ready` event; `main.js` checks the flag first (covers hCaptcha
+finishing first) and falls back to listening for the event (covers the module
+finishing first).
+
+**Verified genuinely end-to-end in a real Chrome browser**, not just via
+`TestClient`: with a throwaway server started with `HCAPTCHA_SECRET_KEY` set to
+hCaptcha's test secret (never committed to `.env`/`.env.example` — stays empty,
+i.e. disabled, by default exactly like every other stubbed integration in this
+project), solved the real rendered widget and completed a real registration.
+**One real automation-tooling limitation worth noting for next time**: clicking
+directly on the widget's checkbox via screen coordinates never worked, no matter
+how carefully the coordinates were recomputed against the iframe's actual
+`getBoundingClientRect()` — a cross-origin iframe checkbox turned out to only be
+reliably activatable via real keyboard focus (Tab to it, Space to toggle), not
+synthetic mouse clicks from this tooling. Once solved that way,
+`hcaptcha.getResponse()` returned a real 36-character token and the full
+registration (including hitting the real password-breach check, which correctly
+rejected the shared demo password) went through end-to-end. `/demo`'s
+registration forms were deliberately left untouched — same "Workstream 5 fixed
+`/app`, not `/demo`" precedent as the earlier stored-XSS fix (see Epics 2.c/2.d's
+entry above).
+
+**5.d.iii — employability reporting dashboard.** `app/services/employability_report.py`
+is pure aggregation over data that already existed — no new columns anywhere.
+Worth knowing if this is ever extended: `Contract.status` is a real field, but a
+grep confirms nothing in this codebase ever actually sets it to
+`ContractStatus.COMPLETED` — so "completed" here is derived instead, as a
+contract whose every milestone has actually reached `MilestoneStatus.PAID`, which
+is a signal this project genuinely maintains. New `GET
+/universities/{id}/employability-report` (university-admin only, own university
+only) returns total/applied/hired/completed student counts, total earnings, an
+average-rating figure (ratings *received by* a student, not given by one), and a
+per-`StudentBand` breakdown of all of the above. `static/app/js/university-admin.js`
+gained a new "Employability Report" tab (KPI tiles in a new `.stat-grid`/`.stat-tile`
+pair of CSS classes, then a `.ledger-card` per band reusing the same row pattern
+the Partnerships tab already used).
+
+Verified via two new real HTTP-level tests
+(`tests/test_employability_report.py`) that walk hire → both milestones paid →
+mutual ratings through the real API and check the report's numbers at three
+different points in that lifecycle (before any hire, after hiring but before
+payment, and after full completion) — not just a single end-state assertion.
+Also checked live in Chrome logged in as the seeded Manchester admin: the report
+correctly reflected real data left over from this same session's earlier
+browser-based testing (a genuine hired-and-paid contract from the CAPTCHA
+verification work above), which is exactly the kind of live-computed-not-cached
+behavior this endpoint is supposed to have.
+
+**Tracker updated and independently re-verified, per this project's own standing
+rule**: `2.b.iv`, `2.c.iii`, and `5.d.iii` moved to Done (100%) in
+`CAPLink-Technical-Tracker.xlsx`'s `Tracker` sheet, and every one of the
+Dashboard sheet's cached formula cells (overall counts, the per-workstream table,
+the per-priority table) was independently recomputed from all 104 raw rows and
+diffed — zero mismatches. A pre-edit backup sits at
+`/tmp/tracker_work/CAPLink-Technical-Tracker.xlsx.backup-2026-09-10` on this Mac
+if anything ever needs rolling back. New split: **65/104 done, 9/104 in
+progress** (was 62/104 done, 11/104 in progress at the start of this session).
+
+Full suite at the end of this work: `ruff` 0 errors, `mypy` 0 errors (93 source
+files), `pytest` 117/117 passing (114 pre-existing + 3 new:
+`test_captcha.py::test_captcha_site_key_endpoint_returns_configured_key`,
+`test_employability_report.py` ×2).
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The

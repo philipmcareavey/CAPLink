@@ -5,6 +5,7 @@ from app.api.deps import require_platform_admin, require_university_admin
 from app.db.session import get_db
 from app.models.university import University
 from app.models.user import User
+from app.schemas.employability_report import EmployabilityReportOut
 from app.schemas.university import (
     SamlConfigOut,
     SamlConfigUpdate,
@@ -14,6 +15,7 @@ from app.schemas.university import (
     UniversityOut,
     UniversityPublicBranding,
 )
+from app.services import employability_report as employability_report_service
 from app.services import geo
 from app.services import saml as saml_service
 from app.services.audit_log import record_audit_event
@@ -96,6 +98,50 @@ def update_campus_location(
     university.longitude = geocoded.longitude
     db.commit()
     db.refresh(university)
+    return university
+
+
+@router.get("/{university_id}/employability-report", response_model=EmployabilityReportOut)
+def get_employability_report(
+    university_id: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_university_admin),
+):
+    """Technical Implementation Plan 5.d.iii — how many of this university's
+    students engaged with the platform, got hired, actually completed their
+    work, and what they earned, broken down by band. See
+    app/services/employability_report.py for exactly how each figure is
+    derived (nothing here is a stored field — it's all computed from
+    Application/Contract/Milestone/Rating rows that already exist)."""
+    if admin.university_id != university_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only view your own university's report")
+
+    university = db.query(University).filter(University.id == university_id).first()
+    if university is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "University not found")
+
+    return employability_report_service.build_employability_report(db, university_id)
+
+
+@router.get("/{university_id}/saml-config", response_model=SamlConfigOut)
+def get_saml_config(
+    university_id: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_university_admin),
+):
+    """2.b.iv's other missing backend half — the admin upload/edit screen
+    needs to show current state (SSO enabled? which entity ID/SSO URL is
+    already on file?) before an admin overwrites it blind. Added alongside
+    the actual upload screen, since neither existing SAML endpoint (PATCH/
+    POST below) is a read — both only return SamlConfigOut as the response
+    to a write."""
+    if admin.university_id != university_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only manage your own university")
+
+    university = db.query(University).filter(University.id == university_id).first()
+    if university is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "University not found")
+
     return university
 
 

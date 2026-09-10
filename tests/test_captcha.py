@@ -48,3 +48,12 @@ def test_fails_open_on_network_error(monkeypatch):
     monkeypatch.setattr(config.settings, "HCAPTCHA_SECRET_KEY", TEST_SECRET_KEY)
     monkeypatch.setattr(captcha.httpx, "post", _raise)
     assert captcha.verify_captcha("some-token") is True
+
+
+def test_captcha_site_key_endpoint_returns_configured_key(client):
+    """2.c.iii's frontend widget (static/app/js/main.js) fetches this
+    rather than hardcoding a site key, so a real key can replace the
+    default hCaptcha test key with no frontend code change."""
+    response = client.get("/api/v1/auth/captcha-site-key")
+    assert response.status_code == 200
+    assert response.json() == {"site_key": config.settings.HCAPTCHA_SITE_KEY}

@@ -83,6 +83,17 @@ class Settings(BaseSettings):
     # shape as Stripe/Firebase/Sentry above.
     HCAPTCHA_SECRET_KEY: str = ""
     CAPTCHA_ENABLED: bool = True  # only takes effect once HCAPTCHA_SECRET_KEY is actually set
+    # Not secret — a site key is meant to be embedded in public frontend HTML
+    # (same trust model as a Stripe publishable key). Defaults to hCaptcha's
+    # own permanent, no-account "always passes" integration-testing site key
+    # (https://docs.hcaptcha.com/#integration-testing-test-key-set), paired
+    # with HCAPTCHA_SECRET_KEY above being set to the matching test secret —
+    # this makes the widget genuinely solvable and verifiable end-to-end
+    # (Technical Implementation Plan 2.c.iii) without Phil's own hCaptcha
+    # account existing yet. Swap this (and HCAPTCHA_SECRET_KEY) for real
+    # values the moment that account exists — the test key set always
+    # passes, so it provides zero real bot protection.
+    HCAPTCHA_SITE_KEY: str = "10000000-ffff-ffff-ffff-000000000001"
 
     # Licensing
     DEFAULT_UNIVERSITY_TRIAL_DAYS: int = 30

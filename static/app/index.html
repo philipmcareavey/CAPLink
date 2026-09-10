@@ -5,11 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bridge by CAPLink — Full App</title>
 <link rel="stylesheet" href="css/app.css">
+<!-- Technical Implementation Plan 2.c.iii — bot-protection widget on the
+     registration forms. render=explicit + onload=onHcaptchaLoaded because
+     the registration forms this widget lives in don't exist in the DOM
+     until a user switches tabs, well after this script has already run its
+     one-time automatic scan — hCaptcha's script does NOT keep watching for
+     elements added later, so implicit/automatic mode would silently never
+     render anything for a form that appears after page load.
+     onHcaptchaLoaded is defined here, in a plain classic script, rather
+     than inside main.js's ES module: module scripts are deferred, and the
+     async hCaptcha script below can finish loading and try to call
+     window.onHcaptchaLoaded before a deferred module has had a chance to
+     define it — a real race that silently dropped every render() call
+     until caught by an actual browser test. Sets a flag plus fires an
+     event so main.js can pick this up whichever order the two actually
+     finish loading in. -->
+<script>
+  window.onHcaptchaLoaded = function () {
+    window.__hcaptchaReady = true;
+    document.dispatchEvent(new Event("hcaptcha-ready"));
+  };
+</script>
+<script src="https://js.hcaptcha.com/1/api.js?onload=onHcaptchaLoaded&render=explicit" async defer></script>
 </head>
 <body>
 
-<div class="banner">Full reference app for <strong>Bridge by CAPLink</strong> — every role, calling the live API directly. See <code class="idval">/demo</code> for the quick teaser instead.</div>
+<div class="banner" role="region" aria-label="Reference app notice">Full reference app for <strong>Bridge by CAPLink</strong> — every role, calling the live API directly. See <code class="idval">/demo</code> for the quick teaser instead.</div>
 <header>
+  <h1 class="sr-only">Bridge by CAPLink — full reference app</h1>
   <div class="inner">
     <a href="/demo/index.html" style="text-decoration:none" class="wordmark">Bridge <span class="tag">by CAPLink</span></a>
     <div class="who" id="who"></div>
@@ -19,7 +42,9 @@
 
 <main id="app"></main>
 <div class="toast-wrap" id="toasts"></div>
-<p class="muted" style="text-align:center; padding:0 0 24px; font-size:11.5px"><a href="accessibility.html">Accessibility statement</a></p>
+<footer>
+  <p class="muted" style="text-align:center; padding:0 0 24px; font-size:11.5px"><a href="accessibility.html">Accessibility statement</a></p>
+</footer>
 
 <script type="module" src="js/main.js"></script>
 </body>
