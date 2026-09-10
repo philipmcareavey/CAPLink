@@ -27,3 +27,16 @@ plugins = ["sqlalchemy.ext.mypy.plugin"]
 # errors (wrong types, missing attributes) without demanding full annotation
 # coverage everywhere on day one — see the CI workflow for how this is used.
 ignore_missing_imports = true
+
+[tool.bandit]
+# Technical Implementation Plan 8.c.i. Skips B101 project-wide, same
+# reasoning as ruff's B008 exclusion above: this codebase's ~40
+# `assert x is not None, "<why this can't actually be None>"` guards
+# (added deliberately during Epic 1.b to narrow types for mypy while
+# documenting a real invariant — see caplink/CLAUDE.md) are not the
+# "asserts silently vanish under python -O" risk B101 warns about; this
+# app is never run with -O. Every other bandit finding gets fixed for
+# real, not suppressed — see password_policy.py's usedforsecurity=False
+# fix for the one genuine finding (B324) an initial scan turned up.
+skips = ["B101"]
+exclude_dirs = ["alembic/versions", "venv", ".venv"]

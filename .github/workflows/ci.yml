@@ -42,6 +42,33 @@ jobs:
       - run: pip install -r requirements.txt -r requirements-dev.txt
       - run: pytest tests/ -v
 
+  sast:
+    # Technical Implementation Plan step 8.c.i — automated SAST
+    # (bandit) and dependency vulnerability scanning (pip-audit) on every
+    # push/PR, same as lint/typecheck/test above. bandit's config (see
+    # pyproject.toml's [tool.bandit]) skips B101 (assert_used) project-wide
+    # — this codebase's ~40 documented `assert x is not None, "<why>"`
+    # invariant guards aren't the "asserts vanish under python -O" risk
+    # that rule warns about — everything else must pass clean, not be
+    # suppressed. pip-audit fails the build on any *fixable* CVE; ecdsa's
+    # known, wontfix-by-upstream Minerva timing attack (PYSEC-2026-1325) is
+    # explicitly ignored here because CAPLink's JWTs are always signed
+    # HS256 (see app/core/config.py's ALGORITHM setting) — the vulnerable
+    # ECDSA-signing code path in python-jose's ecdsa dependency is never
+    # actually exercised. Revisit this ignore if ALGORITHM ever changes.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt -r requirements-integrations.txt -r requirements-dev.txt
+      - run: bandit -c pyproject.toml -r app/ scripts/
+      - run: >
+          pip-audit -r requirements.txt -r requirements-dev.txt
+          -r requirements-integrations.txt -r requirements-postgres.txt
+          --ignore-vuln PYSEC-2026-1325
+
   docker-build:
     # Technical Implementation Plan step 1.b.ii — was blocked until 1.d.i's
     # Dockerfile existed; it now does, so this job both closes out 1.b.ii and

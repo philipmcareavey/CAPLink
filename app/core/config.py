@@ -109,7 +109,7 @@ class Settings(BaseSettings):
         """
         if self.ENVIRONMENT == "development":
             return self
-        if self.SECRET_KEY == "dev-only-secret-change-me":
+        if self.SECRET_KEY == "dev-only-secret-change-me":  # nosec B105 — rejecting this value, not using it
             raise ValueError(
                 f"SECRET_KEY is still the development default in {self.ENVIRONMENT} — "
                 f"set a real value (see .env.{self.ENVIRONMENT}.example)."

@@ -41,7 +41,7 @@ def create_access_token(user_id: str, role: str, university_id: Optional[str] = 
     return _create_token(
         subject=user_id,
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-        token_type="access",
+        token_type="access",  # nosec B106 — a JWT `type` claim, not a credential; bandit string-matches the word
         extra_claims={"role": role, "university_id": university_id},
     )
 
@@ -50,7 +50,7 @@ def create_refresh_token(user_id: str) -> str:
     return _create_token(
         subject=user_id,
         expires_delta=timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
-        token_type="refresh",
+        token_type="refresh",  # nosec B106 — same false positive as create_access_token above
     )
 
 
@@ -60,7 +60,7 @@ def create_mfa_token(user_id: str) -> str:
     a different `type` than access/refresh tokens so it can't be used
     anywhere a real access token is expected, and expires in minutes, not
     the usual 30 (Technical Implementation Plan step 2.a.iv)."""
-    return _create_token(subject=user_id, expires_delta=timedelta(minutes=5), token_type="mfa")
+    return _create_token(subject=user_id, expires_delta=timedelta(minutes=5), token_type="mfa")  # nosec B106
 
 
 def decode_token(token: str) -> dict:

@@ -44,8 +44,11 @@ def check_password_breached(password: str) -> bool:
     shouldn't turn a third-party outage into an outage of registration/
     password-change for this whole platform.
     """
-    # SHA-1 here is HIBP's own protocol requirement, not used for secrecy.
-    sha1 = hashlib.sha1(password.encode("utf-8")).hexdigest().upper()
+    # SHA-1 here is HIBP's own protocol requirement, not used for secrecy —
+    # usedforsecurity=False records that accurately (Python 3.9+) rather
+    # than leaving a real SAST tool (bandit B324) flagging this as if it
+    # were a weak-hash-for-secrets bug, which it isn't.
+    sha1 = hashlib.sha1(password.encode("utf-8"), usedforsecurity=False).hexdigest().upper()
     prefix, suffix = sha1[:5], sha1[5:]
     try:
         response = httpx.get(f"https://api.pwnedpasswords.com/range/{prefix}", timeout=3.0)
