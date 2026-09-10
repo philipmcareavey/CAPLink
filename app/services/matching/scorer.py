@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 from app.models.project import Project
 from app.models.user import StudentProfile
 from app.services.matching import text_similarity
-from app.services.matching.collaborative import collaborative_score
+from app.services.matching.collaborative import AcceptedPairs, collaborative_score, fetch_accepted_pairs_by_category
 from app.services.matching.config import ALGORITHM_VERSION, DEFAULT_WEIGHTS, MatchWeights
 from app.services.matching.degree import degree_relevance_score
 from app.services.matching.reputation import availability_score, rate_compatibility_score, reputation_score
@@ -58,6 +58,7 @@ def score_student_against_project(
     db: Optional[Session] = None,
     idf: Optional[dict[str, float]] = None,
     weights: MatchWeights = DEFAULT_WEIGHTS,
+    collaborative_accepted_pairs: Optional[AcceptedPairs] = None,
 ) -> MatchResult:
     """
     Score one student against one project.
@@ -66,6 +67,12 @@ def score_student_against_project(
     (requires querying real application/rating history). Without it, that
     factor is simply excluded and its weight redistributed — the function
     still works standalone (e.g. in a unit test) with no database at all.
+
+    `collaborative_accepted_pairs` is an internal batch-ranking optimisation
+    (see rank_projects_for_student/rank_students_for_project and
+    collaborative.fetch_accepted_pairs_by_category) — leave it unset for a
+    single-score call like this one; collaborative_score will run its own
+    query exactly as before.
     """
     factors: list[ScoreFactor] = []
     weight_map = weights.as_dict()
@@ -116,7 +123,7 @@ def score_student_against_project(
 
     # --- Collaborative filtering (optional — needs db + historical data) ---
     if db is not None:
-        collab_raw = collaborative_score(db, student, project)
+        collab_raw = collaborative_score(db, student, project, accepted_pairs=collaborative_accepted_pairs)
         if collab_raw is not None:
             factors.append(ScoreFactor(
                 "collaborative", collab_raw, weight_map["collaborative"], 0.0,
@@ -161,9 +168,16 @@ def rank_projects_for_student(
     distinctive a term is within THIS set of projects, not just raw overlap."""
     corpus = [_project_corpus_text(p) for p in projects] + [_student_corpus_text(student)]
     idf = text_similarity.build_idf(corpus)
+    collab_cache = fetch_accepted_pairs_by_category(db, (p.category for p in projects)) if db is not None else {}
 
     scored = [
-        (project, score_student_against_project(student, project, db=db, idf=idf, weights=weights))
+        (
+            project,
+            score_student_against_project(
+                student, project, db=db, idf=idf, weights=weights,
+                collaborative_accepted_pairs=collab_cache.get(project.category),
+            ),
+        )
         for project in projects
     ]
     scored.sort(key=lambda pair: pair[1].score, reverse=True)
@@ -178,9 +192,17 @@ def rank_students_for_project(
 ) -> list[tuple[StudentProfile, MatchResult]]:
     corpus = [_student_corpus_text(s) for s in students] + [_project_corpus_text(project)]
     idf = text_similarity.build_idf(corpus)
+    # Every candidate here shares the same project (and so the same
+    # category) — one query up front instead of once per student.
+    collab_pairs = fetch_accepted_pairs_by_category(db, [project.category]).get(project.category) if db is not None else None
 
     scored = [
-        (student, score_student_against_project(student, project, db=db, idf=idf, weights=weights))
+        (
+            student,
+            score_student_against_project(
+                student, project, db=db, idf=idf, weights=weights, collaborative_accepted_pairs=collab_pairs,
+            ),
+        )
         for student in students
     ]
     scored.sort(key=lambda pair: pair[1].score, reverse=True)
