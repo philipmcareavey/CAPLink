@@ -8,4 +8,4 @@
 # started importing it at module load time — see that file's comment.)
 #
 # Install with: pip install -r requirements.txt -r requirements-integrations.txt
-firebase-admin>=6.5.0
+firebase-admin>=7.5.0
