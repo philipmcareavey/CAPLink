@@ -1,28 +1,28 @@
-fastapi>=0.115.0
-uvicorn[standard]>=0.30.6
-SQLAlchemy>=2.0.35
-pydantic[email]>=2.9.2
-pydantic-settings>=2.5.2
-python-jose[cryptography]>=3.3.0
+fastapi>=0.141.1
+uvicorn[standard]>=0.52.4
+SQLAlchemy>=2.0.52
+pydantic[email]>=2.13.5
+pydantic-settings>=2.15.0
+python-jose[cryptography]>=3.5.0
 passlib[bcrypt]>=1.7.4
 # passlib 1.7.4 (unmaintained since ~2020) can't detect bcrypt>=4.1's version
-# info and crashes at startup; bcrypt<4.1 is unaffected and its wheel covers
+# info and crashes at startup; bcrypt<5.1 is unaffected and its wheel covers
 # every Python 3.6+ release (it's built for the stable "abi3" ABI), so this
 # doesn't reintroduce the wheel-availability problem this file exists to avoid.
-bcrypt<4.1
-python-multipart>=0.0.9
-alembic>=1.13.2
-slowapi>=0.1.9
-httpx>=0.27.2
-python-dotenv>=1.0.1
+bcrypt<5.1
+python-multipart>=0.0.32
+alembic>=1.19.2
+slowapi>=0.1.10
+httpx>=0.28.1
+python-dotenv>=1.2.3
 # Inactive until SENTRY_DSN is set (see app/core/observability.py) — a real
 # Sentry account/project is a manual step (Technical Implementation Plan
 # step 1.c.ii). Pure-Python-ish SDK, no wheel-build risk like firebase-admin,
 # so unlike that one it's fine to always install rather than keep separate.
-sentry-sdk[fastapi]>=2.14.0
+sentry-sdk[fastapi]>=2.68.1
 # TOTP MFA for admin roles (Technical Implementation Plan step 2.a.iv) —
 # pure Python, RFC 6238, no compiled deps, no external account needed.
-pyotp>=2.9.0
+pyotp>=2.10.0
 # University SAML SSO (Technical Implementation Plan step 2.b.i). Pulls in
 # xmlsec (Python bindings for libxmlsec1, a C library) transitively — this
 # has historically been a painful, source-build-only dependency, but as of
@@ -37,4 +37,4 @@ python3-saml>=1.16.0
 # fails to boot without it, unlike the truly-optional firebase-admin,
 # which nothing imports yet). Pure Python (an HTTP client wrapper, no C
 # extension), same "no wheel-build risk" reasoning as sentry-sdk above.
-stripe>=10.12.0
+stripe>=15.6.1
