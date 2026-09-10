@@ -75,15 +75,15 @@ function renderPostProjectForm() {
       <h4 class="section">Post a new project</h4>
       <p class="muted">Requires an <strong>approved</strong> agreement with the target university covering this category and every selected band — otherwise you'll see the safeguarding rejection reason right here.</p>
       <div class="grid">
-        <div class="field"><label>Title</label><input id="pp-title" value="Landing page copy review"></div>
-        <div class="field"><label>Category</label><select id="pp-category">${CATEGORIES.map(c => `<option value="${c}">${titleCase(c)}</option>`).join("")}</select></div>
-        <div class="field"><label>Duration label</label><input id="pp-duration" value="1 week"></div>
-        <div class="field"><label>Hourly rate (£)</label><input id="pp-rate" type="number" value="18"></div>
-        <div class="field"><label>Required skills (comma separated)</label><input id="pp-skills" value="Python, SQL"></div>
-        <div class="field"><label>Target university slug</label><input id="pp-slug" value="manchester"></div>
+        <div class="field"><label for="pp-title">Title</label><input id="pp-title" value="Landing page copy review"></div>
+        <div class="field"><label for="pp-category">Category</label><select id="pp-category">${CATEGORIES.map(c => `<option value="${c}">${titleCase(c)}</option>`).join("")}</select></div>
+        <div class="field"><label for="pp-duration">Duration label</label><input id="pp-duration" value="1 week"></div>
+        <div class="field"><label for="pp-rate">Hourly rate (£)</label><input id="pp-rate" type="number" value="18"></div>
+        <div class="field"><label for="pp-skills">Required skills (comma separated)</label><input id="pp-skills" value="Python, SQL"></div>
+        <div class="field"><label for="pp-slug">Target university slug</label><input id="pp-slug" value="manchester"></div>
       </div>
-      <div class="field"><label>Description</label><textarea id="pp-desc">Short paid project, remote, flexible hours.</textarea></div>
-      <div class="field"><label>Target bands</label><div class="band-checks">${BANDS.map(b => `<label class="band-check"><input type="checkbox" class="pp-band" value="${b}"> ${titleCase(b)}</label>`).join("")}</div></div>
+      <div class="field"><label for="pp-desc">Description</label><textarea id="pp-desc">Short paid project, remote, flexible hours.</textarea></div>
+      <div class="field"><span class="field-label" id="pp-bands-label">Target bands</span><div class="band-checks" role="group" aria-labelledby="pp-bands-label">${BANDS.map(b => `<label class="band-check"><input type="checkbox" class="pp-band" value="${b}"> ${titleCase(b)}</label>`).join("")}</div></div>
       <button data-action="post-project">Post project</button>
     </div>
   `);
@@ -254,10 +254,10 @@ function openContractForm(applicationId, projectId) {
     <div class="card" style="background:var(--paper)">
       <h4 class="section">New contract for application ${applicationId}</h4>
       <div class="grid">
-        <div class="field"><label>Milestone 1 description</label><input class="cf-m1-desc" value="First half of the work"></div>
-        <div class="field"><label>Milestone 1 payment (£)</label><input class="cf-m1-amt" type="number" value="80"></div>
-        <div class="field"><label>Milestone 2 description</label><input class="cf-m2-desc" value="Final delivery"></div>
-        <div class="field"><label>Milestone 2 payment (£)</label><input class="cf-m2-amt" type="number" value="120"></div>
+        <div class="field"><label for="cf-m1-desc-${applicationId}">Milestone 1 description</label><input id="cf-m1-desc-${applicationId}" class="cf-m1-desc" value="First half of the work"></div>
+        <div class="field"><label for="cf-m1-amt-${applicationId}">Milestone 1 payment (£)</label><input id="cf-m1-amt-${applicationId}" class="cf-m1-amt" type="number" value="80"></div>
+        <div class="field"><label for="cf-m2-desc-${applicationId}">Milestone 2 description</label><input id="cf-m2-desc-${applicationId}" class="cf-m2-desc" value="Final delivery"></div>
+        <div class="field"><label for="cf-m2-amt-${applicationId}">Milestone 2 payment (£)</label><input id="cf-m2-amt-${applicationId}" class="cf-m2-amt" type="number" value="120"></div>
       </div>
       <button data-action="submit-contract">Create contract</button>
     </div>

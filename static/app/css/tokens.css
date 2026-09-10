@@ -32,13 +32,33 @@
   --paper-raised: #FFFFFF; /* card/surface background, one step "up" from paper */
   --brass:        #5457E5; /* primary accent (indigo-violet) — active states, eyebrows, match-score fill, links */
   --brass-soft:   #EDECFB; /* accent at low opacity, for badge/chip backgrounds */
-  --moss:         #0FA968; /* positive/success accent (approved, paid, permitted) */
+  /* #0FA968 (this token's original repalette value) measured only 2.67:1
+     as text against --moss-soft — nowhere near WCAG AA's 4.5:1, caught by
+     the same axe-core audit that found --slate's contrast gap. This value
+     clears 5.8:1 with margin, on the one background it's ever used as text
+     against (.badge.good, .chip.reason, .permit-pill.allow). */
+  --moss:         #086A41; /* positive/success accent (approved, paid, permitted) */
   --moss-soft:    #E1F5EC;
-  --warn:         #C4890A; /* pending/in-progress accent — deliberately separate from --brass, since status colour and brand accent shouldn't be the same hue */
+  /* #C4890A (this token's original value, added alongside the repalette)
+     measured only 2.7:1 as text against --warn-soft — another real AA gap
+     the same axe-core audit (5.e.i) found. This value clears 5:1. */
+  --warn:         #8A5F07; /* pending/in-progress accent — deliberately separate from --brass, since status colour and brand accent shouldn't be the same hue */
   --warn-soft:    #FBF1DF;
-  --slate:        #7A7886; /* muted/secondary text, placeholders */
+  /* #7A7886 (this token's original repalette value) measured 4.14:1 against
+     --paper and 3.7:1 against --brass-soft — both fail WCAG AA's 4.5:1
+     minimum for normal text, caught by a real axe-core audit (5.e.i) that
+     the original repalette work never ran. This value clears 4.5:1 against
+     every background it's actually used on, with margin. */
+  --slate:        #63616E; /* muted/secondary text, placeholders */
   --rule:         #E4E3EC; /* borders, dividers — a thin hairline, not a heavy line */
-  --danger:       #D8442F; /* destructive/error accent */
+  /* #D8442F (this token's original repalette value) measured 3.76:1 as
+     text against --danger-soft — another real AA gap the 5.e.i audit
+     found (found proactively here by re-checking every token pair the
+     same way after --slate/--moss/--warn all failed, rather than waiting
+     to stumble onto a "rejected" badge in the UI). This value clears
+     5.47:1, and 6.38:1 the other direction (white text on this as a
+     button/toast background — button.danger, .toast.error). */
+  --danger:       #AE331F; /* destructive/error accent */
   --danger-soft:  #FBEAE7;
 
   /* --- Focus (Technical Implementation Plan 5.e.ii) ---

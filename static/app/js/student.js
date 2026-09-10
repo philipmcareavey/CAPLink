@@ -88,9 +88,9 @@ function openEditProfile(profile) {
   const modal = el(`
     <div class="card" id="edit-modal">
       <h4 class="section">Edit profile</h4>
-      <div class="field"><label>Skills (comma separated)</label><input id="em-skills" value="${esc(profile.skills.join(", "))}"></div>
-      <div class="field"><label>Hourly rate expectation (£)</label><input id="em-rate" type="number" value="${profile.hourly_rate_expectation_gbp ?? ""}"></div>
-      <div class="field"><label>Weekly hours available</label><input id="em-hours" type="number" value="${profile.weekly_hours_available ?? ""}"></div>
+      <div class="field"><label for="em-skills">Skills (comma separated)</label><input id="em-skills" value="${esc(profile.skills.join(", "))}"></div>
+      <div class="field"><label for="em-rate">Hourly rate expectation (£)</label><input id="em-rate" type="number" value="${profile.hourly_rate_expectation_gbp ?? ""}"></div>
+      <div class="field"><label for="em-hours">Weekly hours available</label><input id="em-hours" type="number" value="${profile.weekly_hours_available ?? ""}"></div>
       <div class="row">
         <button data-action="save-profile">Save &amp; refresh feed</button>
         <button class="ghost" data-action="cancel-edit">Cancel</button>
@@ -133,8 +133,8 @@ async function renderLocalSearch(app) {
       <h4 class="section">Local business search</h4>
       <p class="muted">Degree-relevant businesses near your campus — only businesses your university has approved for your band show up at all.</p>
       <div class="grid">
-        <div class="field"><label>Radius (miles)</label><input id="ls-radius" type="number" value="10" min="0.5" max="100"></div>
-        <div class="field"><label>Min degree-relevance (0-1)</label><input id="ls-relevance" type="number" value="0" min="0" max="1" step="0.1"></div>
+        <div class="field"><label for="ls-radius">Radius (miles)</label><input id="ls-radius" type="number" value="10" min="0.5" max="100"></div>
+        <div class="field"><label for="ls-relevance">Min degree-relevance (0-1)</label><input id="ls-relevance" type="number" value="0" min="0" max="1" step="0.1"></div>
       </div>
       <button data-action="run-search">Search</button>
       <div id="ls-results" style="margin-top:16px"></div>
