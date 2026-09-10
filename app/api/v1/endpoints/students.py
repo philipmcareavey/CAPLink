@@ -18,6 +18,8 @@ def _get_own_profile(db: Session, user: User) -> StudentProfile:
 
 @router.get("/me", response_model=StudentProfileOut)
 def get_my_profile(db: Session = Depends(get_db), user: User = Depends(require_student)):
+    """The calling student's own profile — skills, rate expectation,
+    rating history summary, everything the feed's matching engine reads."""
     return _get_own_profile(db, user)
 
 
@@ -25,6 +27,8 @@ def get_my_profile(db: Session = Depends(get_db), user: User = Depends(require_s
 def update_my_profile(
     payload: StudentProfileUpdate, db: Session = Depends(get_db), user: User = Depends(require_student)
 ):
+    """Partial update — skills, rate expectation, weekly availability.
+    Changing any of these changes future match scores, not past ones."""
     profile = _get_own_profile(db, user)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(profile, field, value)

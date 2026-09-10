@@ -45,6 +45,9 @@ def _recompute_reputation(db: Session, ratee_user_id: str) -> None:
 
 @router.post("", response_model=RatingOut, status_code=status.HTTP_201_CREATED)
 def submit_rating(payload: RatingCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Mutual blind rating: this rating stays hidden from the other party
+    (and vice versa) until both sides have submitted theirs, at which
+    point both release simultaneously."""
     contract = db.query(Contract).filter(Contract.id == payload.contract_id).first()
     if contract is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Contract not found")

@@ -19,6 +19,8 @@ def _get_own_profile(db: Session, user: User) -> BusinessProfile:
 
 @router.get("/me", response_model=BusinessProfileOut)
 def get_my_profile(db: Session = Depends(get_db), user: User = Depends(require_business)):
+    """The calling business's own profile — trust tier, rating history
+    summary, and the postcode used for the local-search feature."""
     return _get_own_profile(db, user)
 
 

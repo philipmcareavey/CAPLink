@@ -25,6 +25,9 @@ router = APIRouter(tags=["applications"])
 def apply_to_project(
     payload: ApplicationCreate, db: Session = Depends(get_db), student_user: User = Depends(require_student)
 ):
+    """Applies to an OPEN project the student can actually see — 403s if
+    the safeguarding gate wouldn't show it to them at all, regardless of
+    whether it's technically open."""
     student = db.query(StudentProfile).filter(StudentProfile.user_id == student_user.id).first()
     assert student is not None, "require_student guarantees a StudentProfile row exists"
     project = db.query(Project).filter(Project.id == payload.project_id).first()
@@ -57,6 +60,10 @@ def apply_to_project(
 def get_shortlist(
     project_id: str, db: Session = Depends(get_db), business_user: User = Depends(require_business)
 ):
+    """Every visible candidate the matching engine would recommend for
+    this project, ranked — not just students who've actually applied (see
+    GET .../applications for that). See also the .../explanation endpoint
+    below for a per-candidate scoring breakdown."""
     business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
     assert business is not None, "require_business guarantees a BusinessProfile row exists"
     project = db.query(Project).filter(Project.id == project_id, Project.business_id == business.id).first()
@@ -174,6 +181,9 @@ def update_application_status(
     db: Session = Depends(get_db),
     business_user: User = Depends(require_business),
 ):
+    """Moves an application through its status pipeline (shortlisted,
+    interviewing, offered, etc.) — business-only, and only for the
+    business's own project."""
     application = db.query(Application).filter(Application.id == application_id).first()
     if application is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Application not found")

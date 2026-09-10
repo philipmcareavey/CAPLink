@@ -57,6 +57,8 @@ def create_connect_onboarding_link(db: Session = Depends(get_db), user: User = D
 
 @router.get("/connect/status")
 def get_connect_status(db: Session = Depends(get_db), user: User = Depends(require_student)):
+    """Whether this student has finished Stripe Connect onboarding well
+    enough to actually receive a payout yet."""
     student = _get_student_profile(db, user)
     try:
         onboarded = stripe_connect.refresh_onboarding_status(student)
@@ -97,6 +99,8 @@ def create_setup_intent(db: Session = Depends(get_db), user: User = Depends(requ
 
 @router.get("/setup-status")
 def get_setup_status(db: Session = Depends(get_db), user: User = Depends(require_business)):
+    """Whether this business has a saved card on file yet — required
+    before it can create a contract at all."""
     business = _get_business_profile(db, user)
     return {"ready": bool(business.stripe_customer_id and business.stripe_default_payment_method_id)}
 

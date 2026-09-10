@@ -182,11 +182,17 @@ def upload_saml_idp_metadata(
 
 @router.get("", response_model=list[UniversityOut])
 def list_universities(db: Session = Depends(get_db), _admin=Depends(require_platform_admin)):
+    """Every licensed university on the platform — platform-admin only,
+    since this includes tenants a given university admin has no business
+    seeing."""
     return db.query(University).all()
 
 
 @router.get("/{university_id}", response_model=UniversityOut)
 def get_university(university_id: str, db: Session = Depends(get_db)):
+    """The full university record by internal id — no auth requirement,
+    unlike /universities (the list). Callers who only know a slug should
+    use GET /universities/{slug}/public instead."""
     university = db.query(University).filter(University.id == university_id).first()
     if university is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "University not found")

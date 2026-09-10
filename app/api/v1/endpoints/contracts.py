@@ -49,6 +49,10 @@ def _assert_is_contract_party(db: Session, contract: Contract, user: User) -> No
 def create_contract(
     payload: ContractCreate, db: Session = Depends(get_db), business_user: User = Depends(require_business)
 ):
+    """Hires an applicant via a milestone-based contract. Every milestone's
+    full amount is authorised (escrow-held) on the business's card right
+    now, not captured until approval — see README's "Payments & payroll"
+    section. Fails with 402 if either side hasn't finished payment setup."""
     application = db.query(Application).filter(Application.id == payload.application_id).first()
     if application is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Application not found")

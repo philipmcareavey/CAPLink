@@ -82,6 +82,9 @@ def _start_email_verification(user: User) -> None:
 )
 @limiter.limit("10/minute")
 def register_student(request: Request, payload: StudentRegister, db: Session = Depends(get_db)):
+    """Creates a student account, scoped to a university by email domain
+    match. Returns tokens directly in development only; staging/production
+    require clicking a real emailed verification link first."""
     if not verify_captcha(payload.captcha_token):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Captcha verification failed")
 
@@ -145,6 +148,10 @@ def register_student(request: Request, payload: StudentRegister, db: Session = D
 )
 @limiter.limit("10/minute")
 def register_business(request: Request, payload: BusinessRegister, db: Session = Depends(get_db)):
+    """Creates a business account with zero visibility of any student until
+    a university approves a partnership agreement — see the safeguarding
+    model in the top-level README. Same dev/staging verification split as
+    student registration."""
     if not verify_captcha(payload.captcha_token):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Captcha verification failed")
 
@@ -183,6 +190,8 @@ def register_business(request: Request, payload: BusinessRegister, db: Session =
 
 @router.get("/verify-email")
 def verify_email(token: str, db: Session = Depends(get_db)):
+    """The link a user clicks from their verification email. A no-op in
+    development, where registration auto-verifies instead."""
     user = db.query(User).filter(User.email_verification_token == token).first()
     if (
         user is None
@@ -201,6 +210,9 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 @router.post("/resend-verification")
 @limiter.limit("5/minute")
 def resend_verification(request: Request, payload: ResendVerificationRequest, db: Session = Depends(get_db)):
+    """Always returns the same message regardless of whether the email
+    exists or is already verified — otherwise this becomes a free oracle
+    for probing which emails have accounts."""
     user = db.query(User).filter(User.email == payload.email).first()
     # Same response whether or not the account exists/is already verified —
     # otherwise this endpoint becomes a free "does this email have an
@@ -214,6 +226,10 @@ def resend_verification(request: Request, payload: ResendVerificationRequest, db
 @router.post("/login", response_model=TokenPair | MfaRequired)
 @limiter.limit("10/minute")
 def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
+    """Returns a real token pair, or — for an MFA-enabled admin — a
+    short-lived `mfa` challenge token to exchange at /auth/mfa/verify
+    instead. Progressively locks the account after repeated failures
+    (see app/services/account_lockout.py)."""
     user = db.query(User).filter(User.email == payload.email).first()
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect email or password")
@@ -246,6 +262,9 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
 @router.post("/mfa/verify", response_model=TokenPair)
 @limiter.limit("10/minute")
 def mfa_verify(request: Request, payload: MfaVerifyRequest, db: Session = Depends(get_db)):
+    """Exchanges /auth/login's short-lived `mfa` challenge token plus a
+    TOTP code (or a single-use backup code) for real access/refresh
+    tokens."""
     try:
         decoded = decode_token(payload.mfa_token)
         if decoded.get("type") != "mfa":
@@ -286,6 +305,9 @@ def mfa_setup(db: Session = Depends(get_db), user: User = Depends(get_current_us
 
 @router.post("/mfa/enable", response_model=MfaEnableResponse)
 def mfa_enable(payload: MfaEnableRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Confirms the account can actually generate a valid code with the
+    secret from /auth/mfa/setup, then genuinely turns MFA on and issues
+    8 single-use backup codes — shown to the user exactly once."""
     if user.totp_secret is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Call /auth/mfa/setup first")
     if not mfa_service.verify_totp_code(user.totp_secret, payload.code):
@@ -319,6 +341,8 @@ def mfa_disable(payload: MfaDisableRequest, db: Session = Depends(get_db), user:
 def change_password(
     payload: ChangePasswordRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
+    """Requires the current password and re-runs the full password policy
+    (complexity + HaveIBeenPwned breach check) on the new one."""
     if not verify_password(payload.current_password, user.hashed_password):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect")
     try:

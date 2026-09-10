@@ -148,6 +148,9 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 @app.get("/health", tags=["meta"])
 def health_check():
+    """Confirms the process is up and which environment it's running in.
+    Does not check database connectivity — a DB outage surfaces as
+    request-level 500s/Sentry errors, not a failed health check."""
     return {"status": "ok", "app": settings.APP_NAME, "environment": settings.ENVIRONMENT}
 
 

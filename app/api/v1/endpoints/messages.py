@@ -40,6 +40,9 @@ def _flag_reason(content: str) -> str | None:
 def create_thread(
     request: Request, payload: ThreadCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
+    """Starts a new conversation with a known counterpart — there's no
+    generic "message anyone" form; a thread always needs a specific other
+    user id (from an applicant list, a contract card, etc.)."""
     thread = MessageThread(
         project_id=payload.project_id,
         student_user_id=user.id if user.role.value == "student" else payload.other_user_id,
@@ -56,6 +59,10 @@ def create_thread(
 def send_message(
     request: Request, payload: MessageCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
+    """Sends a message into a thread you're actually part of. Automatically
+    scanned for phone numbers, external emails, and off-platform phrases
+    ("pay you directly", "whatsapp me", ...) and flagged for review if
+    matched — see this module's own _flag_reason()."""
     thread = db.query(MessageThread).filter(MessageThread.id == payload.thread_id).first()
     if thread is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Thread not found")
@@ -121,6 +128,8 @@ def get_my_threads(db: Session = Depends(get_db), user: User = Depends(get_curre
 
 @router.get("/threads/{thread_id}", response_model=list[MessageOut])
 def get_thread_messages(thread_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Full message history for one thread — 403s if the caller isn't the
+    student or business side of it."""
     thread = db.query(MessageThread).filter(MessageThread.id == thread_id).first()
     if thread is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Thread not found")

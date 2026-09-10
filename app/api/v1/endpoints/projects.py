@@ -19,6 +19,9 @@ def create_project(
     db: Session = Depends(get_db),
     business_user: User = Depends(require_business),
 ):
+    """Posts a new project — rejected outright unless the business holds an
+    approved agreement, for every targeted university, covering both this
+    project's category and every targeted band (the safeguarding gate)."""
     business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
     assert business is not None, "require_business guarantees a BusinessProfile row exists"
 
