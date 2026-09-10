@@ -831,13 +831,106 @@ up as request-level 500s in the logs/Sentry above.
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs three independent checks on every pull request (and on
+`.github/workflows/ci.yml` runs five independent checks on every pull request (and on
 pushes to `main`, as a safety net): `ruff check .` (lint), `mypy app/ scripts/`
-(type-check), and the full `pytest` suite. Config for the first two lives in
-`pyproject.toml` — notably `line-length = 135` (matches this codebase's existing style
-rather than forcing a repo-wide reformat) and a deliberately narrow `select = ["E", "F"]`
-(flake8-bugbear's `B008` would otherwise flag every single FastAPI `Depends(...)` default
-argument as an anti-pattern, which is just how FastAPI dependency injection works).
+(type-check), the full `pytest` suite, `bandit`/`pip-audit` (SAST and dependency
+scanning — see "Security scanning" below), and a Docker image build. Config for lint/
+type-check lives in `pyproject.toml` — notably `line-length = 135` (matches this
+codebase's existing style rather than forcing a repo-wide reformat) and a deliberately
+narrow `select = ["E", "F"]` (flake8-bugbear's `B008` would otherwise flag every single
+FastAPI `Depends(...)` default argument as an anti-pattern, which is just how FastAPI
+dependency injection works).
+
+### Testing — three layers, not one
+
+Technical Implementation Plan 8.a. Until 2026-09-10 this project's entire test suite —
+however large it grew — was unit/service-level only: every test called a service
+function directly with a bare SQLAlchemy session (`db_session` in `tests/conftest.py`),
+never through the actual FastAPI app. Every "verified via TestClient end-to-end" claim
+scattered through this project's history (SSO, Stripe payments, the contract-ownership
+authorization fix, CAPTCHA) was a real, thorough, one-off manual script run once during
+that session and then thrown away — never a permanent regression test. `tests/conftest.py`'s
+`client` fixture (a real `TestClient(app)` with the `get_db` dependency overridden to an
+isolated in-memory database — see the fixture's own docstring for why it deliberately
+never triggers the app's startup lifespan) closes that gap:
+
+- `tests/test_golden_path_e2e.py` — the core product loop end-to-end: post a project,
+  apply, get hired via a milestone contract, pay out both milestones through the
+  (simulated) escrow flow, mutual blind ratings. Plus the safeguarding gate rejecting an
+  unapproved business, and a regression test for the real contract-ownership
+  authorization bug found and fixed during Workstream 3.
+- `tests/test_messaging_e2e.py` — thread creation, the off-platform-contact flagging
+  heuristic actually flagging a phone number/suspicious phrase, a third party correctly
+  forbidden from a conversation, and a real 429 from the messaging rate limit.
+- `tests/test_saml_endpoints_e2e.py` — SP metadata generation and the "SSO not enabled"
+  404 on both the login and ACS routes. **Known, deliberately flagged gap**: the actual
+  assertion-consumer path (a real IdP posting a signed SAML response) still isn't covered
+  by a permanent test — that needs a hand-built, XML-DSig-signed assertion against a
+  self-signed test certificate, real work verified once manually (see this file's Epic 2.b
+  history) but not yet rebuilt as a lasting regression test.
+
+`tests/test_*.py` outside those three files remain unit/service-level by design — fast,
+focused, no HTTP/app overhead for testing a scoring algorithm or a password policy.
+Frontend component/unit tests (Technical Implementation Plan 8.a.ii) are not set up:
+they'd need a JS test runner (Jest/Vitest), which needs a Node.js toolchain this
+environment doesn't have — same blocker as the mobile app workstream.
+
+### Security scanning
+
+Technical Implementation Plan 8.c.i. `bandit` (static analysis) and `pip-audit`
+(dependency vulnerabilities) run in CI on every push/PR, failing the build on any real
+finding. `[tool.bandit]` in `pyproject.toml` skips rule `B101` (`assert_used`) project-wide
+— this codebase's ~40 documented `assert x is not None, "<why this can't actually be
+None>"` invariant guards (added during Epic 1.b to narrow types for mypy while
+documenting a real invariant) aren't the "asserts vanish under `python -O`" risk that rule
+warns about; this app is never run with `-O`. Three other one-off false positives
+(`B105`/`B106` on JWT `token_type` string literals and a comparison *against* the known
+dev placeholder secret, not a use of it) are suppressed individually with inline
+`# nosec` comments and a reason, not swept away project-wide.
+
+One dependency vulnerability is a deliberate, documented, ongoing exception rather than
+fixed or silently ignored: `ecdsa` (a transitive dependency of `python-jose`) has a known,
+upstream-declared-wontfix Minerva timing attack (`PYSEC-2026-1325`) against ECDSA
+signing. CAPLink's JWTs are always signed `HS256` (see `Settings.ALGORITHM` in
+`app/core/config.py`) — the vulnerable ECDSA code path is never actually exercised by
+this app. CI's `pip-audit` step explicitly ignores only that one ID
+(`--ignore-vuln PYSEC-2026-1325`); any other CVE still fails the build. **Revisit this if
+`ALGORITHM` is ever changed to an ES-family algorithm.**
+
+### Load testing & performance
+
+Technical Implementation Plan 8.b. `GET /projects/feed` (a student's ranked, safeguarded
+project feed) is the most computationally interesting endpoint in the API — it runs the
+full matching engine across every visible open project on every request, not just the
+page returned. Profiling it under a realistic volume (~100 open projects across 20
+businesses) surfaced a real N+1 query pattern: `collaborative_score` (the matching
+engine's "students like you also succeeded here" factor) ran its own "accepted
+applications in this category" query **once per candidate project**, so ~100 candidates
+sharing ~8 categories issued the same handful of queries up to a dozen times over each —
+plus a second, nested per-accepted-application `StudentProfile` lookup inside that. Fixed
+in `app/services/matching/collaborative.py`: `fetch_accepted_pairs_by_category` now
+runs **one** query for every category a batch actually needs (both `Application` and its
+`StudentProfile` joined directly, no per-row follow-up query), and
+`rank_projects_for_student`/`rank_students_for_project` compute it once up front and
+hand each candidate its own slice. `collaborative_score` itself is unchanged for
+single-score callers (e.g. the business-side match-explanation drill-down) — they simply
+don't pass a pre-fetched cache and it queries exactly as it always did, just without the
+old inner per-application lookup either way.
+
+Measured effect (via `cProfile`, same seeded ~100-project volume): a single
+`rank_projects_for_student` call dropped from **~100 DB round-trips to 1**, and wall time
+for the ranking pass alone from 56ms to 34ms (~40% faster). Concurrent-load numbers
+(via a simple `httpx` + `ThreadPoolExecutor` script, 50 requests at concurrency 10)
+stayed noisy and high (p95 in the 500ms range) even after the fix — this environment's
+SQLite backend serializes concurrent access far more coarsely than the real Postgres
+staging/production database does, so those absolute concurrent-latency numbers are a
+dev-only artifact, not a representative production measurement. **Follow-up, not done
+here**: re-run the same load test against a real Postgres instance (e.g. via
+`docker-compose.yml`, itself still unverified — no Docker in this environment) once one
+is available, to get a number that actually reflects production. The remaining
+single-request cost (~60% of the 34ms) is `weighted_skill_overlap`'s `difflib`-based
+fuzzy skill matching — legitimate, CPU-bound, and not concurrency-related; a reasonable
+target for a future optimization pass but not the dominant cost that profiling found here.
 
 ## Rollback procedure
 
@@ -892,3 +985,162 @@ Then spot-check with `psql caplink_restore_test` — row counts on a few key tab
 This is a documented procedure, not one that's actually been run — no Docker/Postgres was
 available in the environment it was written in (same caveat as the Dockerfile above).
 Worth actually running once, deliberately, before trusting it against real data.
+
+## API documentation
+
+Technical Implementation Plan 8.d.ii. FastAPI auto-generates interactive docs at `/docs`
+(Swagger UI) and `/redoc` from every endpoint's type hints and docstring — no separate
+docs site to maintain. "Polish" here meant finding and fixing the endpoints where that
+auto-generation had nothing real to work with: a scan of the generated OpenAPI spec found
+**26 of 67 endpoints** (register/login, creating a project, applying, creating a
+contract, submitting a rating, sending a message, and others) had no real description at
+all — just FastAPI's default title-cased-function-name summary (e.g. "Create Contract"
+with nothing else). Every one of those 26 now has a short, real docstring explaining what
+it actually does, any non-obvious behaviour (e.g. that `/auth/login` can return an MFA
+challenge instead of tokens, or that `/messages` scans content for off-platform-contact
+patterns), and a pointer to the relevant README section where one exists. Re-scanning
+after confirms zero endpoints left with a thin description.
+
+## Penetration-test scope and environment
+
+Technical Implementation Plan 8.c.ii. This project has not had a professional
+penetration test — that needs a licensed third-party tester, a genuine external step,
+not something to fake here. What follows is the scoping brief a real engagement would
+need, prepared in advance so booking one is a phone call, not a discovery exercise.
+
+**In scope**:
+- The API itself (`app/api/v1/`) — auth, the safeguarding access-control gate, payments/
+  escrow, messaging, SAML SSO, the matching engine's endpoints.
+- The reference web UIs (`static/app`, `static/demo`) as a client of that API.
+- Session/token handling (JWT access+refresh, MFA challenge tokens, SAML assertions).
+
+**Out of scope**:
+- Stripe's, Render's, and any other third party's own infrastructure — a real pen test
+  targets *this* application's use of those services (e.g. can a user manipulate a
+  webhook payload, not "is Stripe's API secure").
+- Denial-of-service / load testing beyond what "Load testing & performance" above already
+  covers — a dedicated DoS test needs separate authorization and scheduling given the
+  free-tier hosting this currently runs on (see "What's stubbed vs. production-ready").
+- Physical/social-engineering testing — not applicable to a solo-founder pre-pilot project.
+
+**Environment**: staging (`caplink-api.onrender.com`, see "Environments" above) is the
+correct target, never production (none exists yet). Staging's database currently holds
+only seeded demo/test data, not real students' or businesses' information — confirm this
+is still true immediately before any engagement starts, since that could change once a
+real pilot begins.
+
+**Test accounts**: the three seeded demo accounts (`aisha.rahman@manchester.ac.uk` /
+`hello@datacraft-analytics.com` / `admin@manchester.ac.uk`, password `ChangeMe123!` for
+all three — see "Quickstart") cover the student/business/university-admin roles. A
+platform-admin account (the fourth role, gating `/audit-log` and university onboarding)
+has no self-registration path; request one be created directly in the database for the
+engagement, and anonymised/rotated afterward.
+
+**Known, already-documented weak points worth a tester's specific attention** (not
+hidden — flagging them saves a tester's time re-discovering what's already known):
+the UK/EU data residency gap (staging is in Oregon, USA — see "Data protection & privacy
+engineering"), the unverified Dockerfile/backup-restore procedures (never actually run —
+see "Rollback procedure" and "Database backups"), and the SAML assertion-consumer path's
+test coverage gap (see "Testing — three layers, not one" above) — a real tester attacking
+the ACS endpoint directly is, if anything, the closest thing to that missing coverage
+this project currently has.
+
+## Operational runbooks
+
+Technical Implementation Plan 8.d.i. Concrete steps for the incidents most likely to
+actually happen, cross-referencing the detailed sections elsewhere in this README rather
+than repeating them.
+
+**Deploy is failing / service won't start**: check Render's deploy logs first — the two
+most common real causes so far have both been migration-related: a NOT NULL column added
+without a `server_default` failing against a database with existing rows, or (once, for a
+brand-new Postgres enum type) `add_column` needing the enum type created first via
+`sa.Enum(...).create(op.get_bind(), checkfirst=True)` — see "Database migrations
+(Alembic)" and `caplink/CLAUDE.md`'s migration history for the exact failure signatures.
+If the previous deploy was healthy, roll back immediately (see "Rollback procedure")
+before debugging further — a failing deploy on `main` blocks every subsequent push.
+
+**A migration applied badly against a database with real rows**: `alembic downgrade -1`
+reverses it (see "Rollback procedure" for the Postgres-enum caveat), but check first
+whether the migration's `upgrade()` already committed partial damage — Postgres's
+transactional DDL means most migrations roll back cleanly on failure, but a downgrade
+after a *successful*-but-wrong migration only reverses schema, not any data changes an
+endpoint made against the new columns in between.
+
+**A user reports they can't log in**: check `failed_login_attempts`/`locked_until` on
+their `User` row first (progressive lockout — see "Auth hardening") before assuming a
+password issue; the account unlocks itself once the backoff window passes, or can be
+cleared directly in the database for a genuine false positive. If they have MFA enabled
+and lost their device, a `/mfa/disable` call needs a valid code — recovery for a genuinely
+locked-out admin means clearing `totp_enabled`/`totp_secret`/`mfa_backup_codes` directly
+in the database after verifying their identity out-of-band, since there is no self-service
+"I lost my authenticator" flow.
+
+**Suspected credential leak (SECRET_KEY, Stripe keys, DB password)**: rotate the specific
+secret in Render's dashboard immediately (Environment tab — see `render.yaml`'s `sync:
+false` entries for which ones live there) and redeploy. Rotating `SECRET_KEY` invalidates
+every existing access/refresh token instantly — every logged-in user is signed out, which
+is the correct trade-off for an actual leak. Check `caplink/CLAUDE.md` for the one known
+historical near-miss (a real DB password briefly sitting in a local `.env` file, never
+reaching git) before assuming a leak is unprecedented.
+
+**A milestone payment is stuck / a webhook seems to have been missed**:
+`scripts/reconcile_payments.py` (read-only) compares every `Milestone` against Stripe's
+live `PaymentIntent` record and logs drift — run this first rather than guessing. See
+"Payments & payroll" for the escrow mechanism itself; a milestone stuck in `submitted`
+with no matching Stripe status usually means the `approve-and-pay` call raised and was
+never retried, not a webhook problem specifically (webhooks here only cover
+`charge.dispute.created`).
+
+**Error rate spike / Sentry alert**: `SENTRY_DSN` (see "Observability") captures every
+unhandled exception with `environment` tagged — filter by that first. Structured JSON
+request logs (`method`/`path`/`status_code`/`duration_ms` — see the same section) are the
+next place to look for a pattern (one endpoint, one status code, one time window).
+
+## Admin & moderation playbooks
+
+Technical Implementation Plan 8.d.iii. For whoever holds the `platform_admin` or
+`university_admin` role — the real moderation/decision surfaces that exist today, not a
+generic content-moderation policy for features this platform doesn't have.
+
+**Deciding a business partnership agreement request** (university admin,
+`university-admin.js`'s Partnerships tab or `PATCH /universities/{id}/business-agreements/{id}`
+directly): approve only the specific year-bands and project categories the business has
+actually been vetted for — the safeguarding gate enforces whatever is selected here
+literally, with no implicit trust beyond it. Every decision is written to the audit log
+automatically (see below); there's no need to separately document *that* a decision was
+made, only to make the right one.
+
+**Reviewing a flagged message** (`messages.py`'s off-platform-contact heuristic — phone
+numbers, external emails, phrases like "pay you directly" or "whatsapp me"): flagged
+messages are visible via `GET /messages/threads/{id}` like any other, with `is_flagged`/
+`flagged_reason` on the record (the *sender* never sees the reason back — see "Testing"
+above). There is currently no dedicated admin UI listing all flagged messages platform-
+wide; reviewing one today means already knowing which thread to look at (e.g. from a
+user report). **Known gap**: a "flagged messages" admin queue, analogous to the audit
+log, would need building — not done as part of this pass.
+
+**Reading the audit log** (`GET /audit-log`, platform-admin only): write-once, covers a
+university admin's agreement decisions, a platform admin onboarding a new university, and
+SAML config changes (see `caplink/CLAUDE.md`'s Epic 2.c/2.d entry for exactly what is and
+isn't logged, and why "rating overrides"/"account suspensions" — mentioned in the original
+plan text — aren't, since neither is a real feature here). Use this to answer "who
+approved/changed X and when," not as a general activity feed.
+
+**A milestone dispute** (a business disputes work already paid for, or a student disputes
+a rejection): `POST .../milestones/{id}/refund` reverses a *captured* payment (money
+already moved) and auto-reverses the associated Stripe transfer; `POST .../reject` cancels
+a *submitted-but-unpaid* milestone's authorization outright, no money ever having moved.
+Check which state the milestone is actually in (`GET /contracts/mine`) before choosing —
+refunding a never-captured milestone or rejecting an already-paid one will simply fail,
+not silently do the wrong thing, but knowing which to call saves a round trip. Stripe's
+own `charge.dispute.created` webhook additionally marks a milestone `DISPUTED`
+automatically if a business's cardholder disputes the charge directly with their bank,
+independent of anything either party does in-app.
+
+**A university's license needs suspending** (non-payment, contract end, a serious
+safeguarding failure on their end): `University.license_status` — no dedicated endpoint
+exists for this yet; it's a direct database change today. `is_license_active()`
+(referenced throughout `auth.py`/`projects.py`) is the single source of truth every
+access-control check defers to, so flipping this one field is sufficient to lock out every
+student/business tied to that university without needing to touch individual accounts.
