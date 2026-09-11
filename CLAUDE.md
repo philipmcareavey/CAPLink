@@ -1654,6 +1654,112 @@ files), `pytest` 117/117 passing (114 pre-existing + 3 new:
 `test_captcha.py::test_captcha_site_key_endpoint_returns_configured_key`,
 `test_employability_report.py` ×2).
 
+## Dependabot triage, a real bcrypt/passlib incompatibility, and closing out 8.a.i further — 2026-09-11
+
+Three Dependabot PRs had opened since the last session (2.d.iii's automated
+dependency scanning working as intended). Reviewed all three before merging
+anything — worth reading this closely if Dependabot's grouped Python bump ever
+recurs.
+
+**PRs #1/#2 (`actions/checkout` v4→v7, `actions/setup-python` v5→v7) — safe,
+merged.** Both touch the same lines of `.github/workflows/ci.yml` (adjacent
+steps in every job), so merging both locally hit a real (trivial) merge
+conflict — resolved by keeping both bumps together in every job. GitHub
+auto-detected both PRs as merged once their exact commits landed on `main`.
+
+**PR #3 (19 grouped Python dependency bumps) — its own CI `test` job had
+already failed, and the reason was serious: it silently widened
+`requirements.txt`'s `bcrypt<4.1` pin to `bcrypt<5.1`, allowing bcrypt 5.0.0.**
+That pin exists specifically because `passlib[bcrypt]==1.7.4` (unmaintained
+since ~2020) can't read bcrypt's version metadata past 4.1 and crashes.
+Reproduced directly in a scratch venv before trusting the CI failure alone:
+`passlib`'s `CryptContext` throws `AttributeError: module 'bcrypt' has no
+attribute '__about__'` internally, then falls into a broken fallback that
+raises a completely misleading `ValueError: password cannot be longer than 72
+bytes` instead of the real error — every registration and login would have
+broken in production. Not merged as-is. Instead: cherry-picked the same
+commit onto a new branch, manually reverted just the `bcrypt` bound (back to
+`<4.1`, with the crash now documented directly in the pin's own comment so a
+future Dependabot bump doesn't get merged blind again) and the `stripe` bump
+(a major-version jump, 10.12.0→15.6.1, held back pending real verification
+against `app/services/stripe_*.py`'s actual usage — no test-account-free path
+exists to exercise the real Stripe API automatically), then merged the
+remaining 17 safe bumps (fastapi, uvicorn, sqlalchemy, pydantic, alembic,
+sentry-sdk, pyotp, python-jose, python-multipart, slowapi, httpx,
+python-dotenv, firebase-admin, psycopg2-binary, pytest, ruff). Verified before
+pushing: `ruff`/`mypy` 0 errors, `pytest` 117/117, `bandit` 0 findings,
+`pip-audit` 0 unignored vulnerabilities, and a real `hash_password`/
+`verify_password` round-trip confirming bcrypt correctly resolves to 4.0.1 and
+stripe to 10.12.0 against the merged requirements. PR #3 itself was closed
+with a comment explaining the split rather than merged.
+
+**A real, quick documentation-debt catch: `5.e.i`/`5.e.iii` were still marked
+"In Progress" in the tracker despite the underlying work (the ARIA tabs
+pattern, the real axe-core-via-CDN audit) having already shipped in the
+accessibility commit earlier in the previous session — an update to those two
+rows was simply missed when that session's other tracker rows (`2.b.iv`,
+`2.c.iii`, `5.d.iii`) were updated.** Caught this while doing a routine
+"what's genuinely left" check, not by being told. Before flipping them to
+Done, re-verified for real rather than trusting old prose: ran a fresh
+axe-core 4.10.2 audit (loaded via CDN into a live Chrome tab, same technique
+as the original audit) against the login screen, both registration forms, and
+every tab of all three roles — **including the two brand-new university-admin
+screens built this session (Single Sign-On, Employability Report), which had
+never been audited at all**. Zero WCAG-mapped violations anywhere; the only
+finding is the same pre-known, deliberately-deferred `heading-order`
+best-practice item already documented on `accessibility.html`. Tracker rows
+flipped to Done, Dashboard cells (including the P0-priority table, which the
+first pass of this edit missed and the independent recomputation step caught)
+recomputed and re-verified with zero mismatches.
+
+**8.a.i (integration test coverage) pushed further, ~40%→~65%, with one more
+real bug found along the way.** Four new areas of real HTTP-level coverage,
+all previously either untested or only tested at the service level:
+
+- `tests/test_mfa_e2e.py` — the full TOTP MFA cycle through the actual
+  `/auth/mfa/*` routes (setup → wrong-code-rejected-and-doesn't-enable →
+  enable → login now challenges → wrong-TOTP-rejected → correct-TOTP-accepted
+  → backup-code-accepted-once → same-code-rejected-on-reuse →
+  wrong-code-can't-disable → correct-code-disables → login issues tokens
+  directly again). `test_mfa.py` had only ever tested the pure functions in
+  `app/services/mfa.py` directly — the actual endpoints in `auth.py` had zero
+  coverage before this.
+- `tests/test_privacy_e2e.py` — GDPR export and account deletion through
+  `GET /privacy/export` / `DELETE /privacy/account`, including the
+  wrong-password-rejected path and a real check that a business's own
+  contract survives untouched after the *student* on it deletes their
+  account (the actual design decision `app/services/privacy.py` centres on).
+- `tests/test_agreements_and_audit_log_e2e.py` — the safeguarding gate's
+  actual control-panel action (`POST .../business-agreements` request →
+  `GET` listing → `PATCH .../business-agreements/{id}` decide) through real
+  HTTP for the first time (the golden-path test file's `_approve_agreement`
+  helper deliberately seeds an already-APPROVED row directly via ORM, since
+  there's no other way to reach that state — but that never exercised the
+  actual approval decision itself). Also the first real HTTP coverage of
+  `GET /audit-log`, confirming the agreement decision's audit-log side
+  effect is genuinely readable, platform-admin-only.
+- `tests/test_golden_path_e2e.py` gained two new tests for the milestone
+  reject/refund paths (3.b.iii) — previously only the happy
+  submit→approve-and-pay path was covered. **Writing the reject test
+  surfaced a real gap**: `approve_and_pay_milestone` (`contracts.py`) had no
+  status guard at all, unlike `reject_milestone`/`refund_milestone` right
+  next to it — it relied entirely on Stripe's own PaymentIntent state
+  machine to refuse an invalid capture (which is genuine protection in
+  production, since Stripe itself rejects capturing an already-canceled
+  PaymentIntent), but the dev-mode simulation this project's whole test
+  suite and local dev/demo run under (`stripe_payments.is_simulated()`) has
+  no such state machine at all — a milestone a business had explicitly
+  rejected could still be captured afterward and silently flipped back to
+  `PAID`. Fixed with the same explicit `if milestone.status != ...: raise
+  400` guard its siblings already had; the new test asserts this exact
+  regression directly (reject → attempt approve-and-pay → 400, not 200).
+
+Full suite after all of this: `ruff` 0 errors, `mypy` 0 errors, `pytest`
+125/125 passing (117 pre-existing + 8 new). Tracker: **67/104 done, 7/104 in
+progress** (was 65/104 done, 9/104 in progress at the start of this session).
+A pre-edit tracker backup sits at
+`/tmp/tracker_work2/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11`.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The

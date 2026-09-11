@@ -204,6 +204,17 @@ def approve_and_pay_milestone(
     assert contract is not None, "Milestone.contract_id is a NOT NULL FK to contracts"
     _assert_is_contract_business(db, contract, business_user)
 
+    # Unlike reject/refund below, this endpoint had no status guard at all —
+    # it relied entirely on Stripe's own PaymentIntent state machine to
+    # reject an invalid capture (e.g. one already canceled by /reject).
+    # That's a real defense in production, but the dev-mode simulation
+    # (stripe_payments.is_simulated()) has no such state machine and would
+    # silently flip a REJECTED or already-PAID milestone back to PAID.
+    # Added for defense in depth, matching reject_milestone/refund_milestone's
+    # existing pattern below.
+    if milestone.status != MilestoneStatus.SUBMITTED:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Only a submitted milestone can be approved and paid")
+
     try:
         stripe_payments.capture_milestone_payment(milestone)
     except MilestonePaymentError as exc:
