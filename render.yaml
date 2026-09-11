@@ -30,6 +30,21 @@
 # Environment tab directly. If a future blueprint sync doesn't pick this up
 # automatically, that manual paste is the fallback.
 #
+# UK/EU data residency move (2026-09-11): both resources below are declared
+# as `frankfurt` now (were `oregon`) — a genuine UK GDPR gap Phil decided to
+# close rather than defer. Neither a database's nor (as far as could be
+# confirmed without dashboard access) a web service's region can be changed
+# in place on Render — both need deleting and recreating in the new region,
+# same as the original Oregon setup. The free tier's one-active-database-
+# at-a-time limit also means the old and new databases can't coexist even
+# briefly: since staging only ever held seed/demo data (confirmed with Phil
+# before doing this — nothing real was at risk), the actual sequence was
+# delete-old-database, create-new-one-in-Frankfurt, no dump/restore step
+# needed. If caplink-api's own region can't be edited in its Settings tab
+# either, recreating it may issue a new caplink-api.onrender.com-style
+# hostname — check this before assuming CORS_ORIGINS/PUBLIC_APP_URL below
+# are still correct.
+#
 # Connection pooling (PgBouncer): Render's managed Postgres exposes a pooled
 # connection string (via its own PgBouncer) alongside the direct one — check
 # the database's "Connection Pooling" info in the Render dashboard once it's
@@ -59,7 +74,7 @@
 databases:
   - name: caplink-staging-db
     plan: free
-    region: oregon  # MUST match caplink-api's actual region — Render's
+    region: frankfurt  # MUST match caplink-api's actual region — Render's
                   # internal networking (the DATABASE_URL below relies on
                   # it) only connects services in the same region. Omitting
                   # this let Render default the database to Ohio while
@@ -67,7 +82,9 @@ databases:
                   # connection entirely ("could not translate host name")
                   # until this was set explicitly and the database
                   # recreated to match. If you ever move caplink-api to a
-                  # different region, this must move with it.
+                  # different region, this must move with it. Moved from
+                  # oregon to frankfurt 2026-09-11 for UK/EU data residency
+                  # — see the file header comment for the full story.
     databaseName: caplink_staging
     user: caplink_staging
 
@@ -75,6 +92,12 @@ services:
   - type: web
     name: caplink-api
     env: python
+    region: frankfurt  # MUST match caplink-staging-db's region above — see
+                  # that entry's comment for why. Previously undeclared
+                  # (Render's own default, which happened to also be
+                  # Oregon); made explicit alongside the frankfurt move so
+                  # this can never silently drift from the database's
+                  # region again.
     plan: free
     # Technical Implementation Plan step 1.b.iii — Render almost certainly
     # already defaults new git-connected services to auto-deploy on push to

@@ -1893,6 +1893,57 @@ account setting, remains) and the overall tracker moved to **68/104 done,
 6/104 in progress**. A pre-edit tracker backup sits at
 `/tmp/tracker_work6/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11d`.
 
+**Same session, straight after — `2.d.ii` closed out too, and the UK/EU
+data residency move (`7.d.iii`) actually started.** Phil confirmed the rest
+of the unblock-plan's Part 1 complete (database network access restricted
+in Render's dashboard), closing `2.d.ii` and with it all of Epic 2.d — every
+Cyber Essentials technical control in this epic is now genuinely in place.
+Tracker/Dashboard recomputed again, zero mismatches: **69/104 done, 5/104
+in progress**, Workstream 2 fully 16/16.
+
+Moving to Part 2 of the unblock plan, Phil hit a real gap in the original
+plan I'd written: it assumed a new Frankfurt database could be created
+*alongside* the existing Oregon one for a clean dump/restore, but Render's
+free tier only allows one active Postgres instance at a time — creating a
+second one isn't possible until the first is gone. Asked Phil directly
+whether anything in staging was worth preserving before revising the plan,
+rather than assuming either way; he confirmed it's only ever held
+seed/demo data, so the dump/restore step isn't needed at all — the real
+fix is just deleting the old database and creating a new one in Frankfurt,
+letting Alembic build the schema fresh on next deploy.
+
+Updated `render.yaml` to reflect the decision: both `caplink-staging-db`
+and `caplink-api` are now declared `region: frankfurt` (were `oregon`),
+with the free-tier constraint and the reasoning documented directly in the
+file's own comments, matching this file's existing pattern for
+region-related gotchas. **`caplink-api` had no explicit `region:` at all
+before this** — it had been silently relying on Render's own default
+(which happened to also resolve to Oregon) since the service was first
+created; now declared explicitly so it can never drift from the
+database's region again, the same lesson `1.a.iv`'s original region
+mismatch already taught once.
+
+**What's still genuinely pending, and needs Phil's own Render dashboard
+access, not a code change**: neither a database's nor (as far as could be
+confirmed without dashboard access) a web service's region can be edited
+in place on Render — both need deleting and recreating. If `caplink-api`'s
+region turns out not to be editable either, recreating it may issue a
+different `caplink-api.onrender.com`-style hostname, which would need
+checking against `CORS_ORIGINS`/`PUBLIC_APP_URL` in `render.yaml` before
+assuming they're still correct — flagged honestly in the file's own
+comment rather than asserted with false confidence, since this workspace
+has no way to verify Render's actual current UI behaviour directly.
+
+Tracker: `7.d.iii` moved from Not Started to **In progress (~50%)** — the
+decision is made and the code-side declaration exists, but the live
+infrastructure move itself hasn't happened yet, so it isn't claimed Done
+until a real deploy log confirms it (same standard as every other
+infrastructure claim in this project's history). Recomputed and
+independently re-verified: **69/104 done, 6/104 in progress** (Workstream
+7 unchanged at 8/9 done, its one open item now In Progress instead of Not
+Started). A pre-edit tracker backup sits at
+`/tmp/tracker_work8/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11f`.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The
