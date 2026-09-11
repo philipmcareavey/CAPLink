@@ -1,0 +1,14 @@
+{
+  "name": "caplink-frontend-tests",
+  "private": true,
+  "type": "module",
+  "description": "Technical Implementation Plan 8.a.ii — unit tests for static/app/js/, the vanilla-JS reference UI. No build step, no bundler: the app itself is served exactly as written (see static/app/index.html's plain <script type=\"module\"> tags), so this only needs a test runner, not a build toolchain.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "vitest": "^5.0.0"
+  }
+}

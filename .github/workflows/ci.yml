@@ -69,6 +69,24 @@ jobs:
           -r requirements-integrations.txt -r requirements-postgres.txt
           --ignore-vuln PYSEC-2026-1325
 
+  frontend-test:
+    # Technical Implementation Plan step 8.a.ii — unit tests for
+    # static/app/js/ (Vitest + jsdom, see package.json/vitest.config.js).
+    # Genuinely blocked until 2026-09-11: no Node.js/npm had existed
+    # anywhere in this project's history until Phil installed it via nvm
+    # on his own machine specifically to unblock this step. No build step
+    # for the app itself (static/app/index.html still loads plain
+    # <script type="module"> tags directly) — this only adds a test
+    # runner, not a bundler/compiler.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npm test
+
   docker-build:
     # Technical Implementation Plan step 1.b.ii — was blocked until 1.d.i's
     # Dockerfile existed; it now does, so this job both closes out 1.b.ii and

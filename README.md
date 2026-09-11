@@ -868,12 +868,39 @@ never triggers the app's startup lifespan) closes that gap:
   by a permanent test — that needs a hand-built, XML-DSig-signed assertion against a
   self-signed test certificate, real work verified once manually (see this file's Epic 2.b
   history) but not yet rebuilt as a lasting regression test.
+- `tests/test_mfa_e2e.py`, `test_privacy_e2e.py`, `test_agreements_and_audit_log_e2e.py`,
+  `test_auth_session_e2e.py`, `test_applications_e2e.py`, `test_local_search_e2e.py`,
+  `test_mobile_and_verification_e2e.py`, `test_profile_updates_e2e.py` — added across later
+  sessions, covering TOTP MFA's full HTTP cycle, GDPR export/deletion, the safeguarding
+  gate's approve/reject decision plus the audit log, token refresh and password change, the
+  business-side hiring-decision surface, postcode-radius local search, mobile device
+  registration, the real (non-dev) email-verification token flow, and profile updates.
+  Remaining gaps, left deliberately rather than silently: `GET /projects/mine`,
+  `GET /ratings/pending`/`mine`, the payments status-check endpoints, and employer-
+  suggestion feedback are still untested at the HTTP layer — read-only listings, lower risk
+  than everything above.
 
-`tests/test_*.py` outside those three files remain unit/service-level by design — fast,
+`tests/test_*.py` outside those files remain unit/service-level by design — fast,
 focused, no HTTP/app overhead for testing a scoring algorithm or a password policy.
-Frontend component/unit tests (Technical Implementation Plan 8.a.ii) are not set up:
-they'd need a JS test runner (Jest/Vitest), which needs a Node.js toolchain this
-environment doesn't have — same blocker as the mobile app workstream.
+
+**Frontend unit tests (8.a.ii) — done as of 2026-09-11.** Vitest + jsdom, no build step
+(`static/app/index.html` still loads plain `<script type="module">` tags directly — this
+only adds a test runner, never a bundler/compiler). Genuinely blocked until this session:
+no Node.js/npm had existed anywhere in this project's history until Phil installed it via
+`nvm` specifically to unblock this step. Run with `npm test` (see `package.json`); CI runs
+it on every push/PR as the `frontend-test` job. Coverage so far focuses on the three
+highest-value, most-reused files rather than every page module: `static/app/js/dom.js`
+(`dom.test.js` — most notably `esc()`, this app's only defence against stored XSS in every
+render function, with a permanent regression test reproducing the exact payload that found
+a real stored-XSS bug in `contracts.js` during Epic 2.c.ii), `api.js` (`api.test.js` —
+JWT decoding, session state, the `fetch` wrapper's error handling), and `components.js`
+(`components.test.js` — the reusable component library itself, including `openRatingModal`'s
+real `<dialog>` interaction; needed a small `showModal()`/`close()` polyfill in
+`static/app/js/test-setup.js` since jsdom doesn't implement either as of the version this
+project uses). The large page-specific modules (`main.js`, `student.js`, `business.js`,
+`university-admin.js`) remain untested — a real, acknowledged gap, not an oversight;
+they're mostly DOM wiring around the tested components/helpers rather than standalone
+logic, so the return on testing them directly is lower than for the files covered so far.
 
 ### Security scanning
 
