@@ -2008,6 +2008,108 @@ independently re-verified with zero mismatches: **71/104 done, 4/104 in
 progress**. A pre-edit tracker backup sits at
 `/tmp/tracker_work10/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11h`.
 
+## `8.a.ii` genuinely unblocked and started: frontend unit tests with Vitest — 2026-09-11
+
+Same day, Phil installed Node.js via `nvm` on his own machine specifically to
+unblock this step — a real gap that had existed since this repo's very first
+commit (no Node.js/npm anywhere in this project's history). Worth remembering
+if this needs revisiting: **a fresh non-interactive shell in this workspace
+does not automatically pick up `nvm`'s PATH additions**, even though `nvm`'s
+loader lines are correctly present in `~/.zshrc` — `nvm current`/`node -v`
+only resolved after explicitly `source`-ing `$NVM_DIR/nvm.sh`, or by
+prepending `~/.nvm/versions/node/v26.8.2/bin` to `PATH` directly (faster,
+used for the actual work below). Confirmed via `uname -a` that this really is
+the same physical Mac Phil's own Terminal runs on (`Phils-MacBook-Air.local`)
+— this is a shell-initialization quirk specific to how this workspace's Bash
+tool starts a shell, not a sign of two separate machines/environments.
+
+**What got built**: `package.json` + `vitest.config.js` (jsdom environment —
+this is browser code with no build step, so tests run the exact same
+`static/app/js/*.js` files the browser loads, unmodified) at the repo root,
+alongside the existing Python tooling, not inside `static/app/` — keeps
+`npm ci`/`npm test` discoverable from the same place `pip install`/`pytest`
+already run from. 59 tests across three files, deliberately the highest-
+value ones per the original unblock-plan document's own suggestion, not
+every file:
+
+- `static/app/js/dom.test.js` (26 tests) — most notably `esc()`, this app's
+  *only* defence against stored XSS in every `render*()` function and every
+  page module. Includes a permanent regression test reproducing the exact
+  payload that found a real stored-XSS bug in `shared/contracts.js` during
+  Epic 2.c.ii — that bug happened because one file forgot to call `esc()`
+  at all; testing `esc()` itself directly guards the function every other
+  file already trusts, which is a more durable fix than re-testing "did
+  this page call esc()" per page. Also covers `badgeClass`, `titleCase`,
+  `pct`, `gbp`, `formatDateTime`, `el`, `toast`.
+- `static/app/js/api.test.js` (12 tests) — `decodeJwt` (including a
+  base64url-vs-base64 edge case a naive `atob()` would corrupt), the full
+  `setSession`/`clearSession` state lifecycle, and the `api()` fetch
+  wrapper's error handling (a plain string `detail`, a structured FastAPI
+  validation-error array correctly `JSON.stringify`'d rather than showing
+  `[object Object]`, and the fallback to `statusText` when a non-OK
+  response has no JSON body at all).
+- `static/app/js/components.test.js` (21 tests) — the reusable component
+  library itself (`renderMatchDial`'s SVG math including score clamping,
+  `renderProjectCard`/`renderStudentCard`'s XSS-escaping and conditional
+  rendering, and `openRatingModal`'s real `<dialog>` interaction: star
+  selection, form submission calling `onSubmit` with the right arguments,
+  the close button *not* calling `onSubmit`, and opening a second modal
+  correctly replacing rather than stacking on the first).
+
+**A real, if small, gap in the test environment itself, found and fixed
+before it could silently break every `openRatingModal` test**: jsdom (the
+version this project's `vitest.config.js` pulls in) does not implement
+`HTMLDialogElement`'s `showModal()`/`close()` at all — confirmed directly
+(`dialog.showModal is not a function`) rather than assumed. Fixed with a
+minimal, clearly-commented polyfill in `static/app/js/test-setup.js`
+(loaded via `vitest.config.js`'s `setupFiles`) that only sets `open` and
+fires a `close` event — exactly the two behaviours `components.js`'s own
+code actually depends on, nothing more.
+
+**Two of my own test assertions were wrong on the first run, not the
+code being tested** — worth noting since this is a running theme in this
+project's testing history (real bugs get found by actually running tests,
+not just writing them): one assumed `esc()` should strip the literal text
+"onerror=alert" rather than just neutralising `<`/`>` (the actual security
+property — inert text surviving is fine, new tags/attributes becoming
+possible is not); another assumed `formatDateTime` includes a year, when
+the real function's options (`month`/`day`, `hour`/`minute`) never request
+one. Fixed both assertions once the real output showed the actual (correct)
+behaviour, rather than changing the production code to match a wrong guess.
+
+**A real, moderate-severity dev-dependency vulnerability caught and fixed
+before committing, not shipped**: `npm install`'s first resolution pulled
+in a `vitest`/`@vitest/mocker` combination with a known path-traversal/
+arbitrary-file-read advisory (GHSA-82fw-gwwq-j7x9). Pinned `vitest` to
+`^5.0.0` instead and reinstalled clean — `npm audit` reports 0
+vulnerabilities in the final lockfile. Dev-only dependency, never shipped
+to the deployed app, but this project already runs `pip-audit` on the
+Python side for exactly this class of issue, so the same standard applies
+here.
+
+Wired into CI as a new `frontend-test` job (`actions/setup-node@v5`,
+`npm ci`, `npm test`) — `package-lock.json` committed so `npm ci` (not
+`npm install`) reproduces exactly what was tested locally. README's
+"Testing — three layers, not one" section updated to describe this
+alongside a genuinely stale list of Python e2e test files it had never
+been updated to include from later 8.a.i sessions — fixed both while in
+there rather than leaving the frontend paragraph accurate next to a list
+that wasn't.
+
+**Deliberately not claimed Done, and not attempted further this
+session**: the plan's own wording for `8.a.ii` asks for coverage of
+"the core reusable components and page flows" — only the first half is
+covered. `main.js`, `student.js`, `business.js`, and `university-admin.js`
+(the large, page-specific modules) remain untested. Marked in-progress
+(~40%) rather than Done — a real, acknowledged gap, not an oversight:
+those files are mostly DOM wiring around the components/helpers just
+tested rather than standalone logic of their own, so the marginal value
+of testing them directly is genuinely lower, but the plan's own scope
+still calls for it. Tracker/Dashboard recomputed and independently
+re-verified with zero mismatches: **71/104 done, 5/104 in progress**. A
+pre-edit tracker backup sits at
+`/tmp/tracker_work11/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11i`.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The
