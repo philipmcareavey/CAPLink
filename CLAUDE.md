@@ -1944,6 +1944,40 @@ independently re-verified: **69/104 done, 6/104 in progress** (Workstream
 Started). A pre-edit tracker backup sits at
 `/tmp/tracker_work8/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11f`.
 
+**Same day, the live move actually completed — `7.d.iii` confirmed Done.**
+Phil deleted and recreated both `caplink-staging-db` and `caplink-api` in
+Render's Frankfurt region directly (the free-tier one-active-database
+constraint meant this had to be a real delete-then-recreate, not a
+side-by-side migration — see above). The new database came up empty, so
+the schema needed rebuilding from scratch: ran `scripts/seed_demo_data.py`
+locally, `DATABASE_URL` overridden to the new database's External
+Database URL (the only override needed — `ENVIRONMENT` was left at its
+default, which resolves to `development` behaviour and skips the
+staging/production secret-key validator entirely for this one-off local
+run, since nothing about seeding needs a real `SECRET_KEY`). That script
+already calls `run_migrations()` before seeding, so a single command both
+built the fresh schema (a genuine `alembic upgrade head` against an empty
+database, not the stamp-only shortcut) and repopulated the demo accounts.
+
+**Verified independently, not taken on trust that "done" meant it worked**:
+`GET /health` returned a clean 200, and a real `POST /auth/login` against
+the live staging API as the seeded `admin@manchester.ac.uk` account
+returned a genuine token pair with the correct `role`/`university_id`
+claims — proof the live API is actually reading from the new, freshly-
+seeded database, not just that the seed script exited without an error.
+Phil then confirmed both resources show `Frankfurt` in the Render
+dashboard directly, closing the one thing that couldn't be verified from
+this workspace alone.
+
+Tracker updated (`I95` In Progress→Done, `J95` 0.5→1.0), Dashboard
+recomputed and independently re-verified with zero mismatches: **70/104
+done, 5/104 in progress**. Workstream 7 (Data Protection & Privacy
+Engineering) is now fully 9/9 done — staging is genuinely hosted in
+Frankfurt, Germany, not Oregon, USA, closing the one real UK GDPR gap this
+project had left open since Workstream 7's original session. A pre-edit
+tracker backup sits at
+`/tmp/tracker_work9/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11g`.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The
