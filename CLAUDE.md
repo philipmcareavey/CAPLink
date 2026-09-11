@@ -1788,6 +1788,60 @@ business/student profile `PATCH`). Dashboard aggregates unchanged since
 regardless. A pre-edit tracker backup sits at
 `/tmp/tracker_work3/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11b`.
 
+**Same session, one more pass — 8.a.i pushed to ~85%, then deliberately
+stopped.** Phil said to keep going but move on if time was better spent
+elsewhere; judged there was still real, meaningfully-risky surface left,
+so closed it out before switching to the requested unblock-plan document
+(see below). Three more test files:
+
+- `tests/test_local_search_e2e.py` — postcode-radius local business search
+  (`app/api/v1/endpoints/local_search.py`), genuinely real logic worth
+  testing rather than simple CRUD: the safeguarding gate applies here too
+  (only an APPROVED agreement covering the student's own band makes a
+  business eligible, confirmed with a wrong-band business excluded
+  regardless of distance), real haversine radius filtering (a business
+  just outside a 10-mile radius correctly excluded, included once the
+  radius widens), and a real 403 for searching a university that isn't the
+  calling student's own.
+- `tests/test_mobile_and_verification_e2e.py` — device register/
+  re-register (idempotent, confirmed via a stable `device_id` across both
+  calls)/deregister (scoped by `push_token` + `user_id`, confirmed a
+  different user's delete call can't touch someone else's device), and —
+  the more interesting one — **the real (non-dev) email verification
+  token flow**, exercised via `GET /auth/verify-email` for the first time
+  ever through `TestClient`. `ENVIRONMENT` auto-verifies in development
+  (see `_start_email_verification`'s docstring), so this needed the same
+  in-process `monkeypatch.setattr(settings, "ENVIRONMENT", "staging")`
+  technique used once before, back in Epic 2.a.iii's original
+  verification — confirms a real token gets generated, a wrong token
+  400s, the real token verifies and unblocks login, and the same token
+  can't be replayed afterward.
+- `tests/test_profile_updates_e2e.py` — business/student profile `PATCH`.
+  The business side is more than plain CRUD: setting `postcode` triggers a
+  real server-side geocode (mocked here via `monkeypatch` on
+  `app.services.geo.geocode_postcode`, consistent with how the endpoint
+  actually calls it — through the module reference, not a direct import,
+  so patching the module attribute reaches the real call site), and
+  clearing it back to `""` must also clear `latitude`/`longitude`, which
+  is what actually removes a business from local-search results. A
+  separate test confirms an unresolvable postcode correctly 400s rather
+  than silently storing garbage coordinates.
+
+**Deliberately stopped here rather than chasing every remaining endpoint**:
+`GET /projects/mine`, `GET /ratings/pending`/`mine`, `GET
+/payments/connect|setup-status`, `POST /recommendations/{id}/feedback`,
+`GET /universities` (list/public) are all still untested at the HTTP
+layer — genuinely lower-risk read-only listings, not left out by
+oversight. The SAML ACS crypto path (a real IdP posting a signed
+assertion) remains the one real, separately-large gap, already documented
+as such since Workstream 8's original session.
+
+Full suite: `ruff`/`mypy` 0 errors, `pytest` 143/143 (132 pre-existing +
+11 new). Tracker: `8.a.i` now ~85%, status still honestly In Progress
+(this item's own description says "every API endpoint" — a handful
+genuinely remain, so it isn't claimed Done). A pre-edit tracker backup
+sits at `/tmp/tracker_work5/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11c`.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The
