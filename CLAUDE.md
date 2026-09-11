@@ -1978,6 +1978,36 @@ project had left open since Workstream 7's original session. A pre-edit
 tracker backup sits at
 `/tmp/tracker_work9/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11g`.
 
+**Same day, straight after — `1.d.iv` (the backup/restore drill) actually
+run for real, and it verified `1.d.i` (the Dockerfile) along the way.**
+Walked Phil through installing Docker Desktop and running this repo's real
+`docker-compose.yml` for the first time ever — both the Dockerfile and the
+compose setup had existed since 2026-08-30 but were explicitly flagged
+unverified, since no Docker was available in any environment that had
+touched this project until now. `docker compose up` started both the `db`
+(Postgres 16) and `app` containers cleanly; the app's own
+development-mode startup hook auto-seeded demo data against the
+containerized Postgres, giving real rows to actually test a backup
+against rather than an empty schema. Phil then ran `pg_dump` inside the
+`db` container, restored the dump into a separate `caplink_restore_test`
+database, and spot-checked row counts — they matched, confirming the
+documented backup/restore procedure genuinely works, not just that the
+commands were written down correctly.
+
+**This closes two tracker rows at once, not one**: `1.d.iv` moves from
+In Progress (~30%) to Done — the drill this step calls for has now
+actually been run, not just documented (real automated *daily* backups
+still need a paid Postgres plan, deliberately deferred, same reasoning as
+`1.d.ii`'s autoscaling deferral, and that part remains genuinely not
+done). `1.d.i` was already marked Done, but its own notes explicitly
+flagged it as unverified since 2026-08-30 — updated to record that the
+Dockerfile has now actually been built and run for real and works
+correctly, closing that caveat honestly rather than leaving a stale
+"trust me" note sitting in a Done row. Dashboard recomputed and
+independently re-verified with zero mismatches: **71/104 done, 4/104 in
+progress**. A pre-edit tracker backup sits at
+`/tmp/tracker_work10/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11h`.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The
