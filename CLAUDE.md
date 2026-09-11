@@ -1842,6 +1842,57 @@ Full suite: `ruff`/`mypy` 0 errors, `pytest` 143/143 (132 pre-existing +
 genuinely remain, so it isn't claimed Done). A pre-edit tracker backup
 sits at `/tmp/tracker_work5/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11c`.
 
+## The unblock-plan document, and 2.d.i closed out for real — 2026-09-11
+
+Straight after the test-coverage work above, Phil asked for a step-by-step action
+plan of everything genuinely blocked on him — the same kind of document as the
+existing stakeholder-update series. Built `../CAPLink-Unblock-Action-Plan.docx`
+with `python-docx` (system-level Python, not this repo's venv — matches the
+established pattern for this document series), matching the series' visual
+identity (navy `#1B2A45` headings, Calibri, a Prepared-for/Date/Prepared-by
+cover table) rather than starting a new style. Grouped every open item by who
+needs to act and how fast it can move — quick account actions, Render
+infrastructure decisions, the payroll-provider commercial decision, work
+needing a local Docker/Node.js environment this workspace has never had, items
+deliberately sequenced for later, and the Business Plan's own Phase 0/2 items —
+each with concrete numbered steps, not just a restated description of the gap.
+Recorded in the top-level `CLAUDE.md`'s folder map and document list, same as
+every other file in this series. Saved outside the git repo (business-side
+document, not code) and delivered directly to Phil via file transfer.
+
+**A real, if minor, security incident happened immediately after, worth
+documenting given this file's own history of catching gaps between "looks
+done" and "actually done" for infra items.** Phil worked through Part 1.1 of
+the new document (enable MFA on every infrastructure account) and, in the
+process of doing so, pasted real credentials directly into the chat twice: an
+hCaptcha secret key, then a full set of GitHub two-factor recovery codes,
+then — after being told plainly why that's a real exposure regardless of
+intent — a full set of Sentry recovery codes as well, apparently before that
+guidance had registered. Handled the same way each time: never stored,
+quoted, or acted on any of the pasted values; told Phil directly and
+specifically what to do (regenerate the GitHub and Sentry recovery codes
+immediately, since pasting them anywhere — including to an AI assistant —
+should be treated as exposing them; paste the hCaptcha secret into Render's
+dashboard himself, since entering API keys/secrets into any field, even one
+this workspace could reach, isn't something to do on a user's behalf). Both
+sets of recovery codes were confirmed regenerated. **Worth remembering for
+any future session working through this document's Part 1 with Phil**: the
+instinct to hand over an assistant "the codes, just in case" is understandable
+but wrong for exactly this class of credential — say so plainly the first time
+it happens, and don't let a repeat of the same mistake go by without the same
+correction just because it already happened once.
+
+Phil then confirmed Part 1.1 fully complete (MFA enabled on GitHub, Render,
+hCaptcha, and Sentry). This closes out `2.d.i` for real — previously a
+checklist-only item at ~10%, now genuinely Done, since the actual account
+settings only Phil could change are now in place. Tracker updated (`I30`
+Not-Started→Done semantics: In Progress→Done, `J30` 0.1→1.0), Dashboard
+recomputed and independently re-verified with zero mismatches:
+**Workstream 2 (Auth Hardening) is now 15/16 done** (only `2.d.ii`, a Render
+account setting, remains) and the overall tracker moved to **68/104 done,
+6/104 in progress**. A pre-edit tracker backup sits at
+`/tmp/tracker_work6/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11d`.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The
