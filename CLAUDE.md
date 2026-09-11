@@ -1760,6 +1760,34 @@ progress** (was 65/104 done, 9/104 in progress at the start of this session).
 A pre-edit tracker backup sits at
 `/tmp/tracker_work2/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11`.
 
+**Same session, continued — 8.a.i pushed further still, ~65%→~75%.** Two
+more real HTTP-level test files, closing gaps that had zero coverage of the
+actual routes before this:
+
+- `tests/test_auth_session_e2e.py` — `POST /auth/refresh` (including a real
+  401 when an access token is presented where a refresh token belongs — the
+  endpoint checks the token's own `type` claim, not just its signature) and
+  `POST /auth/change-password` (wrong-current-password rejected with no side
+  effects — the old password still works afterward — then a real change
+  confirmed by the old password failing and the new one succeeding).
+- `tests/test_applications_e2e.py` — the actual hiring-decision surface a
+  business uses day to day: `GET .../shortlist` (ranks every visible
+  candidate, not just applicants — confirmed with a student who never
+  applied still appearing), `GET .../shortlist/{id}/explanation`,
+  `GET .../applications` for real applicants, and `PATCH /applications/{id}`
+  moving one through its status pipeline — plus the cross-business
+  authorization checks on all four (a second business gets a real 403/404,
+  not just an empty result).
+
+Full suite: `ruff`/`mypy` 0 errors, `pytest` 132/132 (125 pre-existing + 7
+new), `bandit` 0 findings. Tracker: `8.a.i` now ~75% (status stays In
+Progress — real remaining gaps: local search, device registration,
+resend-verification, the real non-dev email-verification path, and
+business/student profile `PATCH`). Dashboard aggregates unchanged since
+`8.a.i`'s status column didn't change, but re-verified with zero mismatches
+regardless. A pre-edit tracker backup sits at
+`/tmp/tracker_work3/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11b`.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The
