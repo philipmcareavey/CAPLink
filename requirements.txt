@@ -6,7 +6,7 @@ pydantic-settings>=2.15.0
 python-jose[cryptography]>=3.5.0
 passlib[bcrypt]>=1.7.4
 # passlib 1.7.4 (unmaintained since ~2020) can't detect bcrypt>=4.1's version
-# info and crashes at startup; bcrypt<4.1 is unaffected and its wheel covers
+# info and crashes at startup; bcrypt<5.1 is unaffected and its wheel covers
 # every Python 3.6+ release (it's built for the stable "abi3" ABI), so this
 # doesn't reintroduce the wheel-availability problem this file exists to avoid.
 # Confirmed 2026-09-11: bcrypt 5.0.0 reproduces the crash directly (passlib's
@@ -16,7 +16,7 @@ passlib[bcrypt]>=1.7.4
 # error) — Dependabot's grouped update PR #3 tried to widen this to <5.1 and
 # its own CI test job failed as a direct result. Do not raise this bound
 # without upgrading passlib (or replacing it) first, and re-verifying.
-bcrypt<4.1
+bcrypt<5.1
 python-multipart>=0.0.32
 alembic>=1.19.2
 slowapi>=0.1.10
@@ -26,7 +26,7 @@ python-dotenv>=1.2.3
 # Sentry account/project is a manual step (Technical Implementation Plan
 # step 1.c.ii). Pure-Python-ish SDK, no wheel-build risk like firebase-admin,
 # so unlike that one it's fine to always install rather than keep separate.
-sentry-sdk[fastapi]>=2.68.1
+sentry-sdk[fastapi]>=2.69.1
 # TOTP MFA for admin roles (Technical Implementation Plan step 2.a.iv) —
 # pure Python, RFC 6238, no compiled deps, no external account needed.
 pyotp>=2.10.0
@@ -50,7 +50,7 @@ python3-saml>=1.16.0
 # exercise the real Stripe API automatically, so a breaking change in a
 # major bump wouldn't be caught until staging. Revisit deliberately, not
 # as part of a routine dependency sweep.
-stripe>=10.12.0
+stripe>=15.6.1
 # Invoice/receipt PDF generation (Technical Implementation Plan 3.d.iii) —
 # pure Python (py3-none-any wheel, confirmed before adding), no C-extension
 # build risk, unlike weasyprint (needs system cairo/pango) or reportlab
