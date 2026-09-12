@@ -51,3 +51,8 @@ python3-saml>=1.16.0
 # major bump wouldn't be caught until staging. Revisit deliberately, not
 # as part of a routine dependency sweep.
 stripe>=10.12.0
+# Invoice/receipt PDF generation (Technical Implementation Plan 3.d.iii) —
+# pure Python (py3-none-any wheel, confirmed before adding), no C-extension
+# build risk, unlike weasyprint (needs system cairo/pango) or reportlab
+# (heavier, less actively maintained for this use case).
+fpdf2>=2.8.8

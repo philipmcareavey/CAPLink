@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     local_search,
     messages,
     mobile,
+    observability,
     payments,
     policies,
     privacy,
@@ -39,3 +40,4 @@ api_router.include_router(local_search.router)
 api_router.include_router(audit_log.router)
 api_router.include_router(payments.router)
 api_router.include_router(privacy.router)
+api_router.include_router(observability.router)

@@ -2,17 +2,19 @@ import logging
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, Response
 from sqlalchemy.orm import Session
 
-from app.api.deps import require_business, require_platform_admin, require_student
+from app.api.deps import get_current_user, require_business, require_platform_admin, require_student
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.contract import Contract, Milestone
 from app.models.enums import MilestoneStatus, PaymentRail
+from app.models.project import Project
 from app.models.user import BusinessProfile, StudentProfile, User
 from app.models.webhook_event import ProcessedWebhookEvent
-from app.services import payroll, stripe_connect, stripe_customers
+from app.schemas.financial_report import BusinessSpendReportOut, PlatformRevenueReportOut
+from app.services import financial_report, payroll, receipt_pdf, stripe_connect, stripe_customers
 from app.services.notifications import notify_from_template
 from app.services.stripe_connect import StripeNotConfigured
 from app.services.stripe_dev_mode import fake_id, is_simulated
@@ -190,3 +192,90 @@ def export_payroll(db: Session = Depends(get_db), _admin: User = Depends(require
         .all()
     )
     return payroll.export_payroll_csv([(m, c, s) for m, c, s in due])
+
+
+@router.post("/payroll/submit")
+def submit_payroll(db: Session = Depends(get_db), _admin: User = Depends(require_platform_admin)):
+    """Technical Implementation Plan 3.c.iv's other half — the actual
+    submission step /payroll/export.csv's docstring points at
+    (app/services/payroll.py::submit_payroll_batch), previously implemented
+    and unit-tested but never reachable through the API at all. Queries the
+    exact same due-for-export set as the CSV preview above, hands it to
+    whichever PayrollProvider is configured (LoggingPayrollProvider today —
+    see payroll.py's own docstring for why no real umbrella/EOR provider is
+    wired in yet, a commercial/legal decision, not a technical one), and —
+    unlike the read-only preview — actually marks each milestone exported
+    so a later run never double-submits it."""
+    due = (
+        db.query(Milestone, Contract, StudentProfile)
+        .join(Contract, Milestone.contract_id == Contract.id)
+        .join(StudentProfile, Contract.student_id == StudentProfile.id)
+        .filter(
+            Contract.payment_rail == PaymentRail.PAYE_UMBRELLA,
+            Milestone.status == MilestoneStatus.PAID,
+            Milestone.payroll_exported_at.is_(None),
+        )
+        .all()
+    )
+    batch = [(m, c, s) for m, c, s in due]
+    payroll.submit_payroll_batch(batch, payroll.LoggingPayrollProvider())
+    db.commit()
+    return {"submitted_count": len(batch)}
+
+
+# ---------- Financial reporting (3.d) ----------
+
+
+@router.get("/spend-report", response_model=BusinessSpendReportOut)
+def get_business_spend_report(db: Session = Depends(get_db), user: User = Depends(require_business)):
+    """Technical Implementation Plan 3.d.i — per-project and per-period
+    spend visibility for a business's own account. See
+    app/services/financial_report.py for exactly what counts as "paid" vs.
+    "pending capture"."""
+    business = _get_business_profile(db, user)
+    return financial_report.build_business_spend_report(db, business.id)
+
+
+@router.get("/revenue-report", response_model=PlatformRevenueReportOut)
+def get_platform_revenue_report(db: Session = Depends(get_db), _admin: User = Depends(require_platform_admin)):
+    """Technical Implementation Plan 3.d.ii — platform-admin-only take-rate
+    revenue reporting, with a placeholder line for license revenue (see
+    the schema/service module's own docstring for why that's honestly zero
+    rather than a guessed figure)."""
+    return financial_report.build_platform_revenue_report(db)
+
+
+@router.get("/milestones/{milestone_id}/receipt.pdf")
+def get_milestone_receipt(milestone_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Technical Implementation Plan 3.d.iii — an auto-generated PDF
+    receipt for a paid milestone, for either party's own records. Only the
+    business or student who was actually party to this milestone's
+    contract may fetch it."""
+    milestone = db.query(Milestone).filter(Milestone.id == milestone_id).first()
+    if milestone is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Milestone not found")
+    if milestone.status != MilestoneStatus.PAID:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "A receipt is only available once a milestone has been paid")
+
+    contract = db.query(Contract).filter(Contract.id == milestone.contract_id).first()
+    assert contract is not None, "milestone.contract_id has a NOT NULL FK to contracts"
+    business = db.query(BusinessProfile).filter(BusinessProfile.id == contract.business_id).first()
+    student = db.query(StudentProfile).filter(StudentProfile.id == contract.student_id).first()
+    assert business is not None and student is not None, "contracts always reference real business/student profiles"
+
+    is_business_party = business.user_id == user.id
+    is_student_party = student.user_id == user.id
+    if not (is_business_party or is_student_party):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "You were not a party to this milestone's contract")
+
+    project = db.query(Project).filter(Project.id == contract.project_id).first()
+    assert project is not None, "contract.project_id has a NOT NULL FK to projects"
+
+    pdf_bytes = receipt_pdf.generate_milestone_receipt_pdf(
+        milestone=milestone, contract=contract, project=project, business=business, student=student
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="caplink-receipt-{milestone_id}.pdf"'},
+    )

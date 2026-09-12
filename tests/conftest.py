@@ -71,6 +71,15 @@ def client(monkeypatch):
     # keeps each one's rate-limit state genuinely isolated; slowapi/rate
     # limiting has its own coverage to actually test the 429 behaviour.
     app.state.limiter.reset()
+
+    # app/core/latency_metrics.py is the same kind of process-global,
+    # module-level store as the limiter above — reset per test so one
+    # test's request volume can't affect another's latency-dashboard
+    # assertions.
+    from app.core import latency_metrics
+
+    latency_metrics.reset()
+
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},

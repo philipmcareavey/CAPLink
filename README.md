@@ -290,7 +290,10 @@ mobile device registration, Alembic-managed schema migrations, structured JSON l
 CI (lint/type-check/test), university SAML SSO (see "Auth hardening" below), GDPR
 data-subject-rights tooling and an automated retention job (see "Data protection &
 privacy engineering" below), a real design-token/component-library frontend covering
-all three portals with WCAG 2.2 AA conformance (see "Frontend web application" below).
+all three portals with WCAG 2.2 AA conformance (see "Frontend web application" below),
+financial reporting (a business spend dashboard, a platform revenue dashboard, and
+auto-generated PDF milestone receipts — see "Payments & payroll" below), and an
+in-process latency dashboard (see "Observability" above).
 
 Integration points left as clearly-marked placeholders (each notes what to replace):
 Firebase push delivery, verification emails are logged rather than actually sent (no ESP
@@ -357,6 +360,21 @@ visa-restricted students. `stripe>=10.12.0` is a hard runtime dependency
   `notifications.py`) with a logging placeholder implementation, plus a
   generic CSV export (`GET /payments/payroll/export.csv`, platform-admin
   only) rather than a guess at a specific provider's file format.
+  `POST /payments/payroll/submit` (platform-admin only, added 2026-09-12)
+  actually submits the due batch through whichever `PayrollProvider` is
+  configured and marks each milestone exported — the export endpoint
+  above stays a read-only preview, this is the real submission step.
+- **Financial reporting** (`app/services/financial_report.py`,
+  `app/services/receipt_pdf.py`, step 3.d, added 2026-09-12): a
+  business-facing spend dashboard (`GET /payments/spend-report`) and a
+  platform-admin revenue dashboard (`GET /payments/revenue-report`, with
+  an honest `0.0` placeholder for license revenue — no billing model
+  exists in this codebase to derive a real figure from), both pure
+  aggregation over existing Contract/Milestone data. Auto-generated PDF
+  receipts (`GET /payments/milestones/{id}/receipt.pdf`, via a new
+  dependency, `fpdf2` — pure Python, no C-extension build risk) for
+  either contract party once a milestone is paid, generated fresh on
+  every request rather than stored anywhere.
 - **Nightly reconciliation** (`scripts/reconcile_payments.py`, step 3.b.iv)
   — compares every Milestone with a Stripe PaymentIntent against Stripe's
   own live record, read-only (flags drift, never auto-corrects). Not wired
@@ -829,6 +847,18 @@ responding — it doesn't check the database connection, so a monitor on it alon
 catch "app is up but the database is unreachable"; that failure mode currently only shows
 up as request-level 500s in the logs/Sentry above.
 
+**Latency dashboard** (step 1.c.iv, added 2026-09-12) — no real APM/dashboarding tool
+exists for this project, but `app/core/latency_metrics.py` computes a genuinely usable
+answer in-process from the same `duration_ms` field the structured logging above already
+emits per request: count/avg/p50/p95/p99, aggregated by route *template* (e.g. `GET
+/projects/{project_id}/shortlist`, not the raw per-request path with a real id in it).
+`GET /observability/latency-dashboard` (platform-admin only) serves it, highlighting the
+Technical Implementation Plan's own named compute-intensive endpoints (the project feed,
+shortlist, and match-explanation drill-down) specifically. Honest limitation, not hidden:
+this is in-memory and per-process — it resets on every restart/deploy and doesn't
+aggregate across multiple instances if this ever scales beyond the single free-tier
+instance it runs on today.
+
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs five independent checks on every pull request (and on
@@ -863,11 +893,18 @@ never triggers the app's startup lifespan) closes that gap:
   heuristic actually flagging a phone number/suspicious phrase, a third party correctly
   forbidden from a conversation, and a real 429 from the messaging rate limit.
 - `tests/test_saml_endpoints_e2e.py` — SP metadata generation and the "SSO not enabled"
-  404 on both the login and ACS routes. **Known, deliberately flagged gap**: the actual
-  assertion-consumer path (a real IdP posting a signed SAML response) still isn't covered
-  by a permanent test — that needs a hand-built, XML-DSig-signed assertion against a
-  self-signed test certificate, real work verified once manually (see this file's Epic 2.b
-  history) but not yet rebuilt as a lasting regression test.
+  404 on both the login and ACS routes. The actual assertion-consumer path (a real IdP
+  posting a signed SAML response) is covered separately — see
+  `tests/test_saml_acs_crypto_e2e.py` below, added 2026-09-12.
+- `tests/test_saml_acs_crypto_e2e.py` (added 2026-09-12) — the one gap the file above
+  explicitly flagged as deliberately deferred: a real, cryptographically signed SAML
+  assertion (genuine XML-DSig via `xmlsec` against a self-signed test IdP certificate
+  built with `cryptography`, spec-shaped XML built by hand via `lxml` —
+  `tests/saml_crypto_helpers.py`) posted to the ACS endpoint through a real `TestClient`.
+  Covers JIT-provisioning a new student with real tokens issued, a repeat SSO login
+  reusing the same account rather than creating a second one, a staff-affiliation
+  assertion with no existing account being rejected rather than auto-provisioning an
+  admin, and a tampered assertion being rejected.
 - `tests/test_mfa_e2e.py`, `test_privacy_e2e.py`, `test_agreements_and_audit_log_e2e.py`,
   `test_auth_session_e2e.py`, `test_applications_e2e.py`, `test_local_search_e2e.py`,
   `test_mobile_and_verification_e2e.py`, `test_profile_updates_e2e.py` — added across later
@@ -875,32 +912,39 @@ never triggers the app's startup lifespan) closes that gap:
   gate's approve/reject decision plus the audit log, token refresh and password change, the
   business-side hiring-decision surface, postcode-radius local search, mobile device
   registration, the real (non-dev) email-verification token flow, and profile updates.
-  Remaining gaps, left deliberately rather than silently: `GET /projects/mine`,
-  `GET /ratings/pending`/`mine`, the payments status-check endpoints, and employer-
-  suggestion feedback are still untested at the HTTP layer — read-only listings, lower risk
-  than everything above.
+- `tests/test_remaining_read_endpoints_e2e.py`, `test_payroll_submit_e2e.py`,
+  `test_financial_reporting_e2e.py`, `test_latency_dashboard_e2e.py` (added 2026-09-12) —
+  `GET /projects/mine`, `GET /ratings/pending`/`mine`, the payments status-check
+  endpoints, and employer-suggestion feedback (previously the last untested read-only
+  surface), plus the newly-added payroll submission, financial reporting, and latency
+  dashboard endpoints described elsewhere in this file.
 
 `tests/test_*.py` outside those files remain unit/service-level by design — fast,
 focused, no HTTP/app overhead for testing a scoring algorithm or a password policy.
 
-**Frontend unit tests (8.a.ii) — done as of 2026-09-11.** Vitest + jsdom, no build step
-(`static/app/index.html` still loads plain `<script type="module">` tags directly — this
-only adds a test runner, never a bundler/compiler). Genuinely blocked until this session:
-no Node.js/npm had existed anywhere in this project's history until Phil installed it via
-`nvm` specifically to unblock this step. Run with `npm test` (see `package.json`); CI runs
-it on every push/PR as the `frontend-test` job. Coverage so far focuses on the three
-highest-value, most-reused files rather than every page module: `static/app/js/dom.js`
+**Frontend unit tests (8.a.ii) — fully done as of 2026-09-12.** Vitest + jsdom, no build
+step (`static/app/index.html` still loads plain `<script type="module">` tags directly —
+this only adds a test runner, never a bundler/compiler). Genuinely blocked until
+2026-09-11: no Node.js/npm had existed anywhere in this project's history until Phil
+installed it via `nvm` specifically to unblock this step. Run with `npm test` (see
+`package.json`); CI runs it on every push/PR as the `frontend-test` job. `static/app/js/dom.js`
 (`dom.test.js` — most notably `esc()`, this app's only defence against stored XSS in every
 render function, with a permanent regression test reproducing the exact payload that found
 a real stored-XSS bug in `contracts.js` during Epic 2.c.ii), `api.js` (`api.test.js` —
-JWT decoding, session state, the `fetch` wrapper's error handling), and `components.js`
+JWT decoding, session state, the `fetch` wrapper's error handling), `components.js`
 (`components.test.js` — the reusable component library itself, including `openRatingModal`'s
 real `<dialog>` interaction; needed a small `showModal()`/`close()` polyfill in
 `static/app/js/test-setup.js` since jsdom doesn't implement either as of the version this
-project uses). The large page-specific modules (`main.js`, `student.js`, `business.js`,
-`university-admin.js`) remain untested — a real, acknowledged gap, not an oversight;
-they're mostly DOM wiring around the tested components/helpers rather than standalone
-logic, so the return on testing them directly is lower than for the files covered so far.
+project uses), and — added 2026-09-12, closing the plan's own remaining "page flows"
+wording — `main.js` (`main.test.js`: login/register, a real manual login round-trip,
+logout, the password show/hide toggle, and the SSO URL-fragment handoff), `student.js`
+(`student.test.js`: the feed, applying, Stripe Connect onboarding, editing skills/rate,
+local search, ratings history), `business.js` (`business.test.js`: profile/postcode,
+Stripe payment setup, posting a project including the safeguarding-rejection path,
+requesting access, applicant review, contract creation, the shortlist/match-explanation
+drill-down), and `university-admin.js` (`university-admin.test.js`: the safeguarding-gate
+agreement decision, campus location, both SSO configuration paths, the employability
+report) — 102 tests total, up from 59.
 
 ### Security scanning
 

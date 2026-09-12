@@ -25,6 +25,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app import models  # noqa: F401 — ensures all models register with Base.metadata
 from app.api.v1.api import api_router
+from app.core import latency_metrics
 from app.core.body_limit import MaxBodySizeMiddleware
 from app.core.config import settings
 from app.core.observability import configure_error_tracking, configure_logging
@@ -59,6 +60,15 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 "duration_ms": duration_ms,
             },
         )
+        # Technical Implementation Plan 1.c.iv — the route's *template*
+        # path (e.g. "/projects/{project_id}/shortlist"), not the raw
+        # per-request path with real IDs in it, so every call to the same
+        # endpoint aggregates together. `request.scope["route"]` is only
+        # populated once routing has actually matched a route, which
+        # happens inside call_next — never available before it.
+        route = request.scope.get("route")
+        endpoint_key = f"{request.method} {route.path}" if route is not None else f"{request.method} {request.url.path}"
+        latency_metrics.record_duration(endpoint_key, duration_ms)
         response.headers["X-Request-ID"] = request_id
         return response
 

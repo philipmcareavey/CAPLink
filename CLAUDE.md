@@ -2110,6 +2110,236 @@ re-verified with zero mismatches: **71/104 done, 5/104 in progress**. A
 pre-edit tracker backup sits at
 `/tmp/tracker_work11/CAPLink-Technical-Tracker.xlsx.backup-2026-09-11i`.
 
+## Closing out every genuinely-actionable outstanding item, regardless of priority — 2026-09-12
+
+Phil's direction for this session: "address any of the items (regardless of
+priority) which are outstanding" — i.e. don't stop at P0s, but also don't
+force through items that are genuinely blocked or already deliberately
+deferred by his own explicit decision. Started by pulling the exact current
+list of all 33 non-Done tracker rows directly from the raw XML (not from
+memory of the narrative above) to make sure the picture was current, then
+triaged it: `1.c.iii` (external uptime-monitor account), `1.d.ii`/`1.d.iii`
+(Phil's own cost/dependency deferrals), `3.c.i` (a real umbrella/EOR
+provider choice — commercial/legal, not technical), and all of Workstreams 4
+and 6 (each already deliberately deprioritised, with reasons recorded
+earlier in this file and the top-level `CLAUDE.md`) were left untouched —
+re-litigating a decision Phil already made isn't "addressing" it. Everything
+else genuinely actionable got done: `8.a.i`, `8.a.ii`, `3.c.iv`, all three
+of `3.d`, and `1.c.iv` — 7 rows, taking the tracker from 71/104 to 78/104
+done (2/104 in progress, down from 5).
+
+**`8.a.i` (backend integration test coverage) — the remaining ~15% closed
+out for real.** Two pieces:
+
+- `tests/test_remaining_read_endpoints_e2e.py` — the plain read-only gaps
+  the previous session's note listed (`GET /projects/mine`, `GET
+  /ratings/pending` and `/mine`, `GET /payments/connect/status` and
+  `/setup-status`, `POST /recommendations/{id}/feedback`, `GET
+  /universities` list + `/public`). One real assumption caught and fixed
+  while writing these: `GET /ratings/mine` includes an *incoming* rating
+  the caller hasn't reciprocated yet (blind, `overall_score: null`), not
+  just ratings already given — the first draft of the test assumed it
+  would be empty until release, which is wrong; fixed by reading
+  `ratings.py`'s actual query (`rater_user_id == user.id OR ratee_user_id
+  == user.id`) rather than guessing.
+- `tests/saml_crypto_helpers.py` + `tests/test_saml_acs_crypto_e2e.py` —
+  the one piece flagged twice now as deliberately deferred ("real, separate,
+  non-trivial work" per `test_saml_endpoints_e2e.py`'s own docstring): a
+  real IdP POSTing a cryptographically signed SAML Response to the ACS
+  endpoint. Built a self-signed test IdP certificate via `cryptography`
+  (RSA 2048, SHA-256), a spec-shaped `<samlp:Response>`/`<saml:Assertion>`
+  by hand via `lxml`, and signed the Assertion with genuine enveloped
+  XML-DSig via `xmlsec` (`xmlsec.template.create` +
+  `xmlsec.tree.add_ids` + `SignatureContext.sign`) — the exact same
+  mechanism a real IdP uses, not a mocked signature. Iterated once against
+  `OneLogin_Saml2_Auth` directly (outside `TestClient`) to get the XML
+  spec-correct before wiring it through the real endpoint — first attempt
+  failed metadata-schema validation because an `xsi:type="xs:string"`
+  attribute referenced the `xs` namespace prefix without declaring it;
+  fixed by just dropping that (spec-optional) attribute rather than adding
+  the namespace declaration. Same base-URL gotcha as Epic 2.b's original
+  session (documented there, reproduced here): `TestClient`'s default
+  `Host` is the single-label `testserver`, which `python3-saml` rejects
+  outright, and even if it didn't, a mismatched `Host` vs. the SP's
+  configured entity/ACS URLs breaks the Audience/Destination checks in
+  confusing ways — fixed the same way, a real dotted `http://caplink.test`
+  base URL for both the endpoint module's `SAML_BASE_URL` constant
+  (monkeypatched, since it's fixed at import time from
+  `settings.PUBLIC_APP_URL`, not re-read per request) and the `TestClient`
+  itself. Verified: a valid signed assertion JIT-provisions a new student
+  and issues real tokens; logging in again via SSO reuses the same account
+  rather than creating a second one; a staff-affiliation assertion with no
+  existing account is rejected (`admin_account_not_provisioned`) with zero
+  account created, guarding the safeguarding-gate safety rule Epic 2.b
+  centred on; and a tampered assertion (decoded, a byte flipped,
+  re-encoded — a naive string-replace directly on the base64 text doesn't
+  work, since base64 doesn't preserve ASCII substrings at arbitrary byte
+  offsets) is rejected (`assertion_invalid`) with zero account created.
+  158 backend tests passing (up from 145 at the start of this session).
+
+**`8.a.ii` (frontend tests) — the plan's own "page flows" wording finally
+covered.** Four new test files, 43 new tests, all mocking at the `fetch`
+level via `vi.stubGlobal` (the same pattern `api.test.js` already
+established), none touching the real network:
+
+- `main.test.js` (10 tests) — this module runs its own `render()` and
+  `consumeSsoHandoff()` as a side effect of being imported (see its final
+  lines), so every test re-imports it fresh via `vi.resetModules()` +
+  dynamic `import()` against a DOM shell shaped like `index.html`'s real
+  markup (`#who`/`#role-tabs`/`#app`/`#toasts` — `toast()` calls
+  `document.getElementById("toasts")` directly and throws if it's
+  missing). Covers the login/register tab switching, a real manual login
+  round-trip, a failed-login toast, logout, the password show/hide
+  toggle, and `consumeSsoHandoff()`'s three real paths (a valid token
+  pair, an `sso_error` reason, and no fragment at all).
+- `student.test.js` (10 tests) — the feed tab (profile card, matched
+  projects, applying — including the prompt-cancelled case doing nothing
+  — and employer suggestions), Stripe Connect onboarding kicking off
+  automatically when not yet done, editing skills/rate, local search
+  (including the campus-not-set 400 error path), and ratings history's
+  blind-until-released reveal logic (a given rating shows its own score
+  immediately; an incoming one stays hidden until the other side rates
+  too).
+- `business.test.js` (9 tests) — the profile card + postcode save,
+  Stripe payment setup completing automatically, posting a project
+  (including the safeguarding-rejection path showing up right on the
+  form), requesting university access, applicant review (status changes,
+  messaging), contract creation, and the shortlist + match-explanation
+  drill-down toggling open and closed.
+- `university-admin.test.js` (14 tests) — the safeguarding gate's actual
+  control-panel action (approving/rejecting an agreement with specific
+  bands/categories), campus location, both SSO configuration paths
+  (metadata upload and manual entry, including their client-side
+  validation refusing to call the API at all on incomplete input), and
+  the employability report's zero-students and populated cases.
+
+One real test-authoring mistake caught while writing these, worth knowing
+if this pattern gets reused: a "requires platform admin" assertion checked
+`fetch.mock.calls.some(call => call[0] === url)`, which is also true for
+the page's own *initial* GET to that same URL on load — the fix is always
+to filter on `opts.method === "PATCH"`/`"POST"` too, not just the URL, when
+the thing being asserted is "no write happened," not "no request happened
+at all." 102 frontend tests passing (up from 59).
+
+**`3.c.iv` (payroll export) — the actual submission step, not just a
+preview.** `GET /payments/payroll/export.csv`'s own docstring already said
+outright it was read-only, and `app/services/payroll.py::
+submit_payroll_batch` (which actually marks milestones exported) existed
+and was unit-tested (`tests/test_payroll.py`) but had no route calling it
+at all — a real gap, not a misreading of "done." Added `POST
+/payments/payroll/submit` (platform-admin only): queries the identical
+due-for-export set as the preview, hands it to `LoggingPayrollProvider`
+(no real umbrella/EOR provider chosen yet — `3.c.i` remains genuinely
+blocked on that commercial/legal decision, unaffected by this), and
+commits the resulting `payroll_exported_at` timestamps. Verified via a
+real PAYE-rail contract (a student's `visa_weekly_hour_cap` set directly
+via ORM — no endpoint exposes that field yet, a pre-existing gap, not
+something this session introduced) paid end-to-end through the HTTP API:
+the preview lists it, submit reports `{"submitted_count": 1}`, and a
+second submit run and the preview afterward both confirm nothing is left
+to double-export.
+
+**`3.d` (Financial Reporting) — all three steps, none started before this
+session, built from scratch.** `app/services/financial_report.py` and
+`app/services/receipt_pdf.py`:
+
+- `3.d.i` — `build_business_spend_report`: total paid vs.
+  authorized-pending-capture amounts, a month-by-month paid breakdown, and
+  a per-project breakdown, for a business's own contracts/milestones only.
+  "Pending capture" means a milestone whose card authorization is held but
+  not yet captured (`PENDING`/`SUBMITTED` status) — `REJECTED`/
+  `AUTHORIZATION_FAILED`/`REFUNDED`/`DISPUTED` milestones never became real
+  spend and are excluded entirely, not counted as zero. New `GET
+  /payments/spend-report`.
+- `3.d.ii` — `build_platform_revenue_report`: gross payment volume and
+  CAPLink's own take-rate fee revenue (reusing
+  `stripe_payments.calculate_platform_fee_gbp`, the same function real
+  Stripe fee splits use), with a monthly breakdown. The plan's own wording
+  asks for "a placeholder line for license revenue once that's tracked" —
+  included as an honest `0.0`, not a guessed figure, since no subscription/
+  billing model exists anywhere in this codebase to derive a real number
+  from (university licensing is sold/invoiced entirely outside this
+  repo). New `GET /payments/revenue-report` (platform-admin only).
+- `3.d.iii` — `receipt_pdf.generate_milestone_receipt_pdf`: a real PDF
+  receipt (project, milestone, both parties, amount paid, CAPLink's fee,
+  net to student, date paid) via a newly-added dependency, `fpdf2` —
+  confirmed `py3-none-any` (pure Python, no C-extension build risk, unlike
+  `weasyprint`'s system cairo/pango dependency or `reportlab`) before
+  adding it, and reran both `bandit` and `pip-audit` clean afterward. New
+  `GET /payments/milestones/{id}/receipt.pdf`, available to either
+  contract party once the milestone is actually paid (400 before that),
+  403 for anyone else, 404 for an unknown milestone. Generated fresh on
+  every request rather than stored anywhere — there's no object storage/
+  CDN in this project yet (`1.d.iii`, genuinely blocked on a frontend
+  build that doesn't exist), and a paid milestone's underlying data never
+  changes afterward, so regenerating on demand is exactly as accurate as a
+  stored copy would be, with nothing to clean up.
+
+All three verified via real HTTP-level tests
+(`tests/test_financial_reporting_e2e.py`): correct per-project attribution
+and cross-business isolation for the spend report, platform-admin-only
+gating and a real fee figure for the revenue report, and the full
+too-early/paid/wrong-party/unknown-id matrix for the receipt endpoint
+(including asserting the real response actually starts `%PDF`, not just
+that it returned 200).
+
+**`1.c.iv` (latency dashboards) — closed as a genuine answer, not a
+placeholder.** The tracker's own note on this row was explicit that it
+"needs a real APM/dashboarding tool that doesn't exist yet" — true, and
+still true after this session; no such tool was introduced. What changed:
+recognising that `1.c.i`'s `RequestLoggingMiddleware` already computes a
+real `duration_ms` per request, so a genuinely useful dashboard doesn't
+need an external tool at all for this project's *current* shape (one
+free-tier instance, no multi-region traffic). `app/core/latency_metrics.py`
+keeps a bounded rolling window (500 samples) per `(method, route
+template)` in memory and computes count/avg/p50/p95/p99 on demand — keyed
+by the route's *template* path (`request.scope["route"].path`, only
+populated once routing has actually matched, i.e. only readable *after*
+`call_next` inside the middleware), not the raw per-request path, so
+`GET /projects/{project_id}/shortlist` aggregates correctly across every
+real project id rather than fragmenting into one bucket per id. New
+`GET /observability/latency-dashboard` (platform-admin only) serves it,
+highlighting the plan's own named compute-intensive endpoints (feed,
+shortlist, the match explanation) specifically via a small constant set.
+The module's own docstring is explicit about what this can't do — no
+cross-instance aggregation, resets on every restart/deploy — so a future
+real APM tool isn't being pre-empted, just not blocked on. Verified via a
+real HTTP-level test confirming two calls to the same route template with
+different real path segments aggregate under one key (not two), and that
+the endpoint is platform-admin-gated. Also added a `latency_metrics.reset()`
+call to the `client` fixture in `conftest.py`, same reasoning as the
+existing `app.state.limiter.reset()` line right above it — both are
+process-global, module-level stores that would otherwise leak state
+between tests.
+
+**Full verification, all green**: `ruff check .` (0 errors), `mypy app/
+scripts/` (0 errors, 98 files), `bandit -c pyproject.toml -r app/ scripts/`
+(0 issues), `pip-audit` (0 new vulnerabilities beyond the existing,
+already-accepted `ecdsa` ignore), `pytest` (158/158, up from 145),
+`vitest run` (102/102, up from 59). Docker wasn't actually rebuilt this
+session to double-check the new `fpdf2` dependency against a real Linux
+container build — Docker Desktop exists on this Mac now (per `1.d.i`'s
+entry above) but its daemon wasn't running and wasn't started just for
+this — a low-risk gap given `fpdf2` is a confirmed pure-Python
+`py3-none-any` wheel with nothing platform-specific to break, but worth
+actually watching the next real CI `docker-build` job run rather than
+assuming.
+
+Tracker/Dashboard hand-edited the same way as every previous session (no
+`openpyxl` in this environment) — this time via a small Python script
+(kept for reference at
+`/private/tmp/claude-501/.../scratchpad/tracker_update/update_tracker.py`
+for this session, not committed to git) rather than ad hoc XML surgery,
+since 7 rows needed the same three-cell edit (Status/%-Complete/Notes)
+plus a new shared-string append each, and the Dashboard's 16 affected
+cached cells needed updating too. Independently recomputed **every**
+affected Dashboard cell directly from the raw Tracker rows afterward (not
+from delta arithmetic against the old numbers) — zero mismatches: 78/104
+done, 2/104 in progress, 0 blocked, 24 not started; Workstream 1 13/16,
+Workstream 3 14/15, Workstream 8 10/10 (fully done); P0 51/54, P1 22/39,
+P2 5/11. A pre-edit backup sits at
+`/private/tmp/claude-501/.../scratchpad/tracker_update/CAPLink-Technical-Tracker.xlsx.backup`.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The
