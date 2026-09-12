@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+import { FeedScreen } from '../screens/student/FeedScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -10,7 +11,7 @@ const Tab = createBottomTabNavigator();
 export function StudentTabs() {
   return (
     <Tab.Navigator>
-      <Tab.Screen name="Feed" children={() => <PlaceholderScreen title="Feed" />} />
+      <Tab.Screen name="Feed" component={FeedScreen} />
       <Tab.Screen name="Contracts" children={() => <PlaceholderScreen title="Contracts" />} />
       <Tab.Screen name="Messages" children={() => <PlaceholderScreen title="Messages" />} />
       <Tab.Screen name="Local" children={() => <PlaceholderScreen title="Local Search" />} />
