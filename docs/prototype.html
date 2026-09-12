@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CAPLink — Student ↔ Business Matching</title>
+<title>Live prototype — CAPLink</title>
+<meta name="description" content="An interactive click-through prototype of the CAPLink student and business experience — illustrative data, no backend connected.">
+<link rel="canonical" href="https://philipmcareavey.github.io/CAPLink/prototype.html">
+<meta property="og:title" content="Live prototype — CAPLink">
+<meta property="og:description" content="An interactive click-through prototype of the CAPLink student and business experience — illustrative data, no backend connected.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://philipmcareavey.github.io/CAPLink/prototype.html">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
@@ -25,6 +31,43 @@
 
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+
+  /* ===== Accessibility helpers (shared across every page on this site) ===== */
+  .skip-link{
+    position:absolute; left:12px; top:-60px; background:var(--ink); color:var(--paper-raised);
+    padding:10px 16px; border-radius:3px; font-weight:600; font-size:13.5px; z-index:100;
+    transition:top .15s ease;
+  }
+  .skip-link:focus{ top:12px; }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+  textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible{
+    outline:2px solid var(--ink); outline-offset:2px; border-radius:2px;
+  }
+
+  /* ===== Site nav/footer (shared across every page on this site) ===== */
+  nav[aria-label="Primary"]{ background:var(--paper); border-bottom:1px solid var(--rule); }
+  nav[aria-label="Primary"] .wrap{ max-width:1180px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 24px; }
+  nav[aria-label="Primary"] .wordmark{ font-family:'Fraunces',serif; font-weight:600; font-size:19px; text-decoration:none; color:var(--ink); }
+  nav[aria-label="Primary"] .nav-links{ list-style:none; display:flex; flex-wrap:wrap; gap:8px 22px; margin:0; padding:0; font-size:13px; font-weight:600; }
+  nav[aria-label="Primary"] .nav-links a{ color:var(--ink-soft); text-decoration:none; padding:4px 2px; }
+  nav[aria-label="Primary"] .nav-links a:hover{ color:var(--ink); }
+  nav[aria-label="Primary"] .nav-links a[aria-current="page"]{ color:var(--ink); box-shadow:inset 0 -2px 0 var(--brass); }
+  nav[aria-label="Primary"] .nav-cta{ background:var(--ink); color:var(--paper-raised); padding:8px 16px; border-radius:3px; font-size:13px; font-weight:600; text-decoration:none; white-space:nowrap; }
+
+  .site-footer{ border-top:1px solid var(--rule); padding:48px 0 28px; margin-top:40px; }
+  .site-footer .wrap{ max-width:1180px; margin:0 auto; padding:0 24px; }
+  .footer-grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:32px; padding-bottom:32px; border-bottom:1px solid var(--rule); }
+  @media (max-width:780px){ .footer-grid{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:480px){ .footer-grid{ grid-template-columns:1fr; } }
+  .footer-col{ display:flex; flex-direction:column; gap:10px; }
+  .footer-wordmark{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; }
+  .footer-tag{ font-size:13px; color:var(--slate); line-height:1.55; margin:0; max-width:260px; }
+  .footer-head{ font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em; color:var(--slate); font-weight:700; margin-bottom:2px; }
+  .footer-col a{ font-size:13.5px; color:var(--slate); text-decoration:none; }
+  .footer-col a:hover{ color:var(--ink); text-decoration:underline; }
+  .footer-bottom{ padding-top:22px; display:flex; flex-direction:column; gap:8px; font-size:12px; color:var(--slate); }
+  .footer-bottom p{ margin:0; }
   body{
     background:var(--paper);
     color:var(--ink);
@@ -106,7 +149,7 @@
   .chip.on{ background:var(--ink); color:var(--paper-raised); border-color:var(--ink); }
 
   .feed-head{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:18px; }
-  .feed-head h1{ font-size:26px; }
+  .feed-head h1, .feed-head h2.view-title{ font-size:26px; }
   .feed-head p{ color:var(--slate); font-size:14px; margin-top:6px; }
   .count-badge{ font-family:'IBM Plex Mono'; font-size:12px; color:var(--slate); }
 
@@ -231,6 +274,23 @@
 </head>
 <body>
 
+<a href="#main" class="skip-link">Skip to content</a>
+
+<nav aria-label="Primary">
+  <div class="wrap">
+    <a href="index.html" class="wordmark">CAPLink</a>
+    <ul class="nav-links">
+      <li><a href="about.html">About</a></li>
+      <li><a href="how-it-works.html">How it works</a></li>
+      <li><a href="index.html#pricing">Pricing</a></li>
+      <li><a href="blog/index.html">Blog</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+    <a href="index.html#demo" class="nav-cta">Book a demo</a>
+  </div>
+</nav>
+
+<main id="main">
 <div class="shell">
 
   <header class="top">
@@ -265,6 +325,11 @@
     </div>
 
     <!-- Student Feed -->
+    <!-- TODO: confirm — pre-existing heading-order issue, not introduced this session: this
+         sidebar's <h3>Filter</h3> appears before the view's <h1> in DOM order (the CSS grid
+         puts the sidebar first in source but second visually). Fixing it would mean reordering
+         the grid's DOM/CSS, which wasn't attempted here to avoid restructuring the working
+         prototype's layout without a live render to verify against. -->
     <div id="s-feed" class="view active">
       <div class="layout">
         <div class="rail">
@@ -499,7 +564,7 @@
     <div id="b-shortlist" class="view active">
       <div class="feed-head">
         <div>
-          <h1>Shortlist: Customer Churn Analysis</h1>
+          <h2 class="view-title">Shortlist: Customer Churn Analysis</h2>
           <p>Ranked by fit with your brief. Reasons shown so you know exactly why each student surfaced.</p>
         </div>
         <span class="count-badge">6 candidates</span>
@@ -593,7 +658,7 @@
     <div id="b-post" class="view">
       <div class="feed-head">
         <div>
-          <h1>Post a project</h1>
+          <h2 class="view-title">Post a project</h2>
           <p>The clearer the brief, the better your shortlist. Vague scopes get filtered lower automatically.</p>
         </div>
       </div>
@@ -636,6 +701,7 @@
   </div>
 
 </div>
+</main>
 
 <!-- Rating Modal -->
 <div class="overlay" id="ratingOverlay">
@@ -664,6 +730,42 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-col">
+      <div class="footer-wordmark">CAPLink</div>
+      <p class="footer-tag">Licensed institutional platform connecting students, local businesses and universities for paid, safeguarded project work.</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Product</div>
+      <a href="about.html">About</a>
+      <a href="how-it-works.html">How it works</a>
+      <a href="index.html#pricing">Pricing</a>
+      <a href="faq.html">FAQ</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="prototype.html" aria-current="page">Live prototype ↗</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Contact</div>
+      <a href="contact.html#general">General enquiries</a>
+      <a href="contact.html#universities">University partnerships</a>
+      <a href="contact.html#business">Business enquiries</a>
+      <a href="contact.html#press">Press</a>
+      <a href="contact.html#data-protection">Data protection</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Legal</div>
+      <a href="privacy.html">Privacy policy</a>
+      <a href="terms.html">Terms of use</a>
+      <a href="cookies.html">Cookie notice</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <p>© 2026 <!-- TODO: confirm registered company name -->. Not affiliated with any university shown for illustration.</p>
+    <p><!-- TODO: confirm registered company name --> is a company registered in England and Wales, company number <!-- TODO -->, registered office <!-- TODO -->. ICO registration reference: <!-- TODO -->.</p>
+  </div>
+</footer>
 
 <script>
   function setRole(role){

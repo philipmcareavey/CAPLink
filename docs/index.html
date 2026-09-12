@@ -4,9 +4,22 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>CAPLink for Universities</title>
+<meta name="description" content="CAPLink is a licensed platform connecting your students with vetted, safeguarded business partners for paid projects — with your careers team controlling exactly which businesses can reach which year groups.">
+<link rel="canonical" href="https://philipmcareavey.github.io/CAPLink/">
+<meta property="og:title" content="CAPLink for Universities">
+<meta property="og:description" content="CAPLink is a licensed platform connecting your students with vetted, safeguarded business partners for paid projects — with your careers team controlling exactly which businesses can reach which year groups.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://philipmcareavey.github.io/CAPLink/">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
+  /* TODO: confirm — --slate on --paper/--paper-raised is 4.36:1/4.76:1, and --brass on
+     --paper/--paper-raised is 3.40:1/3.70:1, at the small text sizes several existing rules
+     below use them at (.eyebrow, .feature .f-num, .trust-item, .section-head p, .feature p,
+     price-card text, .form-note, .footer-bottom). Both fall short of WCAG AA (4.5:1) for
+     normal-size text. Not changed here — flagging per instruction rather than silently
+     altering brand colours. A slightly darker brass/slate variant, or bumping these specific
+     uses into WCAG's "large text" size band, would fix it either way. */
   :root{
     --ink:#1B2A45; --ink-soft:#3C4B68; --paper:#F6F3EC; --paper-raised:#FFFDF8;
     --brass:#A87C2A; --brass-soft:#E9D9B8; --moss:#4C6B54; --moss-soft:#DCE6DD;
@@ -14,7 +27,7 @@
   }
   *{box-sizing:border-box;}
   html{scroll-behavior:smooth;}
-  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
   h1,h2,h3,.display{ font-family:'Fraunces',serif; font-weight:600; letter-spacing:-0.01em; color:var(--ink); margin:0; }
   .mono{ font-family:'IBM Plex Mono', monospace; }
   .wrap{ max-width:1120px; margin:0 auto; padding:0 24px; }
@@ -22,14 +35,40 @@
   section{ padding:88px 0; }
   @media (max-width:720px){ section{ padding:56px 0; } }
 
+  /* ===== Accessibility helpers (shared across every page on this site) ===== */
+  .skip-link{
+    position:absolute; left:12px; top:-60px; background:var(--ink); color:var(--paper-raised);
+    padding:10px 16px; border-radius:3px; font-weight:600; font-size:13.5px; z-index:100;
+    transition:top .15s ease;
+  }
+  .skip-link:focus{ top:12px; }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+  textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible{
+    outline:2px solid var(--ink); outline-offset:2px; border-radius:2px;
+  }
+
   /* ===== Nav ===== */
-  nav{ position:sticky; top:0; background:rgba(246,243,236,0.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--rule); z-index:40; }
-  nav .wrap{ display:flex; align-items:center; justify-content:space-between; padding:16px 24px; }
-  .wordmark{ font-family:'Fraunces',serif; font-weight:600; font-size:20px; display:flex; align-items:baseline; gap:8px; }
-  .wordmark .tag{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--slate); text-transform:uppercase; letter-spacing:0.05em; }
-  .nav-links{ display:flex; gap:28px; font-size:13.5px; font-weight:600; }
-  .nav-links a{ color:var(--ink-soft); }
-  .nav-cta{ background:var(--ink); color:var(--paper-raised); padding:9px 18px; border-radius:3px; font-size:13.5px; font-weight:600; }
+  nav[aria-label="Primary"]{ position:sticky; top:0; background:rgba(246,243,236,0.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--rule); z-index:40; }
+  nav[aria-label="Primary"] .wrap{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 24px; padding:16px 24px; }
+  .wordmark{ font-family:'Fraunces',serif; font-weight:600; font-size:20px; text-decoration:none; }
+  .nav-links{ list-style:none; display:flex; flex-wrap:wrap; gap:8px 28px; font-size:13.5px; font-weight:600; margin:0; padding:0; }
+  .nav-links a{ color:var(--ink-soft); text-decoration:none; padding:4px 2px; }
+  .nav-links a:hover{ color:var(--ink); }
+  .nav-links a[aria-current="page"], .wordmark[aria-current="page"]{ color:var(--ink); box-shadow:inset 0 -2px 0 var(--brass); }
+  .nav-cta{ background:var(--ink); color:var(--paper-raised); padding:9px 18px; border-radius:3px; font-size:13.5px; font-weight:600; text-decoration:none; white-space:nowrap; }
+
+  /* ===== Footer (shared across every page on this site) ===== */
+  .footer-grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:32px; padding-bottom:32px; border-bottom:1px solid var(--rule); }
+  @media (max-width:780px){ .footer-grid{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:480px){ .footer-grid{ grid-template-columns:1fr; } }
+  .footer-col{ display:flex; flex-direction:column; gap:10px; }
+  .footer-wordmark{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; }
+  .footer-tag{ font-size:13px; color:var(--ink-soft); line-height:1.55; margin:0; max-width:260px; }
+  .footer-head{ font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-soft); font-weight:700; margin-bottom:2px; }
+  .footer-col a{ font-size:13.5px; color:var(--ink-soft); text-decoration:none; }
+  .footer-col a:hover{ color:var(--ink); text-decoration:underline; }
+  .footer-bottom{ padding-top:22px; display:flex; flex-direction:column; gap:8px; font-size:12px; color:var(--slate); }
+  .footer-bottom p{ margin:0; }
 
   /* ===== Hero ===== */
   .hero{ padding-top:96px; padding-bottom:80px; position:relative; overflow:hidden; }
@@ -123,8 +162,7 @@
   .field input, .field select{ width:100%; padding:11px 13px; border:1px solid var(--rule); border-radius:3px; font-family:'Inter'; font-size:13.5px; background:var(--paper); }
   .form-note{ font-size:11.5px; color:var(--slate); margin-top:14px; }
 
-  footer{ border-top:1px solid var(--rule); padding:40px 0; }
-  footer .wrap{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; font-size:12.5px; color:var(--slate); }
+  footer{ border-top:1px solid var(--rule); padding:48px 0 28px; }
 
   .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink); color:var(--paper-raised); padding:12px 22px; border-radius:4px; font-size:13.5px; opacity:0; transition:all .25s ease; z-index:60; }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
@@ -132,18 +170,23 @@
 </head>
 <body>
 
-<nav>
+<a href="#main" class="skip-link">Skip to content</a>
+
+<nav aria-label="Primary">
   <div class="wrap">
-    <div class="wordmark">CAPLink <span class="tag">for Universities</span></div>
-    <div class="nav-links">
-      <a href="#safeguarding">Safeguarding</a>
-      <a href="#features">Features</a>
-      <a href="#pricing">Licensing</a>
-      <a href="prototype.html">Live prototype ↗</a>
-    </div>
+    <a href="index.html" class="wordmark" aria-current="page">CAPLink</a>
+    <ul class="nav-links">
+      <li><a href="about.html">About</a></li>
+      <li><a href="how-it-works.html">How it works</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="blog/index.html">Blog</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
     <a href="#demo" class="nav-cta">Book a demo</a>
   </div>
 </nav>
+
+<main id="main">
 
 <section class="hero">
   <div class="wrap hero-grid">
@@ -407,10 +450,41 @@
   </div>
 </section>
 
+</main>
+
 <footer>
-  <div class="wrap">
-    <div>CAPLink — Social Capital Link</div>
-    <div>Licensed institutional platform · Not affiliated with any university shown for illustration</div>
+  <div class="wrap footer-grid">
+    <div class="footer-col">
+      <div class="footer-wordmark">CAPLink</div>
+      <p class="footer-tag">Licensed institutional platform connecting students, local businesses and universities for paid, safeguarded project work.</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Product</div>
+      <a href="about.html">About</a>
+      <a href="how-it-works.html">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="faq.html">FAQ</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="prototype.html">Live prototype ↗</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Contact</div>
+      <a href="contact.html#general">General enquiries</a>
+      <a href="contact.html#universities">University partnerships</a>
+      <a href="contact.html#business">Business enquiries</a>
+      <a href="contact.html#press">Press</a>
+      <a href="contact.html#data-protection">Data protection</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Legal</div>
+      <a href="privacy.html">Privacy policy</a>
+      <a href="terms.html">Terms of use</a>
+      <a href="cookies.html">Cookie notice</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <p>© 2026 <!-- TODO: confirm registered company name -->. Not affiliated with any university shown for illustration.</p>
+    <p><!-- TODO: confirm registered company name --> is a company registered in England and Wales, company number <!-- TODO -->, registered office <!-- TODO -->. ICO registration reference: <!-- TODO -->.</p>
   </div>
 </footer>
 

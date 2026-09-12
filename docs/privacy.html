@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Privacy policy — CAPLink</title>
+<meta name="description" content="How CAPLink collects, uses, stores and protects personal data for students, business contacts and university staff, under UK GDPR and the Data Protection Act 2018.">
+<link rel="canonical" href="https://philipmcareavey.github.io/CAPLink/privacy.html">
+<meta property="og:title" content="Privacy policy — CAPLink">
+<meta property="og:description" content="How CAPLink collects, uses, stores and protects personal data for students, business contacts and university staff, under UK GDPR and the Data Protection Act 2018.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://philipmcareavey.github.io/CAPLink/privacy.html">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --ink:#1B2A45; --ink-soft:#3C4B68; --paper:#F6F3EC; --paper-raised:#FFFDF8;
+    --brass:#A87C2A; --brass-soft:#E9D9B8; --moss:#4C6B54; --moss-soft:#DCE6DD;
+    --slate:#6B7280; --rule:#DDD6C7; --danger:#A6452F;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  h1,h2,h3,.display{ font-family:'Fraunces',serif; font-weight:600; letter-spacing:-0.01em; color:var(--ink); margin:0; }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  .wrap{ max-width:1120px; margin:0 auto; padding:0 24px; }
+  a{ color:inherit; }
+  img{ max-width:100%; }
+  section{ padding:64px 0; }
+  @media (max-width:720px){ section{ padding:44px 0; } }
+
+  .skip-link{
+    position:absolute; left:12px; top:-60px; background:var(--ink); color:var(--paper-raised);
+    padding:10px 16px; border-radius:3px; font-weight:600; font-size:13.5px; z-index:100;
+    transition:top .15s ease;
+  }
+  .skip-link:focus{ top:12px; }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+  textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible{
+    outline:2px solid var(--ink); outline-offset:2px; border-radius:2px;
+  }
+
+  nav[aria-label="Primary"]{ position:sticky; top:0; background:rgba(246,243,236,0.94); backdrop-filter:blur(6px); border-bottom:1px solid var(--rule); z-index:40; }
+  nav[aria-label="Primary"] .wrap{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 24px; padding:14px 24px; }
+  .wordmark{ font-family:'Fraunces',serif; font-weight:600; font-size:20px; text-decoration:none; }
+  .nav-links{ list-style:none; display:flex; flex-wrap:wrap; gap:8px 24px; margin:0; padding:0; font-size:13.5px; font-weight:600; }
+  .nav-links a{ color:var(--ink-soft); text-decoration:none; padding:4px 2px; }
+  .nav-links a:hover{ color:var(--ink); }
+  .nav-links a[aria-current="page"], .wordmark[aria-current="page"]{ color:var(--ink); box-shadow:inset 0 -2px 0 var(--brass); }
+  .nav-cta{ background:var(--ink); color:var(--paper-raised); padding:9px 18px; border-radius:3px; font-size:13.5px; font-weight:600; text-decoration:none; white-space:nowrap; }
+
+  .btn{ display:inline-flex; align-items:center; gap:8px; padding:13px 24px; border-radius:3px; font-weight:600; font-size:14px; border:1px solid var(--ink); text-decoration:none; }
+  .btn.primary{ background:var(--ink); color:var(--paper-raised); }
+  .btn.ghost{ background:transparent; color:var(--ink); }
+
+  .page-hero{ padding-top:56px; padding-bottom:8px; }
+  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-soft); font-weight:600; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .eyebrow::before{ content:""; width:22px; height:1px; background:var(--brass); flex-shrink:0; }
+  .page-hero h1{ font-size:clamp(28px,5vw,42px); line-height:1.1; margin-bottom:18px; max-width:820px; }
+  .page-hero p.lede{ font-size:16px; color:var(--ink-soft); line-height:1.6; max-width:680px; }
+
+  .legal-meta{ font-size:13px; color:var(--ink-soft); background:var(--paper-raised); border:1px solid var(--rule); border-radius:6px; padding:16px 20px; margin-bottom:8px; }
+  .review-flag{ background:var(--brass-soft); border:1px solid var(--brass); border-radius:6px; padding:16px 20px; margin:20px 0; font-size:13.5px; color:var(--ink); }
+  .review-flag strong{ color:var(--ink); }
+
+  .legal-body{ max-width:760px; }
+  .legal-body h2{ font-size:20px; margin:36px 0 12px; }
+  .legal-body h2:first-of-type{ margin-top:8px; }
+  .legal-body h3{ font-size:16px; margin:20px 0 8px; }
+  .legal-body p{ font-size:14.5px; line-height:1.7; color:var(--ink-soft); margin:0 0 14px; }
+  .legal-body ul, .legal-body ol{ font-size:14.5px; line-height:1.7; color:var(--ink-soft); padding-left:22px; }
+  .legal-body li{ margin-bottom:8px; }
+  .legal-body strong{ color:var(--ink); }
+
+  .table-wrap{ overflow-x:auto; border:1px solid var(--rule); border-radius:6px; margin:16px 0 20px; }
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; min-width:520px; }
+  th, td{ text-align:left; padding:12px 16px; border-bottom:1px solid var(--rule); vertical-align:top; }
+  thead th{ background:var(--paper-raised); font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; color:var(--ink-soft); }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody{ background:var(--paper-raised); }
+
+  #toc{ background:var(--paper-raised); border:1px solid var(--rule); border-radius:6px; padding:20px 24px; margin:24px 0 8px; }
+  #toc h2{ font-size:14px; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:10px; }
+  #toc ol{ margin:0; padding-left:20px; font-size:13.5px; }
+  #toc a{ color:var(--ink-soft); text-decoration:none; }
+  #toc a:hover{ color:var(--ink); text-decoration:underline; }
+
+  footer{ border-top:1px solid var(--rule); padding:48px 0 28px; }
+  .footer-grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:32px; padding-bottom:32px; border-bottom:1px solid var(--rule); }
+  @media (max-width:780px){ .footer-grid{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:480px){ .footer-grid{ grid-template-columns:1fr; } }
+  .footer-col{ display:flex; flex-direction:column; gap:10px; }
+  .footer-wordmark{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; }
+  .footer-tag{ font-size:13px; color:var(--ink-soft); line-height:1.55; margin:0; max-width:260px; }
+  .footer-head{ font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-soft); font-weight:700; margin-bottom:2px; }
+  .footer-col a{ font-size:13.5px; color:var(--ink-soft); text-decoration:none; }
+  .footer-col a:hover{ color:var(--ink); text-decoration:underline; }
+  .footer-bottom{ padding-top:22px; display:flex; flex-direction:column; gap:8px; font-size:12px; color:var(--ink-soft); }
+  .footer-bottom p{ margin:0; }
+</style>
+</head>
+<body>
+
+<!--
+  DRAFT TEMPLATE — NOT LEGAL ADVICE.
+  This page is a structured starting point for CAPLink's privacy policy, written from
+  what the current codebase actually does (see caplink/README.md's "Data protection &
+  privacy engineering" section for the underlying implementation). It has not been
+  reviewed by a solicitor and must not be published or relied on as a live legal
+  document until it has been. See the automated decision-making section specifically —
+  flagged separately below for the site owner's own review.
+-->
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<nav aria-label="Primary">
+  <div class="wrap">
+    <a href="index.html" class="wordmark">CAPLink</a>
+    <ul class="nav-links">
+      <li><a href="about.html">About</a></li>
+      <li><a href="how-it-works.html">How it works</a></li>
+      <li><a href="index.html#pricing">Pricing</a></li>
+      <li><a href="blog/index.html">Blog</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+    <a href="index.html#demo" class="nav-cta">Book a demo</a>
+  </div>
+</nav>
+
+<main id="main">
+
+  <section class="page-hero">
+    <div class="wrap">
+      <div class="eyebrow">Privacy policy</div>
+      <h1>Privacy policy</h1>
+      <p class="lede">How CAPLink collects, uses, stores and protects personal data, under UK GDPR and the Data Protection Act 2018.</p>
+    </div>
+  </section>
+
+  <section style="padding-top:0;">
+    <div class="wrap legal-body">
+      <div class="legal-meta">
+        <strong>Last updated:</strong> <!-- TODO: confirm publication date --> 2026 (draft) ·
+        <strong>Version:</strong> 0.1-draft ·
+        This is a drafted template requiring legal review before publication, not a live policy and not legal advice.
+      </div>
+
+      <nav id="toc" aria-label="Contents">
+        <h2>Contents</h2>
+        <ol>
+          <li><a href="#controller">Who we are (the controller)</a></li>
+          <li><a href="#data-collected">Personal data we collect</a></li>
+          <li><a href="#lawful-basis">Lawful basis for processing</a></li>
+          <li><a href="#recipients">Who we share data with</a></li>
+          <li><a href="#transfers">International transfers</a></li>
+          <li><a href="#retention">How long we keep data</a></li>
+          <li><a href="#rights">Your rights</a></li>
+          <li><a href="#complaints">Complaints to the ICO</a></li>
+          <li><a href="#automated-decisions">Automated decision-making</a></li>
+          <li><a href="#under-18">Under-18 students</a></li>
+          <li><a href="#security">How we protect your data</a></li>
+          <li><a href="#changes">Changes to this policy</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="controller">1. Who we are (the controller)</h2>
+      <p><!-- TODO: confirm registered company name --> ("CAPLink", "we", "us") is the data controller for the personal data described in this policy. We are a company registered in England and Wales, company number <!-- TODO: confirm -->, registered office <!-- TODO: confirm -->. Our data protection contact is <a href="contact.html#data-protection">contact.html#data-protection</a>.</p>
+
+      <h2 id="data-collected">2. Personal data we collect</h2>
+      <p>What we collect depends on which role you use CAPLink in.</p>
+
+      <h3>Students</h3>
+      <ul>
+        <li>Account details: name, university email address, hashed password, university and year group/band.</li>
+        <li>Profile details: degree title, skills, hourly rate expectation, weekly availability, and — where provided — a postcode used only to support local business search.</li>
+        <li>Activity data: applications submitted, contracts and milestones you're party to, messages you send and receive, ratings you give and receive, and records of recommendations shown to you and how you acted on them.</li>
+        <li>Payment details: handled directly by our payment processor (Stripe) — see <a href="#recipients">who we share data with</a> — we hold a reference to your Stripe Connect account, not your bank details directly.</li>
+        <li>Consent record: an explicit, timestamped record of your consent to your university receiving engagement and outcome data about you, captured at registration.</li>
+        <li>Device data, if you use a mobile app: a device token used to deliver notifications, and basic app version information.</li>
+      </ul>
+
+      <h3>Business contacts</h3>
+      <ul>
+        <li>Account and company details: your name, work email, hashed password, and your company's name, registration number, industry, size, website and description, where provided.</li>
+        <li>Location data, if provided: a postcode used to support local search by students and universities, geocoded to an approximate location.</li>
+        <li>Activity data: projects posted, applications reviewed, contracts and milestones, messages, and ratings given and received.</li>
+        <li>Payment details: handled directly by Stripe — we hold a reference to your saved payment method, not your card details directly.</li>
+      </ul>
+
+      <h3>University staff</h3>
+      <ul>
+        <li>Account details: name, work email, hashed password, and role (careers/admissions staff or platform administrator).</li>
+        <li>Configuration data you enter on your institution's behalf: business partnership decisions, permitted year groups and subject categories, campus location, and (if configured) your institution's single sign-on settings.</li>
+        <li>Where single sign-on is used, the attributes your institution's identity provider sends us at login (typically email, display name, and an affiliation/role claim) — see <a href="#recipients">who we share data with</a>.</li>
+      </ul>
+
+      <p>We do not knowingly collect more personal data than a specific feature needs — see our internal minimisation review referenced in the site's technical documentation. <!-- TODO: confirm --> a plain-English summary of that review for a non-technical audience can be added here if useful.</p>
+
+      <h2 id="lawful-basis">3. Lawful basis for processing</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Purpose</th><th>Lawful basis</th></tr></thead>
+          <tbody>
+            <tr><td>Creating and administering your account</td><td>Performance of a contract with you (our terms of use)</td></tr>
+            <tr><td>Matching you to projects/candidates and running the marketplace</td><td>Performance of a contract with you</td></tr>
+            <tr><td>Processing payments and payroll routing</td><td>Performance of a contract with you; legal obligation (tax/payroll law) where the PAYE route applies</td></tr>
+            <tr><td>Sharing a student's engagement/outcome data with their university</td><td>Consent, captured explicitly at registration and never pre-ticked</td></tr>
+            <tr><td>Fraud prevention, account security, and abuse prevention (e.g. bot/breach checks at registration)</td><td>Legitimate interests — keeping the platform, and other users, safe from fraudulent or malicious accounts</td></tr>
+            <tr><td>Recommendation logging (what was shown, and what a user did with it)</td><td>Legitimate interests — improving match quality; kept only 12 months (see retention below)</td></tr>
+            <tr><td>Responding to support, contact and data-subject requests</td><td>Legitimate interests / legal obligation, as applicable</td></tr>
+            <tr><td>Complying with a legal or regulatory obligation (e.g. a lawful request from a regulator or law enforcement)</td><td>Legal obligation</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Where we rely on legitimate interests, we've considered that interest against your own rights and freedoms and concluded our processing is proportionate and expected in context — <!-- TODO: confirm --> a full legitimate interests assessment for each purpose above can be linked here once completed.</p>
+
+      <h2 id="recipients">4. Who we share data with</h2>
+      <p>We share personal data only with the following categories of recipient, each acting as our processor unless stated otherwise:</p>
+      <ul>
+        <li><strong>Payment processing:</strong> Stripe, Inc. (Stripe Connect) — processes all payments and payouts. We do not store full card or bank account details ourselves.</li>
+        <li><strong>Payroll / employer-of-record (PAYE route):</strong> <!-- TODO: named provider --> — for visa-restricted students routed through PAYE payroll rather than paid as self-employed. No provider is under contract yet; this section will be updated once one is chosen.</li>
+        <li><strong>Hosting and infrastructure:</strong> our application and database are hosted with Render (render.com). Render encrypts data at rest.</li>
+        <li><strong>Error tracking:</strong> Sentry — used to capture application errors so we can fix them; configured not to send personal data by default.</li>
+        <li><strong>Bot/abuse protection:</strong> hCaptcha — used on registration forms to reduce automated abuse.</li>
+        <li><strong>Password breach checking:</strong> the Have I Been Pwned Pwned Passwords service — checked using only a partial, irreversible hash of a password you choose (k-anonymity), never the password itself or any other personal data.</li>
+        <li><strong>Email delivery:</strong> <!-- TODO: named provider --> — no email service provider is live yet; verification emails are not currently sent by a third party.</li>
+        <li><strong>Push notifications (mobile):</strong> <!-- TODO: named provider, e.g. Firebase Cloud Messaging --> — not yet active.</li>
+        <li><strong>Your own university:</strong> where you're a student, your university's careers/admissions staff can see the engagement and outcome data covered by your consent (see lawful basis above), and — separately — safeguarding access to which businesses can reach which year groups is controlled entirely by your university's own staff.</li>
+        <li><strong>Regulators and law enforcement:</strong> where we're legally required to.</li>
+      </ul>
+      <p>We do not sell personal data, and do not share it with any recipient not listed above.</p>
+
+      <h2 id="transfers">5. International transfers</h2>
+      <p>We aim to host personal data within the UK/EU. <!-- TODO: confirm --> our hosting region should be confirmed here (and updated if it ever changes), together with the safeguard used (e.g. the UK International Data Transfer Agreement or an adequacy decision) for any processor listed above that may process data outside the UK/EU — several of the processors above (e.g. Stripe) operate internationally and this section should name each such transfer and its safeguard specifically once confirmed, rather than left as a general assurance.</p>
+
+      <h2 id="retention">6. How long we keep data</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data category</th><th>Retention period</th></tr></thead>
+          <tbody>
+            <tr><td>An account that never completes email verification</td><td>Deleted after 30 days</td></tr>
+            <tr><td>An account inactive for an extended period</td><td>Anonymised after 24 months of inactivity (see below)</td></tr>
+            <tr><td>Recommendation/matching logs (what was shown, and the outcome)</td><td>Purged after 12 months</td></tr>
+            <tr><td>Contracts, milestones, ratings and messages</td><td>Retained for as long as the account (or the other party's account) is active — see below for what happens on account closure</td></tr>
+            <tr><td>Audit logs of safeguarding and moderation decisions</td><td><!-- TODO: confirm retention period --></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>When you close your account, or ask us to delete it, we anonymise your account rather than deleting the underlying records outright: your name, email, password and any device tokens are cleared, but a contract, rating or message you were party to is left in place — pointing at an anonymised account — because it also legitimately belongs to the record of the other party involved (their own contract history, their own received rating). This reflects the right to erasure's actual scope: erasing what identifies you, not data another party has a continuing legitimate interest in.</p>
+
+      <h2 id="rights">7. Your rights</h2>
+      <p>Under UK GDPR, you have the right to:</p>
+      <ul>
+        <li>be informed about how your data is used (this policy);</li>
+        <li>access the personal data we hold about you;</li>
+        <li>have inaccurate data corrected;</li>
+        <li>have your data erased, in the circumstances described above;</li>
+        <li>restrict or object to certain processing, including processing based on legitimate interests;</li>
+        <li>data portability, for data you provided to us and that we process by consent or under a contract;</li>
+        <li>withdraw consent at any time, where we rely on consent (this won't affect processing already carried out).</li>
+      </ul>
+      <p>You can request an export of your own data, or ask us to close and anonymise your account, directly from your account settings, or by contacting <a href="contact.html#data-protection">our data protection contact</a>.</p>
+
+      <h2 id="complaints">8. Complaints to the ICO</h2>
+      <p>If you're unhappy with how we've handled your personal data, we'd like the chance to put it right first — contact us at <a href="contact.html#data-protection">contact.html#data-protection</a>. You also have the right to complain directly to the UK's supervisory authority, the Information Commissioner's Office (ICO), at <a href="https://ico.org.uk/make-a-complaint/">ico.org.uk/make-a-complaint</a>.</p>
+
+      <h2 id="automated-decisions">9. Automated decision-making</h2>
+      <div class="review-flag">
+        <strong>Flagged for the site owner's own review before publication.</strong> The wording below states a legal conclusion (that CAPLink's matching engine does not fall within UK GDPR Article 22) — this is exactly the kind of statement that needs sign-off from someone qualified to make it, not just a description of how the software behaves.
+      </div>
+      <p>CAPLink's matching engine ranks and suggests candidates and projects to help students and businesses decide who to work with — it does not decide anything on its own. A business always makes its own decision about who to hire, and a student always makes their own decision about which project to apply to; a university's safeguarding decisions about which businesses can reach which students are made by a human member of staff, not by the software. We don't consider this automated decision-making producing legal or similarly significant effects within the meaning of UK GDPR Article 22, since a human decision sits on both sides of every outcome that actually affects you. If that understanding is ever wrong for a specific feature, this section needs to be corrected and, where required, the rights in Article 22 (including the right to a human review) made available for that specific decision.</p>
+
+      <h2 id="under-18">10. Under-18 students</h2>
+      <div class="review-flag">
+        <strong>Flagged for review.</strong> The platform does not currently collect or verify date of birth for any user, including students. This section is an honest description of that gap, not a claim that under-18 safeguards are fully solved.
+      </div>
+      <p>CAPLink registers students using their university-issued email address, and relies on the fact that account access is restricted to people your university has enrolled. We do not separately collect or verify a student's date of birth, and the platform does not currently have an under-18-specific consent or safeguarding flow of its own. Where a university's own student population includes under-18 students (for example, some foundation-year or access-course students), responsibility for any additional safeguarding requirements for those students rests with the university's own admissions and safeguarding processes, in addition to the year-group/business-access controls CAPLink provides. <!-- TODO: confirm --> whether a dedicated under-18 consent flow is required should be confirmed with a solicitor and, if so, scoped as real product work rather than described here as already solved.</p>
+
+      <h2 id="security">11. How we protect your data</h2>
+      <p>Passwords are hashed, never stored in plain text, and checked against a live breach database at registration. Data in our production database is encrypted at rest. Access to a university's own student data is restricted to that university's own staff and to CAPLink's own platform administrators. We use rate limiting, bot protection, and an audit log of sensitive administrative actions. No system is perfectly secure, and we can't guarantee absolute security of information transmitted over the internet.</p>
+
+      <h2 id="changes">12. Changes to this policy</h2>
+      <p>We may update this policy from time to time. We'll update the "last updated" date above when we do, and — for material changes — aim to let registered users know directly rather than relying on this page alone.</p>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap footer-grid">
+    <div class="footer-col">
+      <div class="footer-wordmark">CAPLink</div>
+      <p class="footer-tag">Licensed institutional platform connecting students, local businesses and universities for paid, safeguarded project work.</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Product</div>
+      <a href="about.html">About</a>
+      <a href="how-it-works.html">How it works</a>
+      <a href="index.html#pricing">Pricing</a>
+      <a href="faq.html">FAQ</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="prototype.html">Live prototype ↗</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Contact</div>
+      <a href="contact.html#general">General enquiries</a>
+      <a href="contact.html#universities">University partnerships</a>
+      <a href="contact.html#business">Business enquiries</a>
+      <a href="contact.html#press">Press</a>
+      <a href="contact.html#data-protection">Data protection</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Legal</div>
+      <a href="privacy.html" aria-current="page">Privacy policy</a>
+      <a href="terms.html">Terms of use</a>
+      <a href="cookies.html">Cookie notice</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <p>© 2026 <!-- TODO: confirm registered company name -->. Not affiliated with any university shown for illustration.</p>
+    <p><!-- TODO: confirm registered company name --> is a company registered in England and Wales, company number <!-- TODO -->, registered office <!-- TODO -->. ICO registration reference: <!-- TODO -->.</p>
+  </div>
+</footer>
+
+</body>
+</html>

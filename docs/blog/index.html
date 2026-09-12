@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Blog — CAPLink</title>
+<meta name="description" content="Notes from CAPLink for universities and local businesses on paid student work, safeguarding, and outcome reporting.">
+<link rel="canonical" href="https://philipmcareavey.github.io/CAPLink/blog/index.html">
+<meta property="og:title" content="Blog — CAPLink">
+<meta property="og:description" content="Notes from CAPLink for universities and local businesses on paid student work, safeguarding, and outcome reporting.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://philipmcareavey.github.io/CAPLink/blog/index.html">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --ink:#1B2A45; --ink-soft:#3C4B68; --paper:#F6F3EC; --paper-raised:#FFFDF8;
+    --brass:#A87C2A; --brass-soft:#E9D9B8; --moss:#4C6B54; --moss-soft:#DCE6DD;
+    --slate:#6B7280; --rule:#DDD6C7; --danger:#A6452F;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  h1,h2,h3,.display{ font-family:'Fraunces',serif; font-weight:600; letter-spacing:-0.01em; color:var(--ink); margin:0; }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  .wrap{ max-width:1120px; margin:0 auto; padding:0 24px; }
+  a{ color:inherit; }
+  img{ max-width:100%; }
+  section{ padding:64px 0; }
+  @media (max-width:720px){ section{ padding:44px 0; } }
+
+  .skip-link{
+    position:absolute; left:12px; top:-60px; background:var(--ink); color:var(--paper-raised);
+    padding:10px 16px; border-radius:3px; font-weight:600; font-size:13.5px; z-index:100;
+    transition:top .15s ease;
+  }
+  .skip-link:focus{ top:12px; }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+  textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible{
+    outline:2px solid var(--ink); outline-offset:2px; border-radius:2px;
+  }
+
+  nav[aria-label="Primary"]{ position:sticky; top:0; background:rgba(246,243,236,0.94); backdrop-filter:blur(6px); border-bottom:1px solid var(--rule); z-index:40; }
+  nav[aria-label="Primary"] .wrap{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 24px; padding:14px 24px; }
+  .wordmark{ font-family:'Fraunces',serif; font-weight:600; font-size:20px; text-decoration:none; }
+  .nav-links{ list-style:none; display:flex; flex-wrap:wrap; gap:8px 24px; margin:0; padding:0; font-size:13.5px; font-weight:600; }
+  .nav-links a{ color:var(--ink-soft); text-decoration:none; padding:4px 2px; }
+  .nav-links a:hover{ color:var(--ink); }
+  .nav-links a[aria-current="page"], .wordmark[aria-current="page"]{ color:var(--ink); box-shadow:inset 0 -2px 0 var(--brass); }
+  .nav-cta{ background:var(--ink); color:var(--paper-raised); padding:9px 18px; border-radius:3px; font-size:13.5px; font-weight:600; text-decoration:none; white-space:nowrap; }
+
+  .btn{ display:inline-flex; align-items:center; gap:8px; padding:13px 24px; border-radius:3px; font-weight:600; font-size:14px; border:1px solid var(--ink); text-decoration:none; }
+  .btn.primary{ background:var(--ink); color:var(--paper-raised); }
+  .btn.ghost{ background:transparent; color:var(--ink); }
+
+  .page-hero{ padding-top:56px; padding-bottom:8px; }
+  .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-soft); font-weight:600; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .eyebrow::before{ content:""; width:22px; height:1px; background:var(--brass); flex-shrink:0; }
+  .page-hero h1{ font-size:clamp(28px,5vw,42px); line-height:1.1; margin-bottom:18px; max-width:820px; }
+  .page-hero p.lede{ font-size:16px; color:var(--ink-soft); line-height:1.6; max-width:680px; }
+
+  .post-card{ background:var(--paper-raised); border:1px solid var(--rule); border-radius:6px; padding:26px; margin-bottom:16px; max-width:760px; }
+  .post-card .post-meta{ font-size:12px; color:var(--ink-soft); margin-bottom:8px; }
+  .post-card h2{ font-size:20px; margin-bottom:8px; }
+  .post-card p{ font-size:14px; color:var(--ink-soft); line-height:1.6; margin:0 0 12px; }
+  .post-card a.read-more{ font-size:13px; font-weight:600; color:var(--ink); text-decoration:underline; }
+  .sample-flag{ font-size:11px; color:var(--ink-soft); margin-top:10px; }
+
+  footer{ border-top:1px solid var(--rule); padding:48px 0 28px; }
+  .footer-grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:32px; padding-bottom:32px; border-bottom:1px solid var(--rule); }
+  @media (max-width:780px){ .footer-grid{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:480px){ .footer-grid{ grid-template-columns:1fr; } }
+  .footer-col{ display:flex; flex-direction:column; gap:10px; }
+  .footer-wordmark{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; }
+  .footer-tag{ font-size:13px; color:var(--ink-soft); line-height:1.55; margin:0; max-width:260px; }
+  .footer-head{ font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-soft); font-weight:700; margin-bottom:2px; }
+  .footer-col a{ font-size:13.5px; color:var(--ink-soft); text-decoration:none; }
+  .footer-col a:hover{ color:var(--ink); text-decoration:underline; }
+  .footer-bottom{ padding-top:22px; display:flex; flex-direction:column; gap:8px; font-size:12px; color:var(--ink-soft); }
+  .footer-bottom p{ margin:0; }
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<nav aria-label="Primary">
+  <div class="wrap">
+    <a href="../index.html" class="wordmark">CAPLink</a>
+    <ul class="nav-links">
+      <li><a href="../about.html">About</a></li>
+      <li><a href="../how-it-works.html">How it works</a></li>
+      <li><a href="../index.html#pricing">Pricing</a></li>
+      <li><a href="index.html" aria-current="page">Blog</a></li>
+      <li><a href="../contact.html">Contact</a></li>
+    </ul>
+    <a href="../index.html#demo" class="nav-cta">Book a demo</a>
+  </div>
+</nav>
+
+<main id="main">
+
+  <section class="page-hero">
+    <div class="wrap">
+      <div class="eyebrow">Blog</div>
+      <h1>Notes from CAPLink</h1>
+      <p class="lede">Occasional, practical posts for the universities and local businesses using — or considering — CAPLink.</p>
+    </div>
+  </section>
+
+  <section style="padding-top:0;">
+    <div class="wrap">
+
+      <article class="post-card">
+        <p class="post-meta"><!-- TODO: confirm date --> · For universities · 6 min read</p>
+        <h2><a href="university-outcome-reporting.html" style="text-decoration:none;">What actually counts as evidence of graduate outcomes?</a></h2>
+        <p>Careers services are expected to show impact, not just activity. Here's what we mean by "outcome reporting" in practice, and why it's built from real completed work rather than survey responses alone.</p>
+        <a class="read-more" href="university-outcome-reporting.html">Read more →</a>
+        <p class="sample-flag"><!-- Sample post content — replace with a real published post before this site goes live. --></p>
+      </article>
+
+      <article class="post-card">
+        <p class="post-meta"><!-- TODO: confirm date --> · For local businesses · 5 min read</p>
+        <h2><a href="local-business-hiring.html" style="text-decoration:none;">Short of a full hire, but you've got real project work?</a></h2>
+        <p>A landing page rebuild. A data cleanup. A piece of market research. The kind of work that doesn't justify a permanent hire, but is exactly the kind of brief a nearby student is well placed to take on.</p>
+        <a class="read-more" href="local-business-hiring.html">Read more →</a>
+        <p class="sample-flag"><!-- Sample post content — replace with a real published post before this site goes live. --></p>
+      </article>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap footer-grid">
+    <div class="footer-col">
+      <div class="footer-wordmark">CAPLink</div>
+      <p class="footer-tag">Licensed institutional platform connecting students, local businesses and universities for paid, safeguarded project work.</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Product</div>
+      <a href="../about.html">About</a>
+      <a href="../how-it-works.html">How it works</a>
+      <a href="../index.html#pricing">Pricing</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="index.html">Blog</a>
+      <a href="../prototype.html">Live prototype ↗</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Contact</div>
+      <a href="../contact.html#general">General enquiries</a>
+      <a href="../contact.html#universities">University partnerships</a>
+      <a href="../contact.html#business">Business enquiries</a>
+      <a href="../contact.html#press">Press</a>
+      <a href="../contact.html#data-protection">Data protection</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Legal</div>
+      <a href="../privacy.html">Privacy policy</a>
+      <a href="../terms.html">Terms of use</a>
+      <a href="../cookies.html">Cookie notice</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <p>© 2026 <!-- TODO: confirm registered company name -->. Not affiliated with any university shown for illustration.</p>
+    <p><!-- TODO: confirm registered company name --> is a company registered in England and Wales, company number <!-- TODO -->, registered office <!-- TODO -->. ICO registration reference: <!-- TODO -->.</p>
+  </div>
+</footer>
+
+</body>
+</html>

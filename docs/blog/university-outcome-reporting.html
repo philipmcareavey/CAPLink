@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>What actually counts as evidence of graduate outcomes? — CAPLink Blog</title>
+<meta name="description" content="What we mean by outcome reporting for a university careers team, and why it's built from real completed work rather than survey responses alone.">
+<link rel="canonical" href="https://philipmcareavey.github.io/CAPLink/blog/university-outcome-reporting.html">
+<meta property="og:title" content="What actually counts as evidence of graduate outcomes? — CAPLink Blog">
+<meta property="og:description" content="What we mean by outcome reporting for a university careers team, and why it's built from real completed work rather than survey responses alone.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://philipmcareavey.github.io/CAPLink/blog/university-outcome-reporting.html">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --ink:#1B2A45; --ink-soft:#3C4B68; --paper:#F6F3EC; --paper-raised:#FFFDF8;
+    --brass:#A87C2A; --brass-soft:#E9D9B8; --moss:#4C6B54; --moss-soft:#DCE6DD;
+    --slate:#6B7280; --rule:#DDD6C7; --danger:#A6452F;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  h1,h2,h3,.display{ font-family:'Fraunces',serif; font-weight:600; letter-spacing:-0.01em; color:var(--ink); margin:0; }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  .wrap{ max-width:1120px; margin:0 auto; padding:0 24px; }
+  a{ color:inherit; }
+  img{ max-width:100%; }
+  section{ padding:64px 0; }
+  @media (max-width:720px){ section{ padding:44px 0; } }
+
+  .skip-link{
+    position:absolute; left:12px; top:-60px; background:var(--ink); color:var(--paper-raised);
+    padding:10px 16px; border-radius:3px; font-weight:600; font-size:13.5px; z-index:100;
+    transition:top .15s ease;
+  }
+  .skip-link:focus{ top:12px; }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+  textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible{
+    outline:2px solid var(--ink); outline-offset:2px; border-radius:2px;
+  }
+
+  nav[aria-label="Primary"]{ position:sticky; top:0; background:rgba(246,243,236,0.94); backdrop-filter:blur(6px); border-bottom:1px solid var(--rule); z-index:40; }
+  nav[aria-label="Primary"] .wrap{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 24px; padding:14px 24px; }
+  .wordmark{ font-family:'Fraunces',serif; font-weight:600; font-size:20px; text-decoration:none; }
+  .nav-links{ list-style:none; display:flex; flex-wrap:wrap; gap:8px 24px; margin:0; padding:0; font-size:13.5px; font-weight:600; }
+  .nav-links a{ color:var(--ink-soft); text-decoration:none; padding:4px 2px; }
+  .nav-links a:hover{ color:var(--ink); }
+  .nav-links a[aria-current="page"], .wordmark[aria-current="page"]{ color:var(--ink); box-shadow:inset 0 -2px 0 var(--brass); }
+  .nav-cta{ background:var(--ink); color:var(--paper-raised); padding:9px 18px; border-radius:3px; font-size:13.5px; font-weight:600; text-decoration:none; white-space:nowrap; }
+
+  .btn{ display:inline-flex; align-items:center; gap:8px; padding:13px 24px; border-radius:3px; font-weight:600; font-size:14px; border:1px solid var(--ink); text-decoration:none; }
+  .btn.primary{ background:var(--ink); color:var(--paper-raised); }
+  .btn.ghost{ background:transparent; color:var(--ink); }
+
+  .back-link{ font-size:13px; font-weight:600; color:var(--ink-soft); text-decoration:none; display:inline-block; margin-top:24px; }
+  .back-link:hover{ color:var(--ink); }
+
+  article.post{ max-width:720px; padding-top:16px; }
+  article.post .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-soft); font-weight:600; margin-bottom:14px; }
+  article.post h1{ font-size:clamp(26px,4.5vw,38px); line-height:1.15; margin-bottom:14px; }
+  article.post .post-meta{ font-size:13px; color:var(--ink-soft); margin-bottom:32px; }
+  article.post h2{ font-size:20px; margin:32px 0 12px; }
+  article.post p{ font-size:15.5px; line-height:1.7; color:var(--ink-soft); margin:0 0 16px; }
+  article.post ul{ color:var(--ink-soft); font-size:15.5px; line-height:1.7; padding-left:22px; }
+  article.post li{ margin-bottom:8px; }
+  .sample-flag{ background:var(--brass-soft); border:1px solid var(--brass); border-radius:6px; padding:14px 18px; font-size:13px; color:var(--ink); margin-bottom:28px; }
+
+  footer{ border-top:1px solid var(--rule); padding:48px 0 28px; }
+  .footer-grid{ display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:32px; padding-bottom:32px; border-bottom:1px solid var(--rule); }
+  @media (max-width:780px){ .footer-grid{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:480px){ .footer-grid{ grid-template-columns:1fr; } }
+  .footer-col{ display:flex; flex-direction:column; gap:10px; }
+  .footer-wordmark{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; }
+  .footer-tag{ font-size:13px; color:var(--ink-soft); line-height:1.55; margin:0; max-width:260px; }
+  .footer-head{ font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-soft); font-weight:700; margin-bottom:2px; }
+  .footer-col a{ font-size:13.5px; color:var(--ink-soft); text-decoration:none; }
+  .footer-col a:hover{ color:var(--ink); text-decoration:underline; }
+  .footer-bottom{ padding-top:22px; display:flex; flex-direction:column; gap:8px; font-size:12px; color:var(--ink-soft); }
+  .footer-bottom p{ margin:0; }
+</style>
+</head>
+<body>
+
+<!-- Sample post content, written for this template — replace with a real published post before this site goes live. -->
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<nav aria-label="Primary">
+  <div class="wrap">
+    <a href="../index.html" class="wordmark">CAPLink</a>
+    <ul class="nav-links">
+      <li><a href="../about.html">About</a></li>
+      <li><a href="../how-it-works.html">How it works</a></li>
+      <li><a href="../index.html#pricing">Pricing</a></li>
+      <li><a href="index.html" aria-current="page">Blog</a></li>
+      <li><a href="../contact.html">Contact</a></li>
+    </ul>
+    <a href="../index.html#demo" class="nav-cta">Book a demo</a>
+  </div>
+</nav>
+
+<main id="main">
+  <section>
+    <div class="wrap">
+      <article class="post">
+        <div class="sample-flag">Sample post — illustrative content written for this template, not a real published article. Replace before this site goes live.</div>
+        <div class="eyebrow">For universities</div>
+        <h1>What actually counts as evidence of graduate outcomes?</h1>
+        <p class="post-meta">By <!-- TODO: author name --> · <!-- TODO: confirm date --> · 6 min read · <a href="index.html" style="color:var(--ink-soft); text-decoration:underline;">← Back to blog</a></p>
+
+        <p>Every careers service is asked, in one form or another, to show that what it does actually leads somewhere. The honest difficulty is that most of what a service can measure — footfall at events, click-throughs on a job board, survey responses about "confidence" — is activity, not outcome. None of it tells you whether a student actually did any paid, relevant work before they graduated.</p>
+
+        <h2>Activity isn't outcome</h2>
+        <p>A student attending a CV workshop is a genuinely useful thing to know. It's also not evidence that the workshop led to anything. The same is true of listings-board traffic: knowing how many students viewed a vacancy tells you nothing about how many were hired, what they were paid, or whether the work was relevant to their course.</p>
+
+        <p>Outcome reporting has to be built from things that actually happened, not things that were merely offered. A completed, paid piece of work — with a real business, a real agreed scope, and a real payment released on completion — is a fundamentally different kind of evidence than a listing being viewed.</p>
+
+        <h2>What CAPLink actually reports</h2>
+        <p>Because every project on CAPLink runs through the platform end to end — the brief, the application, the agreed milestones, the payment — the reporting a careers team gets isn't self-reported. It reflects what genuinely happened: how many of your students applied to something, how many were hired, how many actually completed paid work, what they earned doing it, and how that breaks down by year group.</p>
+
+        <ul>
+          <li>Applied, hired and completed counts, specific to your own institution's students.</li>
+          <li>Total student earnings from completed work.</li>
+          <li>A breakdown by year group/band, so a foundation-year cohort's outcomes aren't averaged away by your final-year students'.</li>
+        </ul>
+
+        <p>None of this replaces a graduate outcomes survey, and it isn't meant to. It's a narrower, harder-edged data point that sits alongside your existing evidence: not "students say they feel more employable," but "this many students did this much real, paid work, for this many local businesses."</p>
+
+        <h2>Why that distinction matters for reporting</h2>
+        <p>When a careers service has to account for its own impact — to a faculty, to leadership, or as part of a wider accountability framework — activity-based measures are easy to produce but easy to dismiss. Outcome-based measures, built from records of things that genuinely happened rather than things that were offered, are harder to produce and much harder to argue with.</p>
+
+        <p><!-- TODO: confirm --> if you want to talk through how this maps onto your own institution's specific reporting requirements, <a href="../contact.html#universities">get in touch</a> — that's a conversation worth having directly rather than guessed at generically here.</p>
+
+        <a class="back-link" href="index.html">← Back to blog</a>
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap footer-grid">
+    <div class="footer-col">
+      <div class="footer-wordmark">CAPLink</div>
+      <p class="footer-tag">Licensed institutional platform connecting students, local businesses and universities for paid, safeguarded project work.</p>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Product</div>
+      <a href="../about.html">About</a>
+      <a href="../how-it-works.html">How it works</a>
+      <a href="../index.html#pricing">Pricing</a>
+      <a href="../faq.html">FAQ</a>
+      <a href="index.html">Blog</a>
+      <a href="../prototype.html">Live prototype ↗</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Contact</div>
+      <a href="../contact.html#general">General enquiries</a>
+      <a href="../contact.html#universities">University partnerships</a>
+      <a href="../contact.html#business">Business enquiries</a>
+      <a href="../contact.html#press">Press</a>
+      <a href="../contact.html#data-protection">Data protection</a>
+    </div>
+    <div class="footer-col">
+      <div class="footer-head">Legal</div>
+      <a href="../privacy.html">Privacy policy</a>
+      <a href="../terms.html">Terms of use</a>
+      <a href="../cookies.html">Cookie notice</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <p>© 2026 <!-- TODO: confirm registered company name -->. Not affiliated with any university shown for illustration.</p>
+    <p><!-- TODO: confirm registered company name --> is a company registered in England and Wales, company number <!-- TODO -->, registered office <!-- TODO -->. ICO registration reference: <!-- TODO -->.</p>
+  </div>
+</footer>
+
+</body>
+</html>
