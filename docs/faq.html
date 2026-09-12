@@ -35,6 +35,21 @@
     transition:top .15s ease;
   }
   .skip-link:focus{ top:12px; }
+
+  /* ===== Scroll reveal — progressive enhancement: content is visible by default in CSS;
+     script.js only ADDS the fade/slide animation once JS confirms it can run one. Respects
+     prefers-reduced-motion (motion is skipped entirely, content just appears). ===== */
+  .reveal-ready [data-reveal]{ opacity:0; transform:translateY(16px); transition:opacity .6s ease, transform .6s ease; }
+  .reveal-ready [data-reveal].is-visible{ opacity:1; transform:none; }
+  .reveal-ready [data-reveal]:nth-child(2){ transition-delay:.08s; }
+  .reveal-ready [data-reveal]:nth-child(3){ transition-delay:.16s; }
+  .reveal-ready [data-reveal]:nth-child(4){ transition-delay:.24s; }
+  .reveal-ready [data-reveal]:nth-child(5){ transition-delay:.32s; }
+  .reveal-ready [data-reveal]:nth-child(6){ transition-delay:.4s; }
+  @media (prefers-reduced-motion: reduce){
+    .reveal-ready [data-reveal]{ transition:none !important; opacity:1 !important; transform:none !important; }
+  }
+
   a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
   textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible{
     outline:2px solid var(--ink); outline-offset:2px; border-radius:2px;
@@ -141,14 +156,14 @@
       <div class="accordion-group">
         <h2>Students</h2>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>Is the work paid?</summary>
           <div class="faq-answer">
             <p>Yes. Every project on CAPLink runs as a paid, milestone-based agreement between you and the business — there's no unpaid "exposure" listing category, and a project isn't visible to you at all unless it has a payment amount attached to it.</p>
           </div>
         </details>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>How and when do I get paid?</summary>
           <div class="faq-answer">
             <p>Work is broken into milestones, each with its own agreed payment amount. When you submit a milestone and the business approves it, payment is released to you through CAPLink's payment processor rather than paid to you directly by the business.</p>
@@ -156,21 +171,21 @@
           </div>
         </details>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>Does this affect my student finance or my visa?</summary>
           <div class="faq-answer">
             <p>If you're on a student visa with a weekly working-hours limit, CAPLink routes your pay through a PAYE/umbrella payroll arrangement rather than treating you as self-employed, so your working pattern stays within your visa conditions. <!-- TODO: confirm --> Specific guidance on student finance and visa working-hours rules should be confirmed with your university and, for visa questions, UKCISA or your institution's international student support team before relying on this page alone.</p>
           </div>
         </details>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>Do I need to be at a partner university?</summary>
           <div class="faq-answer">
             <p>Yes. CAPLink only registers students against a university that has licensed the platform, using your institutional email address. If your university isn't a partner yet, <a href="contact.html#universities">let us know</a> and we can get in touch with your careers service.</p>
           </div>
         </details>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>What if a project goes wrong?</summary>
           <div class="faq-answer">
             <p>Message the business directly through CAPLink first — most issues are scope or communication problems that get resolved that way. If a milestone genuinely isn't delivered, the business can decline to approve it rather than being forced to pay for undelivered work; if you believe that's unfair, or the business is unresponsive, <a href="contact.html#general">contact us</a> and we'll look into it.</p>
@@ -185,28 +200,28 @@
       <div class="accordion-group">
         <h2>Businesses</h2>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>What does it cost?</summary>
           <div class="faq-answer">
             <p><!-- TODO: confirm --> Business-side pricing (a platform fee on completed work, a subscription, or both) is still being finalised and will be published here before general availability rather than left to guesswork.</p>
           </div>
         </details>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>How do I know a student can do the work?</summary>
           <div class="faq-answer">
             <p>Every student profile shows their course, relevant skills, and — once they've completed prior work on the platform — a reputation built from real completed projects, not self-reported claims alone. You can also review a shortlist of matched candidates before deciding who to work with.</p>
           </div>
         </details>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>Who is the employer?</summary>
           <div class="faq-answer">
             <p>For most projects, the student is engaged on a self-employed basis directly with your business for that project — CAPLink is the platform the agreement and payment run through, not the employer. Where a student is visa-restricted, their pay is instead routed through a PAYE/umbrella payroll arrangement rather than treated as self-employment — see the Payments, tax and legal section below.</p>
           </div>
         </details>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>What if I'm not happy with the work?</summary>
           <div class="faq-answer">
             <p>You only release payment for a milestone once you've reviewed and approved it, so you're never forced to pay for undelivered work. If a submitted milestone doesn't meet what was agreed, you can decline it and work with the student to resolve it through messaging before resubmission.</p>
@@ -221,28 +236,28 @@
       <div class="accordion-group">
         <h2>Universities</h2>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>How does licensing work?</summary>
           <div class="faq-answer">
             <p>CAPLink is licensed annually, per institution, rather than sold per student — see <a href="index.html#pricing">licensing options</a> for the tiers currently offered. <a href="contact.html#universities">Get in touch</a> to discuss a pilot for your institution.</p>
           </div>
         </details>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>What data do you hold on our students?</summary>
           <div class="faq-answer">
             <p>Profile information the student provides at registration (course, year group, skills, contact details), plus records of applications, agreed work and payments they're party to. Full detail, including lawful basis and retention periods, is in our <a href="privacy.html">privacy policy</a>.</p>
           </div>
         </details>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>How does this support OfS condition B3 reporting?</summary>
           <div class="faq-answer">
             <p>CAPLink's employability reporting gives your careers team placement, sector and outcome data specific to your own students, which your institution can use as part of its own graduate-outcomes evidence base. <!-- TODO: confirm --> A specific mapping of CAPLink's reporting fields to condition B3's evidence requirements should be confirmed directly with your institution's own quality/compliance team before being relied on for a submission.</p>
           </div>
         </details>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>What safeguarding controls exist?</summary>
           <div class="faq-answer">
             <p>No business can see or contact any of your students until your careers team has approved that business for a specific year group and subject area. See the safeguarding model on <a href="index.html#safeguarding">our university page</a> and the band-control walkthrough on <a href="how-it-works.html#universities">how it works</a>.</p>
@@ -257,21 +272,21 @@
       <div class="accordion-group">
         <h2>Payments, tax and legal</h2>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>Who processes payments?</summary>
           <div class="faq-answer">
             <p>Payments are processed through Stripe Connect. Businesses pay via a saved card; students receive payment into a Stripe-connected account (or, for visa-restricted students, via a PAYE/umbrella payroll route — see below).</p>
           </div>
         </details>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>How is tax handled?</summary>
           <div class="faq-answer">
             <p>Most students are paid on a self-employed basis and are responsible for declaring and paying their own tax on that income, the same as any other self-employed work. Visa-restricted students are instead paid through a PAYE/umbrella payroll arrangement, which handles tax and National Insurance through payroll rather than self-assessment. <!-- TODO: confirm --> The named umbrella/payroll provider has not yet been chosen — this section will be updated once one is under contract. Nothing here is tax advice; students and businesses should confirm their own position with HMRC or an accountant.</p>
           </div>
         </details>
 
-        <details class="faq-item">
+        <details class="faq-item" data-reveal>
           <summary>What about international students?</summary>
           <div class="faq-answer">
             <p>International students on a visa with working-hours restrictions are automatically routed to the PAYE/umbrella payroll rail rather than paid as self-employed, so their working pattern stays within their visa's conditions. <!-- TODO: confirm --> Students should still confirm their own visa working-hours limits with their university's international student support team or UKCISA — this page doesn't replace that advice.</p>
@@ -329,6 +344,23 @@
     <p><!-- TODO: confirm registered company name --> is a company registered in England and Wales, company number <!-- TODO -->, registered office <!-- TODO -->. ICO registration reference: <!-- TODO -->.</p>
   </div>
 </footer>
+
+
+<script>
+(function(){
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!('IntersectionObserver' in window)) return;
+  var targets = document.querySelectorAll('[data-reveal]');
+  if (!targets.length) return;
+  document.documentElement.classList.add('reveal-ready');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if (entry.isIntersecting){ entry.target.classList.add('is-visible'); io.unobserve(entry.target); }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  targets.forEach(function(el){ io.observe(el); });
+})();
+</script>
 
 </body>
 </html>

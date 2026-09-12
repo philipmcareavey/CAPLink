@@ -42,6 +42,21 @@
     transition:top .15s ease;
   }
   .skip-link:focus{ top:12px; }
+
+  /* ===== Scroll reveal — progressive enhancement: content is visible by default in CSS;
+     script.js only ADDS the fade/slide animation once JS confirms it can run one. Respects
+     prefers-reduced-motion (motion is skipped entirely, content just appears). ===== */
+  .reveal-ready [data-reveal]{ opacity:0; transform:translateY(16px); transition:opacity .6s ease, transform .6s ease; }
+  .reveal-ready [data-reveal].is-visible{ opacity:1; transform:none; }
+  .reveal-ready [data-reveal]:nth-child(2){ transition-delay:.08s; }
+  .reveal-ready [data-reveal]:nth-child(3){ transition-delay:.16s; }
+  .reveal-ready [data-reveal]:nth-child(4){ transition-delay:.24s; }
+  .reveal-ready [data-reveal]:nth-child(5){ transition-delay:.32s; }
+  .reveal-ready [data-reveal]:nth-child(6){ transition-delay:.4s; }
+  @media (prefers-reduced-motion: reduce){
+    .reveal-ready [data-reveal]{ transition:none !important; opacity:1 !important; transform:none !important; }
+  }
+
   a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
   textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible{
     outline:2px solid var(--ink); outline-offset:2px; border-radius:2px;
@@ -127,8 +142,14 @@
   .band-row{ display:grid; grid-template-columns:160px 1fr; gap:20px; align-items:center; padding:12px 0; border-bottom:1px solid var(--rule); }
   .band-row:last-child{ border-bottom:none; }
   .band-row .b-label{ font-size:13px; font-weight:600; color:var(--ink-soft); }
+  .try-it-hint{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink); font-weight:600; }
   .permit-track{ display:flex; gap:6px; flex-wrap:wrap; }
   .permit-pill{ font-size:11px; padding:5px 11px; border-radius:100px; border:1px solid var(--rule); color:var(--slate); }
+  /* Buttons in the first two rows are a live, click-to-toggle demo of the safeguarding gate — reset
+     default button chrome so a .permit-pill button looks identical to the static <span> pills below it. */
+  button.permit-pill{ background:var(--paper-raised); font-family:inherit; cursor:pointer; transition:background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease; }
+  button.permit-pill:hover{ transform:translateY(-1px); }
+  button.permit-pill:active{ transform:translateY(0); }
   .permit-pill.allow{ background:var(--moss-soft); color:var(--moss); border-color:var(--moss-soft); font-weight:600; }
   .permit-pill.deny{ background:#F3E3DE; color:var(--danger,#A6452F); border-color:#F3E3DE; font-weight:600; text-decoration:line-through; }
 
@@ -234,29 +255,29 @@
 
     <div class="split">
       <div>
-        <div class="concern-card">
+        <div class="concern-card" data-reveal>
           <div class="k">Without controls</div>
           <p>A first-year is discoverable by any employer, including ones your institution has never reviewed.</p>
         </div>
-        <div class="concern-card">
+        <div class="concern-card" data-reveal>
           <div class="k">Without controls</div>
           <p>Businesses can post roles wildly outside a student's course relevance — unrelated sales gigs to an engineering cohort.</p>
         </div>
-        <div class="concern-card">
+        <div class="concern-card" data-reveal>
           <div class="k">Without controls</div>
           <p>Your employability data lives entirely on someone else's platform, with no reporting back to your team.</p>
         </div>
       </div>
       <div>
-        <div class="concern-card resolved">
+        <div class="concern-card resolved" data-reveal>
           <div class="k">With CAPLink</div>
           <p>Each business is approved per year-band by your team. First-years can be restricted to your most trusted, education-focused partners — or excluded entirely.</p>
         </div>
-        <div class="concern-card resolved">
+        <div class="concern-card resolved" data-reveal>
           <div class="k">With CAPLink</div>
           <p>Businesses are approved per project category too — a marketing agency can be cleared for marketing work only, not engineering placements.</p>
         </div>
-        <div class="concern-card resolved">
+        <div class="concern-card resolved" data-reveal>
           <div class="k">With CAPLink</div>
           <p>Your institution gets its own employability dashboard: placements, sectors, and outcomes, reportable to your leadership.</p>
         </div>
@@ -270,27 +291,27 @@
     <div class="section-head">
       <div class="eyebrow">The band control panel</div>
       <h2>One agreement, four dials.</h2>
-      <p>When a business requests access, your team sets exactly what they can see and do — nothing more.</p>
+      <p>When a business requests access, your team sets exactly what they can see and do — nothing more. <span class="try-it-hint">Try it — click a pill below.</span></p>
     </div>
 
     <div class="band-diagram">
       <div class="band-row">
         <span class="b-label">Year group access</span>
-        <div class="permit-track">
-          <span class="permit-pill deny">Foundation</span>
-          <span class="permit-pill deny">Year 1</span>
-          <span class="permit-pill allow">Year 2</span>
-          <span class="permit-pill allow">Year 3</span>
-          <span class="permit-pill allow">Postgrad</span>
+        <div class="permit-track" data-gate-row>
+          <button type="button" class="permit-pill deny" aria-pressed="false">Foundation</button>
+          <button type="button" class="permit-pill deny" aria-pressed="false">Year 1</button>
+          <button type="button" class="permit-pill allow" aria-pressed="true">Year 2</button>
+          <button type="button" class="permit-pill allow" aria-pressed="true">Year 3</button>
+          <button type="button" class="permit-pill allow" aria-pressed="true">Postgrad</button>
         </div>
       </div>
       <div class="band-row">
         <span class="b-label">Project categories</span>
-        <div class="permit-track">
-          <span class="permit-pill allow">Data analytics</span>
-          <span class="permit-pill allow">Research</span>
-          <span class="permit-pill deny">Marketing</span>
-          <span class="permit-pill deny">Sales</span>
+        <div class="permit-track" data-gate-row>
+          <button type="button" class="permit-pill allow" aria-pressed="true">Data analytics</button>
+          <button type="button" class="permit-pill allow" aria-pressed="true">Research</button>
+          <button type="button" class="permit-pill deny" aria-pressed="false">Marketing</button>
+          <button type="button" class="permit-pill deny" aria-pressed="false">Sales</button>
         </div>
       </div>
       <div class="band-row">
@@ -313,32 +334,32 @@
     </div>
 
     <div class="feature-grid">
-      <div class="feature">
+      <div class="feature" data-reveal>
         <div class="f-num">01</div>
         <h3>Business vetting workflow</h3>
         <p>Every employer request lands in your queue. Approve, restrict, or reject — with notes only your team can see.</p>
       </div>
-      <div class="feature">
+      <div class="feature" data-reveal>
         <div class="f-num">02</div>
         <h3>Employability reporting</h3>
         <p>Placements, sectors, pay rates, and outcomes for your students specifically — exportable for institutional reporting.</p>
       </div>
-      <div class="feature">
+      <div class="feature" data-reveal>
         <div class="f-num">03</div>
         <h3>White-label branding</h3>
         <p>Your logo, your colours, your subdomain. Students recognise it as an extension of your careers service.</p>
       </div>
-      <div class="feature">
+      <div class="feature" data-reveal>
         <div class="f-num">04</div>
         <h3>Automatic student verification</h3>
         <p>Student accounts verify against your institutional email domain — no manual ID checks needed at sign-up.</p>
       </div>
-      <div class="feature">
+      <div class="feature" data-reveal>
         <div class="f-num">05</div>
         <h3>Escrow-protected payments</h3>
         <p>Students are paid on milestone approval, not on trust. No unpaid "exposure" listings are ever permitted.</p>
       </div>
-      <div class="feature">
+      <div class="feature" data-reveal>
         <div class="f-num">06</div>
         <h3>Mobile app included</h3>
         <p>Students apply, message, and track payments from iOS/Android — same safeguarding rules, same data, everywhere.</p>
@@ -366,7 +387,7 @@
     </div>
 
     <div class="price-grid">
-      <div class="price-card">
+      <div class="price-card" data-reveal>
         <h3>Trial</h3>
         <div class="p-desc">Pilot with one department or faculty</div>
         <div class="p-amount">Free</div>
@@ -380,7 +401,7 @@
         <a href="#demo" class="btn ghost">Start a pilot</a>
       </div>
 
-      <div class="price-card featured">
+      <div class="price-card featured" data-reveal>
         <h3>Standard</h3>
         <div class="p-desc">Whole-institution rollout</div>
         <div class="p-amount">£<span class="mono">18,000</span></div>
@@ -395,7 +416,7 @@
         <a href="#demo" class="btn primary">Book a demo</a>
       </div>
 
-      <div class="price-card">
+      <div class="price-card" data-reveal>
         <h3>Enterprise</h3>
         <div class="p-desc">Multi-campus / group institutions</div>
         <div class="p-amount">Custom</div>
@@ -499,6 +520,37 @@
     setTimeout(()=> t.classList.remove('show'), 3000);
     e.target.reset();
   }
+</script>
+
+
+<script>
+(function(){
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!('IntersectionObserver' in window)) return;
+  var targets = document.querySelectorAll('[data-reveal]');
+  if (!targets.length) return;
+  document.documentElement.classList.add('reveal-ready');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if (entry.isIntersecting){ entry.target.classList.add('is-visible'); io.unobserve(entry.target); }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  targets.forEach(function(el){ io.observe(el); });
+})();
+</script>
+
+<script>
+  // Live demo of the safeguarding gate: click a pill to see it flip between
+  // "permitted" and "not permitted" — the same toggle a university's careers
+  // team makes for real when approving a business's access.
+  document.querySelectorAll('[data-gate-row] button.permit-pill').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var nowAllowed = !btn.classList.contains('allow');
+      btn.classList.toggle('allow', nowAllowed);
+      btn.classList.toggle('deny', !nowAllowed);
+      btn.setAttribute('aria-pressed', String(nowAllowed));
+    });
+  });
 </script>
 
 </body>

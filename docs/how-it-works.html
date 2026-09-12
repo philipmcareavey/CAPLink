@@ -35,6 +35,21 @@
     transition:top .15s ease;
   }
   .skip-link:focus{ top:12px; }
+
+  /* ===== Scroll reveal — progressive enhancement: content is visible by default in CSS;
+     script.js only ADDS the fade/slide animation once JS confirms it can run one. Respects
+     prefers-reduced-motion (motion is skipped entirely, content just appears). ===== */
+  .reveal-ready [data-reveal]{ opacity:0; transform:translateY(16px); transition:opacity .6s ease, transform .6s ease; }
+  .reveal-ready [data-reveal].is-visible{ opacity:1; transform:none; }
+  .reveal-ready [data-reveal]:nth-child(2){ transition-delay:.08s; }
+  .reveal-ready [data-reveal]:nth-child(3){ transition-delay:.16s; }
+  .reveal-ready [data-reveal]:nth-child(4){ transition-delay:.24s; }
+  .reveal-ready [data-reveal]:nth-child(5){ transition-delay:.32s; }
+  .reveal-ready [data-reveal]:nth-child(6){ transition-delay:.4s; }
+  @media (prefers-reduced-motion: reduce){
+    .reveal-ready [data-reveal]{ transition:none !important; opacity:1 !important; transform:none !important; }
+  }
+
   a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
   textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible{
     outline:2px solid var(--ink); outline-offset:2px; border-radius:2px;
@@ -88,6 +103,48 @@
   }
   .step h3{ font-size:16px; margin-bottom:6px; }
   .step p{ font-size:14px; color:var(--ink-soft); line-height:1.55; margin:0; }
+
+  /* ===== Mini interactive demos (matching flow / milestone escrow) ===== */
+  .mini-demo{ background:var(--paper-raised); border:1px solid var(--rule); border-radius:6px; padding:26px; margin-top:28px; }
+  .mini-demo-head{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+  .mini-demo-head h3{ font-size:16px; margin:0; }
+  .btn.small{ padding:8px 16px; font-size:13px; }
+
+  .matching-demo{ display:grid; grid-template-columns:1fr auto 1fr; gap:20px; align-items:center; }
+  @media (max-width:600px){ .matching-demo{ grid-template-columns:1fr; justify-items:center; } }
+  .matching-demo-side{ text-align:center; }
+  .matching-demo-label{ font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-soft); font-weight:700; margin-bottom:10px; }
+  .matching-demo-chips{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+  .chip{ font-size:12px; padding:5px 11px; border-radius:100px; background:var(--paper); border:1px solid var(--rule); color:var(--ink-soft); }
+  .matching-demo-dial{ position:relative; width:72px; height:72px; }
+  .matching-demo-dial svg{ transform:rotate(-90deg); }
+  .dial-track{ fill:none; stroke:var(--rule); }
+  .dial-fill{ fill:none; stroke:var(--brass); stroke-linecap:round; transition:stroke-dashoffset 1.1s ease; }
+  .matching-demo-pct{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:14px; color:var(--ink); }
+  .matching-demo-reasons{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:20px; min-height:30px; }
+  .matching-demo-reasons .reason-chip{
+    font-size:12px; padding:6px 12px; border-radius:100px; background:var(--moss-soft); color:var(--moss); font-weight:600;
+    opacity:0; transform:translateY(6px); transition:opacity .4s ease, transform .4s ease;
+  }
+  .matching-demo-reasons .reason-chip.show{ opacity:1; transform:none; }
+
+  .escrow-steps{ list-style:none; display:flex; margin:0 0 18px; padding:0; }
+  .escrow-step{ flex:1; position:relative; text-align:center; }
+  .escrow-step::before{ content:""; position:absolute; top:9px; left:-50%; width:100%; height:2px; background:var(--rule); z-index:0; transition:background .3s ease; }
+  .escrow-step:first-child::before{ display:none; }
+  .escrow-step.active::before, .escrow-step.done::before{ background:var(--brass); }
+  .escrow-dot{
+    position:relative; z-index:1; display:block; width:20px; height:20px; margin:0 auto 8px; border-radius:50%;
+    background:var(--paper-raised); border:2px solid var(--rule); transition:background .3s ease, border-color .3s ease;
+  }
+  .escrow-step.active .escrow-dot, .escrow-step.done .escrow-dot{ border-color:var(--brass); background:var(--brass); }
+  .escrow-label{ font-size:12px; font-weight:600; color:var(--ink-soft); transition:color .3s ease; }
+  .escrow-step.active .escrow-label, .escrow-step.done .escrow-label{ color:var(--ink); }
+  .escrow-status{ font-size:13.5px; color:var(--ink-soft); text-align:center; margin:0; min-height:20px; }
+
+  @media (prefers-reduced-motion: reduce){
+    .dial-fill, .matching-demo-reasons .reason-chip, .escrow-step::before, .escrow-dot, .escrow-label{ transition:none !important; }
+  }
 
   /* ===== Footer ===== */
   footer{ border-top:1px solid var(--rule); padding:48px 0 28px; }
@@ -148,43 +205,76 @@
         <p>Every step below happens inside CAPLink — nothing is negotiated privately, and payment is never dependent on trust alone.</p>
       </div>
       <ol class="step-list">
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>See matched project briefs</h3>
             <p>Your feed shows paid project briefs matched to the skills, interests and availability on your profile — restricted to your own university and year group's approved businesses only.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Apply with a short cover note</h3>
             <p>Apply directly to a brief that fits. The business sees your profile, your relevant skills, and how closely you match what they asked for.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Agree scope and milestones</h3>
             <p>If the business wants to go ahead, you agree the work as a set of milestones — each with its own description and payment amount — before anything starts.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Do the work</h3>
             <p>You complete each milestone and submit it for review inside the platform. Messaging with the business also runs through CAPLink.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Get paid through the platform</h3>
             <p>Once a milestone is approved, payment is released to you through CAPLink — not paid to you privately, and not dependent on the business's own invoicing process.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Build a reputation from completed work</h3>
             <p>Once work is complete, both sides leave each other a rating. Reputation from real completed work carries forward to your next application.</p>
           </div>
         </li>
       </ol>
+
+      <div class="mini-demo" data-reveal>
+        <div class="mini-demo-head">
+          <h3>See it in action</h3>
+          <button type="button" class="btn ghost small" data-demo-play="matching">Show me how matching works</button>
+        </div>
+        <div class="matching-demo">
+          <div class="matching-demo-side">
+            <div class="matching-demo-label">Student profile</div>
+            <div class="matching-demo-chips">
+              <span class="chip">Python</span>
+              <span class="chip">SQL</span>
+              <span class="chip">Data viz</span>
+            </div>
+          </div>
+          <div class="matching-demo-dial">
+            <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
+              <circle class="dial-track" cx="36" cy="36" r="30" stroke-width="6"></circle>
+              <circle class="dial-fill" id="matching-dial-fill" cx="36" cy="36" r="30" stroke-width="6" stroke-dasharray="188.5" stroke-dashoffset="188.5"></circle>
+            </svg>
+            <span class="matching-demo-pct" id="matching-demo-pct">0%</span>
+          </div>
+          <div class="matching-demo-side">
+            <div class="matching-demo-label">Project brief</div>
+            <div class="matching-demo-chips">
+              <span class="chip">Python</span>
+              <span class="chip">SQL</span>
+              <span class="chip">Excel</span>
+            </div>
+          </div>
+        </div>
+        <div class="matching-demo-reasons" id="matching-demo-reasons" aria-live="polite"></div>
+      </div>
     </div>
   </section>
 
@@ -196,43 +286,59 @@
         <p>CAPLink is built for local, practical project work — not a general job board.</p>
       </div>
       <ol class="step-list">
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Get approved by a licensed university</h3>
             <p>Before you can reach any student, a university's careers team reviews and approves your business for a specific year group and subject area. This is the safeguarding step every business goes through — see <a href="index.html#safeguarding">the university safeguarding model</a>.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Post a project brief</h3>
             <p>Describe the work, the skills it needs, the expected duration, and the rate — same as any other job posting, but scoped to a single project rather than an ongoing role.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Search locally by postcode radius</h3>
             <p>Where relevant, find students studying near your business by postcode radius, filtered by how relevant their degree is to the type of work you need.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Review matched students</h3>
             <p>See a shortlist of students matched to your brief by skills and relevance, and review anyone who's applied directly, before making a decision.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Agree scope and price</h3>
             <p>Set out the work as milestones with a description and payment amount for each, agreed with the student before work starts.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Pay through the platform</h3>
             <p>Review each completed milestone and release payment through CAPLink. You're never asked to pay a student privately or outside the platform.</p>
           </div>
         </li>
       </ol>
+
+      <div class="mini-demo" data-reveal>
+        <div class="mini-demo-head">
+          <h3>See it in action</h3>
+          <button type="button" class="btn ghost small" data-demo-play="escrow">Play the milestone flow</button>
+        </div>
+        <div class="escrow-demo">
+          <ol class="escrow-steps" id="escrow-steps">
+            <li class="escrow-step active"><span class="escrow-dot"></span><span class="escrow-label">Agreed</span></li>
+            <li class="escrow-step"><span class="escrow-dot"></span><span class="escrow-label">Submitted</span></li>
+            <li class="escrow-step"><span class="escrow-dot"></span><span class="escrow-label">Approved</span></li>
+            <li class="escrow-step"><span class="escrow-dot"></span><span class="escrow-label">Paid</span></li>
+          </ol>
+          <p class="escrow-status" id="escrow-status" aria-live="polite">Milestone agreed — payment held, not yet released.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -244,37 +350,37 @@
         <p>CAPLink is licensed per institution, the way you'd license any other careers or student-records software — not sold per student, and not an open marketplace your students are exposed to by default.</p>
       </div>
       <ol class="step-list">
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>License CAPLink for your institution</h3>
             <p>Your institution licenses a branded portal for your own student body. See <a href="index.html#pricing">licensing options</a> for how this is structured.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Onboard your student cohort</h3>
             <p>Students register and verify automatically against your institutional email domain — no manual ID checks needed at sign-up.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Set safeguarding and access controls</h3>
             <p>Every business that wants to reach your students requests access. Your careers team decides, per business, exactly which year groups and subject areas they can see — nothing is visible by default.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Review and approve individual requests</h3>
             <p>Approve, restrict or reject each business's request, with notes only your own team can see. A business can be approved for one year group and one subject area without being approved for any other.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Students apply and work, safely inside the same controls</h3>
             <p>Everything downstream — matching, applying, messaging, payment — happens only within the access your team has already set.</p>
           </div>
         </li>
-        <li class="step">
+        <li class="step" data-reveal>
           <div>
             <h3>Receive outcome reporting</h3>
             <p>Get reporting on placements, sectors and outcomes specific to your own students — usable as real evidence for your institution's own accountability.</p>
@@ -335,6 +441,120 @@
     <p><!-- TODO: confirm registered company name --> is a company registered in England and Wales, company number <!-- TODO -->, registered office <!-- TODO -->. ICO registration reference: <!-- TODO -->.</p>
   </div>
 </footer>
+
+
+<script>
+(function(){
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!('IntersectionObserver' in window)) return;
+  var targets = document.querySelectorAll('[data-reveal]');
+  if (!targets.length) return;
+  document.documentElement.classList.add('reveal-ready');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if (entry.isIntersecting){ entry.target.classList.add('is-visible'); io.unobserve(entry.target); }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  targets.forEach(function(el){ io.observe(el); });
+})();
+</script>
+
+<script>
+  // Matching flow demo (students track): fills the match dial and reveals
+  // reason chips one at a time, on click rather than autoplay — so it never
+  // competes with someone actually reading the steps above it.
+  (function(){
+    var btn = document.querySelector('[data-demo-play="matching"]');
+    if (!btn) return;
+    var fill = document.getElementById('matching-dial-fill');
+    var pctEl = document.getElementById('matching-demo-pct');
+    var reasonsEl = document.getElementById('matching-demo-reasons');
+    var circumference = 2 * Math.PI * 30;
+    var reasons = ['Python match', 'SQL match', 'Available this week'];
+    var target = 82;
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var playing = false;
+
+    btn.addEventListener('click', function(){
+      if (playing) return;
+      playing = true;
+      reasonsEl.innerHTML = '';
+      fill.style.strokeDashoffset = String(circumference);
+      pctEl.textContent = '0%';
+
+      var finalOffset = circumference * (1 - target / 100);
+      if (reduceMotion) {
+        fill.style.strokeDashoffset = String(finalOffset);
+        pctEl.textContent = target + '%';
+      } else {
+        requestAnimationFrame(function(){ fill.style.strokeDashoffset = String(finalOffset); });
+        var start = null;
+        var duration = 1100;
+        (function step(ts){
+          if (!start) start = ts;
+          var progress = Math.min((ts - start) / duration, 1);
+          pctEl.textContent = Math.round(progress * target) + '%';
+          if (progress < 1) requestAnimationFrame(step);
+        })(performance.now());
+      }
+
+      reasons.forEach(function(text, i){
+        var delay = reduceMotion ? 0 : 500 + i * 350;
+        setTimeout(function(){
+          var chip = document.createElement('span');
+          chip.className = 'reason-chip';
+          chip.textContent = text;
+          reasonsEl.appendChild(chip);
+          requestAnimationFrame(function(){ chip.classList.add('show'); });
+        }, delay);
+      });
+
+      setTimeout(function(){ playing = false; }, reduceMotion ? 0 : 500 + reasons.length * 350 + 200);
+    });
+  })();
+
+  // Milestone escrow demo (businesses track): steps through Agreed →
+  // Submitted → Approved → Paid on click, updating the status line each time.
+  (function(){
+    var btn = document.querySelector('[data-demo-play="escrow"]');
+    if (!btn) return;
+    var steps = document.querySelectorAll('#escrow-steps .escrow-step');
+    var statusEl = document.getElementById('escrow-status');
+    var messages = [
+      'Milestone agreed — payment held, not yet released.',
+      'Student submits the completed milestone for review.',
+      'Business approves the submitted work.',
+      'Payment released to the student — held funds captured and paid out.'
+    ];
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var playing = false;
+
+    function setStage(i){
+      steps.forEach(function(step, idx){
+        step.classList.toggle('active', idx === i);
+        step.classList.toggle('done', idx < i);
+      });
+      statusEl.textContent = messages[i];
+    }
+
+    btn.addEventListener('click', function(){
+      if (playing) return;
+      playing = true;
+      if (reduceMotion) {
+        setStage(steps.length - 1);
+        playing = false;
+        return;
+      }
+      var i = 0;
+      setStage(0);
+      var interval = setInterval(function(){
+        i++;
+        if (i >= steps.length){ clearInterval(interval); playing = false; return; }
+        setStage(i);
+      }, 900);
+    });
+  })();
+</script>
 
 </body>
 </html>

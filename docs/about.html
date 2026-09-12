@@ -36,6 +36,21 @@
     transition:top .15s ease;
   }
   .skip-link:focus{ top:12px; }
+
+  /* ===== Scroll reveal — progressive enhancement: content is visible by default in CSS;
+     script.js only ADDS the fade/slide animation once JS confirms it can run one. Respects
+     prefers-reduced-motion (motion is skipped entirely, content just appears). ===== */
+  .reveal-ready [data-reveal]{ opacity:0; transform:translateY(16px); transition:opacity .6s ease, transform .6s ease; }
+  .reveal-ready [data-reveal].is-visible{ opacity:1; transform:none; }
+  .reveal-ready [data-reveal]:nth-child(2){ transition-delay:.08s; }
+  .reveal-ready [data-reveal]:nth-child(3){ transition-delay:.16s; }
+  .reveal-ready [data-reveal]:nth-child(4){ transition-delay:.24s; }
+  .reveal-ready [data-reveal]:nth-child(5){ transition-delay:.32s; }
+  .reveal-ready [data-reveal]:nth-child(6){ transition-delay:.4s; }
+  @media (prefers-reduced-motion: reduce){
+    .reveal-ready [data-reveal]{ transition:none !important; opacity:1 !important; transform:none !important; }
+  }
+
   a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
   textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible{
     outline:2px solid var(--ink); outline-offset:2px; border-radius:2px;
@@ -213,29 +228,29 @@
 
       <div class="split">
         <div>
-          <div class="concern-card">
+          <div class="concern-card" data-reveal>
             <div class="k">Students</div>
             <p>Employers increasingly expect demonstrable work experience before graduation, but paid, relevant, short-term project work is hard to find — most of what's advertised is either unpaid, generic, or requires experience the student doesn't have yet.</p>
           </div>
-          <div class="concern-card">
+          <div class="concern-card" data-reveal>
             <div class="k">Local businesses</div>
             <p>Small and mid-sized businesses often have real project work — a data cleanup, a landing page, a piece of research — that doesn't justify a full hire, but they have no efficient, trustworthy way to find and brief a student for it.</p>
           </div>
-          <div class="concern-card">
+          <div class="concern-card" data-reveal>
             <div class="k">Universities</div>
             <p>Careers services are increasingly expected to evidence graduate outcomes, not just run generic listings boards — but most existing platforms give a university no visibility, no control over which employers reach which students, and no reporting back.</p>
           </div>
         </div>
         <div>
-          <div class="concern-card resolved">
+          <div class="concern-card resolved" data-reveal>
             <div class="k">How CAPLink addresses it</div>
             <p>Students apply to real, paid project briefs matched to their skills and interests, build a reputation from completed work, and get paid through the platform on milestone approval — not on trust.</p>
           </div>
-          <div class="concern-card resolved">
+          <div class="concern-card resolved" data-reveal>
             <div class="k">How CAPLink addresses it</div>
             <p>Businesses post a brief, search for students by postcode radius, review a shortlist matched to the work, and agree scope and price before anything starts — all inside one licensed platform, not a cold-outreach process.</p>
           </div>
-          <div class="concern-card resolved">
+          <div class="concern-card resolved" data-reveal>
             <div class="k">How CAPLink addresses it</div>
             <p>A university licenses CAPLink for its own student body, controls exactly which businesses can reach which year groups, and receives outcome reporting it can use for its own accountability — see <a href="how-it-works.html">how it works</a> for the full flow.</p>
           </div>
@@ -265,17 +280,17 @@
         <h2>Not a recruitment agency. Not a temp desk.</h2>
       </div>
       <div class="feature-grid">
-        <div class="feature">
+        <div class="feature" data-reveal>
           <div class="f-num">01</div>
           <h3>Not a recruitment agency</h3>
           <p>CAPLink doesn't source, shortlist or place candidates on a business's behalf, and doesn't charge a placement fee for doing so. Students apply directly to briefs; businesses review and decide directly.</p>
         </div>
-        <div class="feature">
+        <div class="feature" data-reveal>
           <div class="f-num">02</div>
           <h3>Not a temp/staffing desk</h3>
           <p>CAPLink is not the employer of record for self-employed-rail work, and doesn't manage shifts, rotas or day-to-day supervision. It's the platform the agreement, the work, and the payment run through.</p>
         </div>
-        <div class="feature">
+        <div class="feature" data-reveal>
           <div class="f-num">03</div>
           <h3>Not an open marketplace</h3>
           <p>No business reaches any student until a university has approved that business for that student's year group and subject area. See the safeguarding model on our <a href="index.html#safeguarding">university page</a>.</p>
@@ -345,6 +360,23 @@
     <p><!-- TODO: confirm registered company name --> is a company registered in England and Wales, company number <!-- TODO -->, registered office <!-- TODO -->. ICO registration reference: <!-- TODO -->.</p>
   </div>
 </footer>
+
+
+<script>
+(function(){
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!('IntersectionObserver' in window)) return;
+  var targets = document.querySelectorAll('[data-reveal]');
+  if (!targets.length) return;
+  document.documentElement.classList.add('reveal-ready');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if (entry.isIntersecting){ entry.target.classList.add('is-visible'); io.unobserve(entry.target); }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  targets.forEach(function(el){ io.observe(el); });
+})();
+</script>
 
 </body>
 </html>
