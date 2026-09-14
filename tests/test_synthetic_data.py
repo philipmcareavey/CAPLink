@@ -96,3 +96,28 @@ def test_generate_businesses_favours_the_first_university_passed():
     # Not every business needs to partner with the primary university, but
     # most should, given it's weighted first.
     assert covering_primary >= len(businesses) * 0.6
+
+
+def test_generate_projects_only_targets_universities_and_bands_the_business_is_approved_for():
+    rng = sd.random.Random(sd.RNG_SEED)
+    universities = [_FakeUniversity("uni-1", "manchester.ac.uk"), _FakeUniversity("uni-2", "leeds.ac.uk")]
+    businesses = sd.generate_businesses(rng, universities, used_emails=set())
+
+    projects = sd.generate_projects(rng, businesses, target_count=25)
+
+    assert 20 <= len(projects) <= 30  # "around" target_count, template pool size can nudge it
+    for project in projects:
+        business = businesses[project["business_index"]]
+        approved_uni_ids = {a["university_id"] for a in business["agreements"]}
+        approved_bands = set().union(*(set(a["allowed_bands"]) for a in business["agreements"]))
+        assert set(project["target_university_ids"]) <= approved_uni_ids
+        assert set(project["target_bands"]) <= approved_bands
+        assert project["category"] == business["category"]
+
+
+def test_generate_projects_is_deterministic_for_a_fixed_seed():
+    universities = [_FakeUniversity("uni-1", "manchester.ac.uk")]
+    businesses = sd.generate_businesses(sd.random.Random(sd.RNG_SEED), universities, used_emails=set())
+    projects_a = sd.generate_projects(sd.random.Random(sd.RNG_SEED), businesses, target_count=20)
+    projects_b = sd.generate_projects(sd.random.Random(sd.RNG_SEED), businesses, target_count=20)
+    assert [p["title"] for p in projects_a] == [p["title"] for p in projects_b]

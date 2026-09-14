@@ -6,7 +6,7 @@ same dataset every time — no drift between demo runs.
 """
 import random
 
-from app.models.enums import StudentBand
+from app.models.enums import ProjectCategory, StudentBand
 
 RNG_SEED = 20260913
 
@@ -244,3 +244,47 @@ def generate_businesses(rng: random.Random, universities: list, used_emails: set
             "agreements": agreements,
         })
     return businesses
+
+
+def generate_projects(rng: random.Random, businesses: list[dict], target_count: int) -> list[dict]:
+    """Returns roughly `target_count` project dicts, distributed across
+    `businesses` (each business posts 1-2), every one targeting only
+    university/band combinations that business's own generated agreements
+    actually approve — so every generated project is guaranteed postable
+    without a 403."""
+    projects = []
+    business_indices = list(range(len(businesses)))
+    rng.shuffle(business_indices)
+
+    while len(projects) < target_count:
+        for business_index in business_indices:
+            if len(projects) >= target_count:
+                break
+            business = businesses[business_index]
+            templates = PROJECT_TEMPLATES_BY_CATEGORY[business["category"]]
+            template = rng.choice(templates)
+
+            # Restrict to a random non-empty subset of this business's own
+            # approved universities/bands — never targets anything it isn't
+            # actually approved for.
+            approved_universities = [a["university_id"] for a in business["agreements"]]
+            num_target_unis = rng.randint(1, len(approved_universities))
+            target_university_ids = rng.sample(approved_universities, num_target_unis)
+
+            approved_bands = sorted(set().union(*(set(a["allowed_bands"]) for a in business["agreements"])))
+            num_target_bands = rng.randint(1, len(approved_bands))
+            target_bands = rng.sample(approved_bands, num_target_bands)
+
+            projects.append({
+                "business_index": business_index,
+                "title": template["title"],
+                "description": template["description"],
+                "category": ProjectCategory(business["category"]),
+                "required_skills": list(template["required_skills"]),
+                "duration_label": template["duration_label"],
+                "estimated_hours": template["estimated_hours"],
+                "hourly_rate_gbp": template["hourly_rate_gbp"],
+                "target_university_ids": target_university_ids,
+                "target_bands": target_bands,
+            })
+    return projects
