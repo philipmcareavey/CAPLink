@@ -1,0 +1,10 @@
+# Optional, heavy dependency for the matching engine's semantic-similarity
+# factor (app/services/matching/embeddings.py) — pulls in PyTorch, by far
+# the largest install this repo has. Kept out of requirements.txt the same
+# way requirements-integrations.txt keeps firebase-admin out: every
+# embedding-aware code path degrades gracefully to the original TF-IDF
+# text-similarity behaviour when this isn't installed, so it's genuinely
+# optional, not a silent requirement.
+#
+# Install with: pip install -r requirements.txt -r requirements-ml.txt
+sentence-transformers>=3.0.0
