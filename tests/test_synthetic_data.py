@@ -70,3 +70,29 @@ def test_generate_students_is_deterministic_for_a_fixed_seed():
     students_b = sd.generate_students(sd.random.Random(sd.RNG_SEED), universities, count=10, used_emails=set())
     assert [s["email"] for s in students_a] == [s["email"] for s in students_b]
     assert [s["skills"] for s in students_a] == [s["skills"] for s in students_b]
+
+
+def test_generate_businesses_returns_one_entry_per_template_with_at_least_one_agreement():
+    rng = sd.random.Random(sd.RNG_SEED)
+    universities = [_FakeUniversity("uni-1", "manchester.ac.uk"), _FakeUniversity("uni-2", "leeds.ac.uk")]
+    businesses = sd.generate_businesses(rng, universities, used_emails=set())
+
+    assert len(businesses) == len(sd.BUSINESS_TEMPLATES)
+    for b in businesses:
+        assert 1 <= len(b["agreements"]) <= len(universities)
+        for agreement in b["agreements"]:
+            assert agreement["university_id"] in {"uni-1", "uni-2"}
+            assert b["category"] in agreement["allowed_categories"]
+            assert len(agreement["allowed_bands"]) >= 1
+
+
+def test_generate_businesses_favours_the_first_university_passed():
+    rng = sd.random.Random(sd.RNG_SEED)
+    universities = [_FakeUniversity("uni-primary", "manchester.ac.uk"), _FakeUniversity("uni-2", "leeds.ac.uk"), _FakeUniversity("uni-3", "sheffield.ac.uk")]
+    businesses = sd.generate_businesses(rng, universities, used_emails=set())
+    covering_primary = sum(
+        1 for b in businesses if any(a["university_id"] == "uni-primary" for a in b["agreements"])
+    )
+    # Not every business needs to partner with the primary university, but
+    # most should, given it's weighted first.
+    assert covering_primary >= len(businesses) * 0.6

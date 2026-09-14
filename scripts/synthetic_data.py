@@ -198,3 +198,49 @@ def generate_students(rng: random.Random, universities: list, count: int, used_e
             "on_time_rate": round(rng.uniform(0.85, 1.0), 2) if has_track_record else 0.0,
         })
     return students
+
+
+_AGREEMENT_BANDS = [b.value for b in [StudentBand.YEAR_2, StudentBand.YEAR_3, StudentBand.YEAR_4_PLUS, StudentBand.POSTGRAD_TAUGHT]]
+
+
+def generate_businesses(rng: random.Random, universities: list, used_emails: set[str]) -> list[dict]:
+    """Returns one dict per BUSINESS_TEMPLATES entry, each with an
+    'agreements' list describing 1-3 partner universities. The first
+    university in `universities` is weighted to appear in most
+    businesses' agreements (pass the demo's home university first)."""
+    businesses = []
+    for template in BUSINESS_TEMPLATES:
+        first, last = rng.choice(FIRST_NAMES), rng.choice(LAST_NAMES)
+        num_partners = rng.choices([1, 2, 3], weights=[0.3, 0.4, 0.3], k=1)[0]
+        num_partners = min(num_partners, len(universities))
+
+        partners = [universities[0]] if rng.random() < 0.7 else []
+        remaining = [u for u in universities if u not in partners]
+        rng.shuffle(remaining)
+        for uni in remaining:
+            if len(partners) >= num_partners:
+                break
+            partners.append(uni)
+        if not partners:  # the 30% roll above skipped the primary and nothing else got picked
+            partners = [rng.choice(universities)]
+
+        agreements = [
+            {
+                "university_id": uni.id,
+                "allowed_bands": list(_AGREEMENT_BANDS),
+                "allowed_categories": [template["category"]],
+            }
+            for uni in partners
+        ]
+
+        company_slug = template["company_name"].lower().replace(" ", "-").replace("&", "and").replace(".", "")
+        businesses.append({
+            "email": unique_email(rng, "hello", company_slug, "example.com", used_emails),
+            "full_name": f"{first} {last}",
+            "company_name": template["company_name"],
+            "industry": template["industry"],
+            "category": template["category"],
+            "company_registration_number": str(rng.randint(10_000_000, 99_999_999)),
+            "agreements": agreements,
+        })
+    return businesses
