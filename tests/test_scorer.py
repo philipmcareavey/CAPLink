@@ -127,3 +127,33 @@ def test_custom_weights_are_respected():
     # Weighting rate compatibility much more heavily should punish the
     # over-budget student harder than the default weighting does.
     assert rate_heavy_result.score < default_result.score
+
+
+def test_text_similarity_uses_cached_embeddings_when_present():
+    student = _make_student(skills=["Python"], modules=[], degree_title="BSc Data Science")
+    project = _make_project(required_skills=["Python"])
+    student.embedding = [1.0, 0.0]
+    project.embedding = [1.0, 0.0]  # identical vector -> perfect embedding similarity
+
+    result = score_student_against_project(student, project)
+    text_factor = next(f for f in result.breakdown if f.name == "text_similarity")
+    assert text_factor.raw_score == 1.0
+    assert "semantic" in text_factor.detail.lower()
+
+
+def test_text_similarity_falls_back_to_tfidf_when_no_embedding_cached():
+    student = _make_student()  # embedding is None by default
+    project = _make_project()  # embedding is None by default
+    result = score_student_against_project(student, project)
+    text_factor = next(f for f in result.breakdown if f.name == "text_similarity")
+    assert "semantic" not in text_factor.detail.lower()
+    assert 0.0 <= text_factor.raw_score <= 1.0
+
+
+def test_text_similarity_falls_back_when_only_one_side_has_an_embedding():
+    student = _make_student()
+    student.embedding = [1.0, 0.0]
+    project = _make_project()  # no embedding
+    result = score_student_against_project(student, project)
+    text_factor = next(f for f in result.breakdown if f.name == "text_similarity")
+    assert "semantic" not in text_factor.detail.lower()  # partial data -> fall back, don't guess

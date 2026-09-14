@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.models.project import Project
 from app.models.user import StudentProfile
-from app.services.matching import text_similarity
+from app.services.matching import embeddings, text_similarity
 from app.services.matching.collaborative import AcceptedPairs, collaborative_score, fetch_accepted_pairs_by_category
 from app.services.matching.config import ALGORITHM_VERSION, DEFAULT_WEIGHTS, MatchWeights
 from app.services.matching.degree import degree_relevance_score
@@ -42,14 +42,6 @@ class MatchResult:
     reasons: list[str]                  # top human-readable reasons, for UI chips
     breakdown: list[ScoreFactor] = field(default_factory=list)   # full explainability detail
     algorithm_version: str = ALGORITHM_VERSION
-
-
-def _student_corpus_text(student: StudentProfile) -> str:
-    return " ".join([*student.skills, *student.modules, student.degree_title])
-
-
-def _project_corpus_text(project: Project) -> str:
-    return " ".join([project.title, project.description, *project.required_skills])
 
 
 def score_student_against_project(
@@ -85,11 +77,25 @@ def score_student_against_project(
     ))
 
     # --- Free-text similarity (project brief vs student's declared background) ---
-    text_raw = text_similarity.cosine_similarity(_project_corpus_text(project), _student_corpus_text(student), idf)
-    factors.append(ScoreFactor(
-        "text_similarity", text_raw, weight_map["text_similarity"], 0.0,
-        "Project brief closely matches student's background" if text_raw >= 0.35 else "Limited textual overlap",
-    ))
+    # Prefers cached semantic embeddings (Workstream 9.b) when BOTH sides
+    # have one; falls back to the original TF-IDF cosine similarity
+    # otherwise (model unavailable when either row was saved, or a row
+    # predating this feature) — never a hard requirement, never a crash.
+    if student.embedding and project.embedding:
+        text_raw = embeddings.embedding_similarity_score(student.embedding, project.embedding)
+        text_detail = (
+            "Project brief closely matches student's background (semantic match)"
+            if text_raw >= 0.35 else "Limited semantic overlap with student's background"
+        )
+    else:
+        text_raw = text_similarity.cosine_similarity(
+            embeddings.project_corpus_text(project), embeddings.student_corpus_text(student), idf
+        )
+        text_detail = (
+            "Project brief closely matches student's background"
+            if text_raw >= 0.35 else "Limited textual overlap"
+        )
+    factors.append(ScoreFactor("text_similarity", text_raw, weight_map["text_similarity"], 0.0, text_detail))
 
     # --- Rate compatibility ---
     rate_raw = rate_compatibility_score(student.hourly_rate_expectation_gbp, project.hourly_rate_gbp)
@@ -166,7 +172,7 @@ def rank_projects_for_student(
     """Batch-scores and ranks projects for one student. Builds a shared IDF
     table across the candidate batch so text_similarity reflects how
     distinctive a term is within THIS set of projects, not just raw overlap."""
-    corpus = [_project_corpus_text(p) for p in projects] + [_student_corpus_text(student)]
+    corpus = [embeddings.project_corpus_text(p) for p in projects] + [embeddings.student_corpus_text(student)]
     idf = text_similarity.build_idf(corpus)
     collab_cache = fetch_accepted_pairs_by_category(db, (p.category for p in projects)) if db is not None else {}
 
@@ -190,7 +196,7 @@ def rank_students_for_project(
     db: Optional[Session] = None,
     weights: MatchWeights = DEFAULT_WEIGHTS,
 ) -> list[tuple[StudentProfile, MatchResult]]:
-    corpus = [_student_corpus_text(s) for s in students] + [_project_corpus_text(project)]
+    corpus = [embeddings.student_corpus_text(s) for s in students] + [embeddings.project_corpus_text(project)]
     idf = text_similarity.build_idf(corpus)
     # Every candidate here shares the same project (and so the same
     # category) — one query up front instead of once per student.

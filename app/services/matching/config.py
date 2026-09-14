@@ -30,7 +30,11 @@ class MatchWeights:
 
 DEFAULT_WEIGHTS = MatchWeights()
 
-ALGORITHM_VERSION = "rules_v2"
+# Bumped from rules_v2 to hybrid_v3: the text_similarity factor now prefers
+# a cached semantic-embedding score over TF-IDF cosine similarity whenever
+# both sides of a comparison have one (Workstream 9.b) — every other
+# factor and the overall weighting scheme is unchanged.
+ALGORITHM_VERSION = "hybrid_v3"
 
 # Keywords used for degree/module <-> project category relevance. Expanded
 # vs. the original single-word list, and split into "strong" (title-level
