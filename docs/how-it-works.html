@@ -81,6 +81,13 @@
 
   .card{ background:var(--paper-raised); border:1px solid var(--rule); border-radius:6px; padding:26px; }
 
+  .sauce{ margin-top:36px; }
+  .sauce h3{ font-size:22px; margin:6px 0 10px; }
+  .sauce-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-top:20px; }
+  .sauce-item p{ margin:8px 0 0; font-size:14px; color:var(--ink-soft); line-height:1.55; }
+  @media (max-width:860px){ .sauce-grid{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:560px){ .sauce-grid{ grid-template-columns:1fr; } }
+
   /* ===== In-page track nav ===== */
   .track-nav{ display:flex; gap:10px; flex-wrap:wrap; padding:18px 0 8px; border-bottom:1px solid var(--rule); margin-bottom:8px; position:sticky; top:57px; background:var(--paper); z-index:30; }
   .track-nav a{
@@ -395,7 +402,38 @@
       <div class="section-head">
         <div class="eyebrow">How matching works</div>
         <h2>Matched by relevance, not by who applies first.</h2>
-        <p>CAPLink matches a student's declared skills, interests and availability against a business's project brief, and factors in a student's reputation from previously completed work. The detail of how that scoring works stays internal — what matters publicly is that it's relevance-based, not a first-come, first-served queue, and that a business always sees why a candidate was suggested to them.</p>
+        <p>CAPLink matches a student's declared skills, interests and availability against a business's project brief, and factors in a student's reputation from previously completed work. We're happy to explain how it thinks — see below — without handing out the exact formula, for the same reason a credit-scoring algorithm doesn't publish its coefficients. What matters publicly is that it's relevance-based, not a first-come, first-served queue, and that a business always sees why a candidate was suggested to them.</p>
+      </div>
+      <div class="sauce" data-reveal>
+        <div class="eyebrow">The nerdy bit</div>
+        <h3>The Secret Sauce (It's Just Maths)</h3>
+        <p>No black box, no mysterious "AI decided" — six plain-English signals, blended and shown to every business as a "why this match?" breakdown. Here's the whole cast:</p>
+        <div class="sauce-grid">
+          <div class="card sauce-item">
+            <strong>Skills overlap</strong>
+            <p>Does the student actually have the skills the brief asks for? We're generous about synonyms — "React.js", "reactjs" and "React" all count the same.</p>
+          </div>
+          <div class="card sauce-item">
+            <strong>Semantic fit</strong>
+            <p>A small language model reads the project brief and the student's background and asks "do these sound like they belong together?" — the same trick behind modern search, just pointed at a much smaller, friendlier problem.</p>
+          </div>
+          <div class="card sauce-item">
+            <strong>Degree relevance</strong>
+            <p>A Data Science degree scores higher against a data project than, say, Fine Art — but adjacent subjects (Economics, Maths) still get real, partial credit. Nobody's shut out for a technicality.</p>
+          </div>
+          <div class="card sauce-item">
+            <strong>Rate &amp; availability fit</strong>
+            <p>Simple but essential: is the budget realistic for this student, and do their hours actually add up to the project's timeline?</p>
+          </div>
+          <div class="card sauce-item">
+            <strong>Reputation</strong>
+            <p>A statistically-shrunk rating — one 5-star review from a brand-new student doesn't outrank a steady 4.6 average across a dozen completed projects. Small samples don't get to shout the loudest.</p>
+          </div>
+          <div class="card sauce-item">
+            <strong>Collaborative signal</strong>
+            <p>Once enough projects have happened, the engine also notices "students like this have done well on projects like that" — quietly learning from the platform's own history, category by category.</p>
+          </div>
+        </div>
       </div>
       <div class="cta-row">
         <a href="faq.html" class="btn ghost">Read the FAQ</a>
