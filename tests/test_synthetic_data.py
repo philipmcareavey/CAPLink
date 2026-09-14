@@ -35,3 +35,38 @@ def test_unique_email_avoids_collisions():
     second = sd.unique_email(None, "Aisha", "Rahman", "manchester.ac.uk", used)
     assert first != second
     assert first in used and second in used
+
+
+from app.models.enums import StudentBand
+
+
+class _FakeUniversity:
+    def __init__(self, id_, domain):
+        self.id = id_
+        self.domain = domain
+
+
+def test_generate_students_returns_the_requested_count_with_valid_fields():
+    rng = sd.random.Random(sd.RNG_SEED)
+    universities = [_FakeUniversity("uni-1", "manchester.ac.uk"), _FakeUniversity("uni-2", "leeds.ac.uk")]
+    used_emails: set[str] = set()
+
+    students = sd.generate_students(rng, universities, count=40, used_emails=used_emails)
+
+    assert len(students) == 40
+    emails = [s["email"] for s in students]
+    assert len(emails) == len(set(emails))  # no duplicates
+    for s in students:
+        assert s["university_id"] in {"uni-1", "uni-2"}
+        assert s["degree_title"] in {title for title, _ in sd.DEGREE_POOL}
+        assert isinstance(s["band"], StudentBand)
+        assert 1 <= len(s["skills"]) <= 6
+        assert 0.0 <= s.get("average_rating", 0.0) <= 5.0
+
+
+def test_generate_students_is_deterministic_for_a_fixed_seed():
+    universities = [_FakeUniversity("uni-1", "manchester.ac.uk")]
+    students_a = sd.generate_students(sd.random.Random(sd.RNG_SEED), universities, count=10, used_emails=set())
+    students_b = sd.generate_students(sd.random.Random(sd.RNG_SEED), universities, count=10, used_emails=set())
+    assert [s["email"] for s in students_a] == [s["email"] for s in students_b]
+    assert [s["skills"] for s in students_a] == [s["skills"] for s in students_b]

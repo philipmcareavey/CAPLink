@@ -6,6 +6,8 @@ same dataset every time — no drift between demo runs.
 """
 import random
 
+from app.models.enums import StudentBand
+
 RNG_SEED = 20260913
 
 FIRST_NAMES = [
@@ -133,3 +135,66 @@ def unique_email(rng: "random.Random | None", first: str, last: str, domain: str
     email = f"{first.lower()}.{last.lower()}{n}@{domain}"
     used.add(email)
     return email
+
+
+# Weighted toward the bands most agreements actually grant access to,
+# so most generated students are visible to most generated businesses —
+# a handful of early-years students still exist for realism, they just
+# won't show up on every shortlist.
+_BAND_WEIGHTS = [
+    (StudentBand.YEAR_1, 0.05),
+    (StudentBand.YEAR_2, 0.20),
+    (StudentBand.YEAR_3, 0.30),
+    (StudentBand.YEAR_4_PLUS, 0.20),
+    (StudentBand.POSTGRAD_TAUGHT, 0.20),
+    (StudentBand.POSTGRAD_RESEARCH, 0.05),
+]
+
+
+def _weighted_choice(rng: random.Random, weighted_options: list[tuple]):
+    options, weights = zip(*weighted_options)
+    return rng.choices(options, weights=weights, k=1)[0]
+
+
+def generate_students(rng: random.Random, universities: list, count: int, used_emails: set[str]) -> list[dict]:
+    """Returns `count` dicts, each shaped for **kwargs into StudentProfile
+    (plus 'full_name' and 'email' for the paired User row) — the caller
+    creates the User, flushes for its id, then builds the StudentProfile
+    from the remaining keys."""
+    students = []
+    for _ in range(count):
+        first = rng.choice(FIRST_NAMES)
+        last = rng.choice(LAST_NAMES)
+        university = rng.choice(universities)
+        degree_title, category = rng.choice(DEGREE_POOL)
+        band = _weighted_choice(rng, _BAND_WEIGHTS)
+
+        pool = SKILLS_BY_CATEGORY[category]
+        num_skills = rng.randint(2, min(5, len(pool)))
+        skills = rng.sample(pool, num_skills)
+        # Small chance of one extra skill from an unrelated category —
+        # real students aren't purely one-dimensional.
+        if rng.random() < 0.2:
+            other_category = rng.choice([c for c in SKILLS_BY_CATEGORY if c != category])
+            skills.append(rng.choice(SKILLS_BY_CATEGORY[other_category]))
+
+        has_track_record = rng.random() < 0.6
+        completed_projects_count = rng.randint(1, 8) if has_track_record else 0
+        average_rating = round(rng.uniform(3.8, 5.0), 1) if has_track_record else 0.0
+
+        students.append({
+            "email": unique_email(rng, first, last, university.domain, used_emails),
+            "full_name": f"{first} {last}",
+            "university_id": university.id,
+            "degree_title": degree_title,
+            "band": band,
+            "modules": rng.sample(pool, min(2, len(pool))),
+            "skills": skills,
+            "hourly_rate_expectation_gbp": round(rng.uniform(15.0, 25.0), 2),
+            "weekly_hours_available": rng.randint(5, 20),
+            "is_id_verified": rng.random() < 0.6,
+            "average_rating": average_rating,
+            "completed_projects_count": completed_projects_count,
+            "on_time_rate": round(rng.uniform(0.85, 1.0), 2) if has_track_record else 0.0,
+        })
+    return students
