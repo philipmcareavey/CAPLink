@@ -51,3 +51,41 @@ def test_project_corpus_text_joins_title_description_and_required_skills():
 
     text = embeddings.project_corpus_text(_FakeProject())
     assert text == "Churn Analysis Find the top churn drivers. Python SQL"
+
+
+def test_load_model_gracefully_degrades_when_model_construction_fails(monkeypatch):
+    """Verify that _load_model() returns None when SentenceTransformer
+    construction fails, not just when the package is missing."""
+    # Clear the cache to force a fresh load attempt
+    embeddings._load_model.cache_clear()
+
+    # Mock SentenceTransformer to raise an exception on construction
+    class FailingSentenceTransformer:
+        def __init__(self, *args, **kwargs):
+            raise OSError("Model download failed: no network available")
+
+    # Monkeypatch the import within the embeddings module
+    import sys
+    original_module = sys.modules.get("sentence_transformers")
+    try:
+        mock_module = type(sys)("sentence_transformers")
+        mock_module.SentenceTransformer = FailingSentenceTransformer
+        sys.modules["sentence_transformers"] = mock_module
+
+        # Call _load_model - should not raise, should return None
+        result = embeddings._load_model()
+        assert result is None
+
+        # Verify is_available() also returns False
+        assert embeddings.is_available() is False
+
+        # Verify embed_text() returns None gracefully
+        assert embeddings.embed_text("test text") is None
+
+    finally:
+        # Restore the original module
+        embeddings._load_model.cache_clear()
+        if original_module is not None:
+            sys.modules["sentence_transformers"] = original_module
+        elif "sentence_transformers" in sys.modules:
+            del sys.modules["sentence_transformers"]

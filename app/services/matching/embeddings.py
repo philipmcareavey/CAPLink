@@ -30,14 +30,17 @@ EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 @lru_cache(maxsize=1)
 def _load_model():
     """Lazily loads and caches the sentence-transformers model. Returns
-    None (not an exception) if the package isn't installed — the one
-    place this module treats that as an expected, valid state rather
-    than an error."""
+    None (not an exception) if the package isn't installed or the model
+    fails to load — the one place this module treats that as an expected,
+    valid state rather than an error."""
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError:
         return None
-    return SentenceTransformer(EMBEDDING_MODEL_NAME)
+    try:
+        return SentenceTransformer(EMBEDDING_MODEL_NAME)
+    except Exception:
+        return None
 
 
 def is_available() -> bool:
