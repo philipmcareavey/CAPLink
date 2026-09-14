@@ -18,6 +18,7 @@ from app.db.session import get_db
 from app.models.enums import StudentBand, UserRole
 from app.models.university import University
 from app.models.user import StudentProfile, User
+from app.services import matching
 from app.services import saml as saml_service
 
 router = APIRouter(prefix="/auth/saml", tags=["saml-sso"])
@@ -132,24 +133,24 @@ async def saml_acs(slug: str, request: Request, db: Session = Depends(get_db)):
         db.add(user)
         db.flush()
         band = mapped["band"] if mapped["band"] in {b.value for b in StudentBand} else saml_service.DEFAULT_JIT_BAND
-        db.add(
-            StudentProfile(
-                user_id=user.id,
-                university_id=university.id,
-                degree_title=mapped["degree_title"] or saml_service.PLACEHOLDER_DEGREE_TITLE,
-                band=band,
-                # Known, honest gap (Technical Implementation Plan 7.b.i):
-                # data_sharing_consent_at is left unset here deliberately
-                # rather than backfilled with "now" — a JIT-provisioned SSO
-                # account has never actually seen or agreed to the consent
-                # wording shown on the ordinary registration form, so
-                # recording a timestamp here would be fabricating consent
-                # that was never really given. Needs a real one-time
-                # post-login consent screen for SSO students before this
-                # can be closed out — a Workstream 5 (frontend) concern,
-                # same shape as the CAPTCHA widget/SSO metadata-upload gaps.
-            )
+        jit_profile = StudentProfile(
+            user_id=user.id,
+            university_id=university.id,
+            degree_title=mapped["degree_title"] or saml_service.PLACEHOLDER_DEGREE_TITLE,
+            band=band,
+            # Known, honest gap (Technical Implementation Plan 7.b.i):
+            # data_sharing_consent_at is left unset here deliberately
+            # rather than backfilled with "now" — a JIT-provisioned SSO
+            # account has never actually seen or agreed to the consent
+            # wording shown on the ordinary registration form, so
+            # recording a timestamp here would be fabricating consent
+            # that was never really given. Needs a real one-time
+            # post-login consent screen for SSO students before this
+            # can be closed out — a Workstream 5 (frontend) concern,
+            # same shape as the CAPTCHA widget/SSO metadata-upload gaps.
         )
+        matching.refresh_student_embedding(jit_profile)
+        db.add(jit_profile)
         db.commit()
         db.refresh(user)
 

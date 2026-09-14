@@ -80,7 +80,19 @@ def embedding_similarity_score(vec_a: list[float], vec_b: list[float]) -> float:
 
 
 def student_corpus_text(student: "StudentProfile") -> str:
-    return " ".join([*student.skills, *student.modules, student.degree_title])
+    # `skills`/`modules` guard against None, not just fall back on falsy —
+    # both columns are `default=list`, but a SQLAlchemy column default only
+    # applies at flush/INSERT time, not at bare Python construction. Every
+    # real write path (auth.py's registration, saml.py's JIT provisioning)
+    # calls refresh_student_embedding() on a StudentProfile that hasn't
+    # been added to the session yet, so `.skills`/`.modules` are still the
+    # Python-level None they start as, not yet `[]` — this project has hit
+    # this exact default-timing gap before (see caplink/CLAUDE.md's Epic
+    # 2.a entry) and it would otherwise crash `[*None, ...]` with a
+    # TypeError on every single registration.
+    skills = student.skills or []
+    modules = student.modules or []
+    return " ".join([*skills, *modules, student.degree_title])
 
 
 def project_corpus_text(project: "Project") -> str:

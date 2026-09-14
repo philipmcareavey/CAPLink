@@ -38,6 +38,7 @@ from app.schemas.user import (
     ResendVerificationRequest,
     StudentRegister,
 )
+from app.services import matching
 from app.services import mfa as mfa_service
 from app.services.account_lockout import is_locked, register_failed_attempt, register_successful_login
 from app.services.captcha import verify_captcha
@@ -145,6 +146,7 @@ def register_student(request: Request, payload: StudentRegister, db: Session = D
         band=payload.band,
         data_sharing_consent_at=datetime.utcnow(),
     )
+    matching.refresh_student_embedding(profile)
     db.add(profile)
     _start_email_verification(user)
     db.commit()

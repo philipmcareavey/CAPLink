@@ -5,6 +5,7 @@ from app.api.deps import require_student
 from app.db.session import get_db
 from app.models.user import StudentProfile, User
 from app.schemas.user import StudentProfileOut, StudentProfileUpdate
+from app.services import matching
 
 router = APIRouter(prefix="/students", tags=["students"])
 
@@ -32,6 +33,10 @@ def update_my_profile(
     profile = _get_own_profile(db, user)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(profile, field, value)
+    # Unconditional, not just when skills/modules/degree_title changed —
+    # recomputing on every update is cheap relative to the update itself
+    # and avoids tracking which specific fields are embedding-relevant.
+    matching.refresh_student_embedding(profile)
     db.commit()
     db.refresh(profile)
     return profile

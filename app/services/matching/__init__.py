@@ -7,6 +7,7 @@ while the internals (skills.py, text_similarity.py, collaborative.py,
 scorer.py) are free to evolve.
 """
 from app.services.matching.config import ALGORITHM_VERSION, DEFAULT_WEIGHTS, MatchWeights
+from app.services.matching.embeddings import refresh_project_embedding, refresh_student_embedding
 from app.services.matching.scorer import (
     MatchResult,
     ScoreFactor,
@@ -24,4 +25,6 @@ __all__ = [
     "rank_projects_for_student",
     "rank_students_for_project",
     "score_student_against_project",
+    "refresh_project_embedding",
+    "refresh_student_embedding",
 ]

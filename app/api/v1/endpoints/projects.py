@@ -67,6 +67,7 @@ def create_project(
         target_bands=[b.value for b in payload.target_bands],
         status=ProjectStatus.PENDING_REVIEW if needs_review else ProjectStatus.OPEN,
     )
+    matching.refresh_project_embedding(project)
     db.add(project)
     db.commit()
     db.refresh(project)

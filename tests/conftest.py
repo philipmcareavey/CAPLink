@@ -110,3 +110,14 @@ def client(monkeypatch):
     finally:
         app.dependency_overrides.pop(get_db, None)
         engine.dispose()
+
+
+@pytest.fixture()
+def db_session_factory(client):
+    """Exposes the same isolated sessionmaker the `client` fixture bound to
+    its in-memory engine (via the `get_db` dependency override) as
+    `client.db_sessionmaker` — not the app's real global `SessionLocal`,
+    which `client` never touches at all — so a test can query rows created
+    through real HTTP requests. Depends on `client` so the fixture already
+    exists before this one reads its attribute."""
+    return client.db_sessionmaker
