@@ -85,6 +85,13 @@ class StudentProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     modules: Mapped[list] = mapped_column(JSON, default=list)        # ["Statistics II", "Machine Learning"]
     skills: Mapped[list] = mapped_column(JSON, default=list)         # ["Python", "SQL"]
     portfolio_urls: Mapped[list] = mapped_column(JSON, default=list)
+    # Technical Implementation Plan 9.b.ii — cached semantic embedding of
+    # this student's skills/modules/degree (see
+    # app/services/matching/embeddings.py). Nullable: None means "not yet
+    # computed" (sentence-transformers unavailable at save time, or a row
+    # predating this column) — scorer.py falls back to TF-IDF text
+    # similarity whenever it's None, never crashes or treats it as zero.
+    embedding: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     hourly_rate_expectation_gbp: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     weekly_hours_available: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     right_to_work_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)

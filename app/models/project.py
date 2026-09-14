@@ -19,6 +19,9 @@ class Project(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     category: Mapped[ProjectCategory] = mapped_column(nullable=False)
     required_skills: Mapped[list] = mapped_column(JSON, default=list)
+    # Technical Implementation Plan 9.b.ii — see StudentProfile.embedding's
+    # comment in app/models/user.py; same idea, same fallback behaviour.
+    embedding: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
 
     duration_label: Mapped[str] = mapped_column(String(100), nullable=False)  # "1-2 weeks", "Ongoing"
     estimated_hours: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

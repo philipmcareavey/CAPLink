@@ -1,3 +1,6 @@
+from app.models.enums import ProjectCategory, ProjectStatus, StudentBand
+from app.models.project import Project
+from app.models.user import StudentProfile
 from app.services.matching import embeddings
 
 
@@ -89,3 +92,19 @@ def test_load_model_gracefully_degrades_when_model_construction_fails(monkeypatc
             sys.modules["sentence_transformers"] = original_module
         elif "sentence_transformers" in sys.modules:
             del sys.modules["sentence_transformers"]
+
+
+def test_student_profile_and_project_have_a_nullable_embedding_column():
+    student = StudentProfile(
+        user_id="u1", university_id="uni-1", degree_title="BSc Data Science", band=StudentBand.YEAR_3,
+    )
+    project = Project(
+        business_id="biz-1", title="t", description="d", category=ProjectCategory.DATA_ANALYTICS,
+        duration_label="1 week", hourly_rate_gbp=20, status=ProjectStatus.OPEN,
+    )
+    assert student.embedding is None
+    assert project.embedding is None
+    student.embedding = [0.1, 0.2]
+    project.embedding = [0.3, 0.4]
+    assert student.embedding == [0.1, 0.2]
+    assert project.embedding == [0.3, 0.4]
