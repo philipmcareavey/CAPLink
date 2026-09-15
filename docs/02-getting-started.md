@@ -68,7 +68,7 @@ python3 --version
 No `.env` file or manual seeding needed — every setting has a working local
 default, and the server seeds a demo university/student/business/project on
 first run automatically. Log in as the student with
-`aisha.rahman@manchester.ac.uk` / `ChangeMe123!` (see
+`priya.anand@manchester.ac.uk` / `ChangeMe123!` (see
 [03-user-guide-demo-walkthrough.md](03-user-guide-demo-walkthrough.md) for
 the business/admin logins too). You're done — skip to
 [Confirm it's running](#confirm-its-running) below.
@@ -116,16 +116,20 @@ python -m scripts.seed_demo_data
 Expected seed output:
 
 ```
-Seed complete.
-University slug: manchester
-Student login: aisha.rahman@manchester.ac.uk / ChangeMe123!
-Business login: hello@datacraft-analytics.com / ChangeMe123!
-University admin login: admin@manchester.ac.uk / ChangeMe123!
+Seed complete: 4 universities, 80 students, 19 businesses, 25 projects.
+Hero business login: demo.business@example.com / ChangeMe123!
+Suggested demo project brief for the hero account (post this live during a pitch):
+  ...
 ```
 
-Re-running the seed script twice without deleting the database first fails
-with duplicate-key errors (the demo emails/slug already exist). To start
-over:
+Every seeded account uses the password `ChangeMe123!`. The three worth
+knowing: `demo.business@example.com` (the "hero" business, Northbridge
+Analytics), `priya.anand@manchester.ac.uk` (a student), and
+`admin@manchester.ac.uk` (the University of Manchester careers admin).
+
+The seed script drops and recreates every table before reseeding, so it's
+safe to rerun any number of times — it never accumulates duplicates. To
+start over completely (including throwing away the database file itself):
 
 ```bash
 rm caplink.db

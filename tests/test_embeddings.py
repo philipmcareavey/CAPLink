@@ -1,3 +1,5 @@
+import pytest
+
 from app.models.enums import ProjectCategory, ProjectStatus, StudentBand
 from app.models.project import Project
 from app.models.user import StudentProfile
@@ -11,7 +13,7 @@ def test_embed_text_returns_none_for_empty_text():
 
 def test_embed_text_returns_a_vector_when_model_available():
     if not embeddings.is_available():
-        return  # sentence-transformers not installed in this environment — nothing to assert
+        pytest.skip("sentence-transformers not installed")
     vector = embeddings.embed_text("Analyse customer churn using Python and SQL")
     assert vector is not None
     assert len(vector) > 0
@@ -20,7 +22,7 @@ def test_embed_text_returns_a_vector_when_model_available():
 
 def test_similar_sentences_score_higher_than_unrelated_ones():
     if not embeddings.is_available():
-        return
+        pytest.skip("sentence-transformers not installed")
     a = embeddings.embed_text("Build an interactive dashboard to visualise customer retention data")
     b = embeddings.embed_text("Create a dashboard showing customer churn and retention trends")
     c = embeddings.embed_text("Design a brand refresh and new logo for a coffee shop")

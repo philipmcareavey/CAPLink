@@ -117,5 +117,5 @@ The closest thing to "using the product" today is either:
 
 [03-user-guide-demo-walkthrough.md](03-user-guide-demo-walkthrough.md) does
 exactly that second option, one step at a time, using the demo student
-"Aisha" and the demo business "DataCraft Analytics" that get created
+"Priya" and the demo business "Northbridge Analytics" that get created
 automatically the first time you set this up.

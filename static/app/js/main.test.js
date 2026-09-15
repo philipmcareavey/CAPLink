@@ -120,7 +120,7 @@ describe("main.js — logging out", () => {
     fetch.mockResolvedValue({ ok: true, json: async () => ({ access_token: token, refresh_token: "r1" }) });
 
     await freshImport();
-    document.getElementById("li-email").value = "hello@datacraft-analytics.com";
+    document.getElementById("li-email").value = "demo.business@example.com";
     document.getElementById("li-pass").value = "ChangeMe123!";
     document.querySelector('[data-action="manual-login"]').click();
     await flushPromises();

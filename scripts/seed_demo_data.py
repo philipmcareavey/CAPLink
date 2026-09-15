@@ -8,8 +8,12 @@ pool is engineered to produce a clearly differentiated shortlist once a
 project brief is posted against it — see
 caplink/docs/superpowers/specs/2026-09-13-demo-realism-matching-uplift-design.md.
 
-Safe to rerun any time: always drops and recreates every table first, so
-this never accumulates duplicates across repeated demo/pitch resets.
+Safe to rerun any time *when run as a script* (i.e. `run()` with no `db`
+argument): that path drops and recreates every table first, so it never
+accumulates duplicates across repeated demo/pitch resets. Passing an
+existing session in (`run(db=...)`, as the tests do) deliberately skips
+that reset entirely and seeds straight into whatever database that
+session is bound to — the caller owns wiping it.
 Deterministic (scripts.synthetic_data.RNG_SEED) — the same dataset every
 run.
 
@@ -46,7 +50,13 @@ from scripts import synthetic_data
 
 import app.models  # noqa: F401
 
-DEMO_PASSWORD = "ChangeMe123!"
+DEMO_PASSWORD = "ChangeMe123!"  # nosec B105 — a documented, published demo password, not a real credential
+
+# Hashed once at import time, not once per account: every one of the ~100
+# accounts this script creates shares this exact password, and bcrypt is
+# deliberately slow (~100 individually-slow hashes otherwise, on every
+# test run and on every development-mode app startup, which auto-seeds).
+DEMO_PASSWORD_HASH = hash_password(DEMO_PASSWORD)
 
 # (name, slug, domain, postcode, lat, lon) — real, well-known campus
 # coordinates used only illustratively (see the marketing site's own
@@ -86,7 +96,7 @@ def _create_universities(db: Session) -> list[University]:
 
 def _create_admin(db: Session, university: University) -> User:
     admin = User(
-        email=f"admin@{university.domain}", hashed_password=hash_password(DEMO_PASSWORD),
+        email=f"admin@{university.domain}", hashed_password=DEMO_PASSWORD_HASH,
         role=UserRole.UNIVERSITY_ADMIN, full_name="Careers Service Admin",
         university_id=university.id, is_email_verified=True,
     )
@@ -96,7 +106,7 @@ def _create_admin(db: Session, university: University) -> User:
 
 def _create_student(db: Session, data: dict) -> StudentProfile:
     user = User(
-        email=data["email"], hashed_password=hash_password(DEMO_PASSWORD), role=UserRole.STUDENT,
+        email=data["email"], hashed_password=DEMO_PASSWORD_HASH, role=UserRole.STUDENT,
         full_name=data["full_name"], university_id=data["university_id"], is_email_verified=True,
     )
     db.add(user)
@@ -116,7 +126,7 @@ def _create_student(db: Session, data: dict) -> StudentProfile:
 
 def _create_business(db: Session, data: dict, admin_by_university: dict[str, User]) -> BusinessProfile:
     user = User(
-        email=data["email"], hashed_password=hash_password(DEMO_PASSWORD), role=UserRole.BUSINESS,
+        email=data["email"], hashed_password=DEMO_PASSWORD_HASH, role=UserRole.BUSINESS,
         full_name=data["full_name"], is_email_verified=True,
     )
     db.add(user)
@@ -218,7 +228,14 @@ def run(db: Optional[Session] = None) -> SeedSummary:
         run_migrations(engine)
         db = SessionLocal()
 
-    rng = random.Random(synthetic_data.RNG_SEED)
+    # True by construction — either a non-None session was passed in, or the
+    # branch above just assigned one. mypy can't follow that through the
+    # `owns_session` boolean indirection, so every `db.flush()` /
+    # `_create_student(db, ...)` below would otherwise be `Session | None`.
+    # Same documented `assert x is not None` convention used throughout app/.
+    assert db is not None, "db is set either by the caller or by the owns_session branch above"
+
+    rng = random.Random(synthetic_data.RNG_SEED)  # nosec B311 — deterministic synthetic demo data, not a security context
     used_emails: set[str] = set()
 
     universities = _create_universities(db)
@@ -232,6 +249,7 @@ def run(db: Optional[Session] = None) -> SeedSummary:
     student_data += hero_students
     for data in student_data:
         _create_student(db, data)
+    db.flush()  # the final StudentProfile is still pending — _create_student only flushes its User
 
     business_data = synthetic_data.generate_businesses(rng, universities, used_emails=used_emails)
     hero_data = _hero_business_data()
@@ -241,7 +259,6 @@ def run(db: Optional[Session] = None) -> SeedSummary:
         "allowed_bands": [StudentBand.YEAR_3.value, StudentBand.YEAR_4_PLUS.value, StudentBand.POSTGRAD_TAUGHT.value],
         "allowed_categories": [ProjectCategory.DATA_ANALYTICS.value, ProjectCategory.SOFTWARE_ENGINEERING.value],
     }]})
-    db.flush()
     businesses = [_create_business(db, data, admin_by_university) for data in business_data]
     db.flush()
 

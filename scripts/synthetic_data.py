@@ -91,31 +91,90 @@ BUSINESS_TEMPLATES = [
     {"company_name": "Sable Research Collective", "industry": "Independent Research", "category": "research"},
 ]
 
-PROJECT_TEMPLATES_BY_CATEGORY = {
+# Explicitly annotated: the mixed str/list/int values would otherwise make
+# mypy infer `dict[str, object]` for each template, so a downstream
+# `list(template["required_skills"])` fails to type-check. Same fix as
+# app/services/matching/config.py's CATEGORY_KEYWORDS annotation.
+PROJECT_TEMPLATES_BY_CATEGORY: dict[str, list[dict]] = {
     "data_analytics": [
-        {"title": "Customer Churn Analysis", "description": "Analyse subscription data to identify the top drivers of customer churn.", "required_skills": ["Python", "SQL", "Statistics"], "duration_label": "1-2 weeks", "estimated_hours": 15, "hourly_rate_gbp": 19},
-        {"title": "Sales Dashboard Build", "description": "Build an interactive dashboard visualising regional sales trends for the leadership team.", "required_skills": ["SQL", "Data Visualisation", "Excel"], "duration_label": "2-3 weeks", "estimated_hours": 20, "hourly_rate_gbp": 20},
+        {
+            "title": "Customer Churn Analysis",
+            "description": "Analyse subscription data to identify the top drivers of customer churn.",
+            "required_skills": ["Python", "SQL", "Statistics"],
+            "duration_label": "1-2 weeks", "estimated_hours": 15, "hourly_rate_gbp": 19,
+        },
+        {
+            "title": "Sales Dashboard Build",
+            "description": "Build an interactive dashboard visualising regional sales trends for the leadership team.",
+            "required_skills": ["SQL", "Data Visualisation", "Excel"],
+            "duration_label": "2-3 weeks", "estimated_hours": 20, "hourly_rate_gbp": 20,
+        },
     ],
     "software_engineering": [
-        {"title": "Internal Tools Prototype", "description": "Build a small internal web tool to replace a manual spreadsheet workflow.", "required_skills": ["Python", "JavaScript", "SQL"], "duration_label": "2-3 weeks", "estimated_hours": 18, "hourly_rate_gbp": 21},
-        {"title": "API Integration", "description": "Integrate a third-party payments API into our existing backend service.", "required_skills": ["Python", "Git"], "duration_label": "1-2 weeks", "estimated_hours": 14, "hourly_rate_gbp": 22},
+        {
+            "title": "Internal Tools Prototype",
+            "description": "Build a small internal web tool to replace a manual spreadsheet workflow.",
+            "required_skills": ["Python", "JavaScript", "SQL"],
+            "duration_label": "2-3 weeks", "estimated_hours": 18, "hourly_rate_gbp": 21,
+        },
+        {
+            "title": "API Integration",
+            "description": "Integrate a third-party payments API into our existing backend service.",
+            "required_skills": ["Python", "Git"],
+            "duration_label": "1-2 weeks", "estimated_hours": 14, "hourly_rate_gbp": 22,
+        },
     ],
     "marketing": [
-        {"title": "SEO Content Audit", "description": "Audit our existing site content and propose an SEO improvement plan.", "required_skills": ["SEO", "Content Writing"], "duration_label": "1 week", "estimated_hours": 10, "hourly_rate_gbp": 17},
-        {"title": "Social Campaign Plan", "description": "Plan and schedule a month-long social media campaign for a product launch.", "required_skills": ["Social Media", "Copywriting"], "duration_label": "1-2 weeks", "estimated_hours": 12, "hourly_rate_gbp": 17},
+        {
+            "title": "SEO Content Audit",
+            "description": "Audit our existing site content and propose an SEO improvement plan.",
+            "required_skills": ["SEO", "Content Writing"],
+            "duration_label": "1 week", "estimated_hours": 10, "hourly_rate_gbp": 17,
+        },
+        {
+            "title": "Social Campaign Plan",
+            "description": "Plan and schedule a month-long social media campaign for a product launch.",
+            "required_skills": ["Social Media", "Copywriting"],
+            "duration_label": "1-2 weeks", "estimated_hours": 12, "hourly_rate_gbp": 17,
+        },
     ],
     "design": [
-        {"title": "Brand Refresh", "description": "Refresh our logo and brand guidelines for a more modern look.", "required_skills": ["Figma", "Branding"], "duration_label": "2 weeks", "estimated_hours": 16, "hourly_rate_gbp": 18},
-        {"title": "App UI Redesign", "description": "Redesign our mobile app's onboarding flow for clarity and accessibility.", "required_skills": ["Figma", "UI", "UX"], "duration_label": "2-3 weeks", "estimated_hours": 18, "hourly_rate_gbp": 19},
+        {
+            "title": "Brand Refresh",
+            "description": "Refresh our logo and brand guidelines for a more modern look.",
+            "required_skills": ["Figma", "Branding"],
+            "duration_label": "2 weeks", "estimated_hours": 16, "hourly_rate_gbp": 18,
+        },
+        {
+            "title": "App UI Redesign",
+            "description": "Redesign our mobile app's onboarding flow for clarity and accessibility.",
+            "required_skills": ["Figma", "UI", "UX"],
+            "duration_label": "2-3 weeks", "estimated_hours": 18, "hourly_rate_gbp": 19,
+        },
     ],
     "finance": [
-        {"title": "Budget Model Build", "description": "Build a rolling 12-month budget model in a spreadsheet for our finance team.", "required_skills": ["Excel", "Financial Modelling"], "duration_label": "1-2 weeks", "estimated_hours": 14, "hourly_rate_gbp": 19},
+        {
+            "title": "Budget Model Build",
+            "description": "Build a rolling 12-month budget model in a spreadsheet for our finance team.",
+            "required_skills": ["Excel", "Financial Modelling"],
+            "duration_label": "1-2 weeks", "estimated_hours": 14, "hourly_rate_gbp": 19,
+        },
     ],
     "operations": [
-        {"title": "Process Mapping", "description": "Map and document our order-fulfilment process to find efficiency gains.", "required_skills": ["Process Improvement", "Excel"], "duration_label": "1-2 weeks", "estimated_hours": 12, "hourly_rate_gbp": 17},
+        {
+            "title": "Process Mapping",
+            "description": "Map and document our order-fulfilment process to find efficiency gains.",
+            "required_skills": ["Process Improvement", "Excel"],
+            "duration_label": "1-2 weeks", "estimated_hours": 12, "hourly_rate_gbp": 17,
+        },
     ],
     "research": [
-        {"title": "Literature Review", "description": "Conduct a literature review on sustainable packaging alternatives.", "required_skills": ["Statistics", "Data Visualisation"], "duration_label": "1-2 weeks", "estimated_hours": 12, "hourly_rate_gbp": 17},
+        {
+            "title": "Literature Review",
+            "description": "Conduct a literature review on sustainable packaging alternatives.",
+            "required_skills": ["Statistics", "Data Visualisation"],
+            "duration_label": "1-2 weeks", "estimated_hours": 12, "hourly_rate_gbp": 17,
+        },
     ],
 }
 
@@ -252,7 +311,13 @@ def generate_projects(rng: random.Random, businesses: list[dict], target_count: 
     university/band combinations that business's own generated agreements
     actually approve — so every generated project is guaranteed postable
     without a 403."""
-    projects = []
+    if not businesses:
+        # Unreachable via seed_demo_data.py (BUSINESS_TEMPLATES is never
+        # empty), but the loop below would spin forever on an empty list
+        # rather than failing — guard explicitly rather than rely on that.
+        return []
+
+    projects: list[dict] = []
     business_indices = list(range(len(businesses)))
     rng.shuffle(business_indices)
 

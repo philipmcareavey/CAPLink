@@ -108,7 +108,7 @@ environments.
 
 No `.env` file or manual seeding needed — every setting has a working local default, and
 the server seeds a demo university/student/business/project on first run automatically.
-Log in as the student with `aisha.rahman@manchester.ac.uk` / `ChangeMe123!` (see
+Log in as the student with `priya.anand@manchester.ac.uk` / `ChangeMe123!` (see
 [docs/03-user-guide-demo-walkthrough.md](docs/03-user-guide-demo-walkthrough.md) for the
 business/admin logins too).
 
@@ -135,6 +135,47 @@ default (SQLite, permissive CORS, etc). Copy `.env.example` to `.env` only if yo
 override something (e.g. point `DATABASE_URL` at Postgres — if so, also
 `pip install -r requirements-postgres.txt`; it's not needed for the default SQLite setup,
 see `requirements-postgres.txt` for why it's kept separate).
+
+### Optional semantic-embedding dependency (`requirements-ml.txt`)
+
+`requirements-ml.txt` holds one package — `sentence-transformers` — which powers the
+matching engine's *semantic* text-similarity factor
+(`app/services/matching/embeddings.py`, Workstream 9.b). With it installed, a student
+profile's and a project's free text are each encoded once, at write time, into a cached
+vector on the row, and the engine's `text_similarity` factor scores their cosine
+similarity — so "build a customer retention dashboard" and "visualise churn trends"
+score as related even with no shared words. Without it, that factor falls back to the
+original TF-IDF word-overlap cosine. **Nothing else changes**: every other factor, the
+weighting, the explanations and the API shape are identical either way, and no code path
+requires it (`embeddings.py` returns `None` rather than raising when the package or the
+model is absent).
+
+**It is deliberately NOT installed in staging, in Docker, or in CI.** Neither
+`render.yaml`, `Dockerfile`, nor `.github/workflows/ci.yml` installs it, because it pulls
+in PyTorch — by far the largest dependency tree in this repo, and more memory than a
+free-tier Render instance can comfortably hold alongside the app. So on the live staging
+deploy today, **every score takes the TF-IDF fallback path**; the semantic factor is a
+local/opt-in capability, not something currently running in production. Revisit when
+there's an instance with real memory headroom to host it. (CI's `pip-audit` step *does*
+scan this file for known vulnerabilities even though the job never installs it.)
+
+To install and use it locally:
+
+```bash
+pip install -r requirements.txt -r requirements-ml.txt
+python -m scripts.seed_demo_data   # reseed so rows get real embeddings cached
+```
+
+Two things to expect the first time: the model (`all-MiniLM-L6-v2`) downloads roughly
+**80MB** from Hugging Face on first use, so that one run needs real internet access — it's
+cached on disk afterward and never re-downloaded. And because embeddings are computed at
+write time, seeding (~100 profiles and projects) and the test suite both get noticeably
+slower with it installed than without.
+
+Rows written *before* the package was installed keep a `NULL` embedding and are scored on
+the TF-IDF path — see `_batch_uses_embeddings` in `app/services/matching/scorer.py`, which
+deliberately drops a whole ranked batch to TF-IDF if any single candidate in it lacks an
+embedding, so one ranked list never mixes two non-comparable similarity scales.
 
 ### Option C — Docker
 
@@ -1100,8 +1141,8 @@ only seeded demo/test data, not real students' or businesses' information — co
 is still true immediately before any engagement starts, since that could change once a
 real pilot begins.
 
-**Test accounts**: the three seeded demo accounts (`aisha.rahman@manchester.ac.uk` /
-`hello@datacraft-analytics.com` / `admin@manchester.ac.uk`, password `ChangeMe123!` for
+**Test accounts**: the three seeded demo accounts (`priya.anand@manchester.ac.uk` /
+`demo.business@example.com` / `admin@manchester.ac.uk`, password `ChangeMe123!` for
 all three — see "Quickstart") cover the student/business/university-admin roles. A
 platform-admin account (the fourth role, gating `/audit-log` and university onboarding)
 has no self-registration path; request one be created directly in the database for the

@@ -154,8 +154,8 @@ function renderLogin() {
       <div class="card">
         <h4 class="section">Seeded demo accounts</h4>
         <div class="quick-login">
-          <button data-quick="aisha.rahman@manchester.ac.uk|ChangeMe123!">Student — Aisha Rahman<small>aisha.rahman@manchester.ac.uk</small></button>
-          <button data-quick="hello@datacraft-analytics.com|ChangeMe123!">Business — DataCraft Analytics<small>hello@datacraft-analytics.com</small></button>
+          <button data-quick="priya.anand@manchester.ac.uk|ChangeMe123!">Student — Priya Anand<small>priya.anand@manchester.ac.uk</small></button>
+          <button data-quick="demo.business@example.com|ChangeMe123!">Business — Northbridge Analytics<small>demo.business@example.com</small></button>
           <button data-quick="admin@manchester.ac.uk|ChangeMe123!">University admin — Manchester<small>admin@manchester.ac.uk</small></button>
         </div>
         <div class="divider">or sign in manually</div>

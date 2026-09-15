@@ -4,6 +4,8 @@ sentence-transformers is installed) so the matching engine's semantic
 factor actually has something to read. This test skips its assertions
 (rather than failing) when the model isn't installed in this environment,
 matching tests/test_embeddings.py's existing pattern."""
+import pytest
+
 from app.models.enums import ProjectCategory, StudentBand
 from app.models.project import Project
 from app.models.user import StudentProfile
@@ -15,7 +17,7 @@ from tests.test_applications_e2e import _approve_agreement, _post_project
 
 def test_student_registration_populates_embedding(client, db_session_factory):
     if not embeddings.is_available():
-        return
+        pytest.skip("sentence-transformers not installed")
     university_id = _seed_university(client, slug="embeduni", domain="embeduni.ac.uk")
     _register_student(client, university_slug="embeduni", email="embed-student@embeduni.ac.uk")
 
@@ -29,7 +31,7 @@ def test_student_registration_populates_embedding(client, db_session_factory):
 
 def test_profile_update_recomputes_embedding(client, db_session_factory):
     if not embeddings.is_available():
-        return
+        pytest.skip("sentence-transformers not installed")
     _seed_university(client, slug="embedupdateuni", domain="embedupdateuni.ac.uk")
     token = _register_student(client, university_slug="embedupdateuni", email="embed-update@embedupdateuni.ac.uk")
 
@@ -47,7 +49,7 @@ def test_profile_update_recomputes_embedding(client, db_session_factory):
 
 def test_project_creation_populates_embedding(client, db_session_factory):
     if not embeddings.is_available():
-        return
+        pytest.skip("sentence-transformers not installed")
     university_id = _seed_university(client, slug="embedprojuni", domain="embedprojuni.ac.uk")
     business_token = _register_business(client, email="embed-project-business@example.com")
     _approve_agreement(

@@ -90,13 +90,15 @@ def student_corpus_text(student: "StudentProfile") -> str:
     # this exact default-timing gap before (see caplink/CLAUDE.md's Epic
     # 2.a entry) and it would otherwise crash `[*None, ...]` with a
     # TypeError on every single registration.
+    # degree_title gets the same `or ""` treatment for the same reason: a
+    # None would make str.join raise TypeError rather than degrade.
     skills = student.skills or []
     modules = student.modules or []
-    return " ".join([*skills, *modules, student.degree_title])
+    return " ".join([*skills, *modules, student.degree_title or ""])
 
 
 def project_corpus_text(project: "Project") -> str:
-    return " ".join([project.title, project.description, *project.required_skills])
+    return " ".join([project.title or "", project.description or "", *(project.required_skills or [])])
 
 
 def refresh_student_embedding(student: "StudentProfile") -> None:

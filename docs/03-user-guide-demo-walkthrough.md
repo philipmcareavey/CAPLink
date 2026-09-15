@@ -14,13 +14,14 @@ All commands assume you've already run `python -m scripts.seed_demo_data`
 
 | Role              | Email                              | Password       |
 |-------------------|-------------------------------------|----------------|
-| Student            | `aisha.rahman@manchester.ac.uk`     | `ChangeMe123!` |
-| Business           | `hello@datacraft-analytics.com`     | `ChangeMe123!` |
+| Student            | `priya.anand@manchester.ac.uk`     | `ChangeMe123!` |
+| Business           | `demo.business@example.com`        | `ChangeMe123!` |
 | University admin   | `admin@manchester.ac.uk`            | `ChangeMe123!` |
 
-...plus a university (`manchester`), an **already-approved** partnership between
-that university and DataCraft Analytics, and one open project ("Customer Churn
-Analysis"). If you have [`jq`](https://jqlang.org/) installed, the token-extraction
+...plus 4 universities, ~80 students, 19 businesses and ~25 open projects. The
+business above (Northbridge Analytics) has an **already-approved** partnership
+with Manchester but deliberately posts no project of its own — post one live,
+which is the whole point of the demo. If you have [`jq`](https://jqlang.org/) installed, the token-extraction
 one-liners below will Just Work; otherwise copy the `access_token` value out of
 the JSON by hand each time.
 
@@ -34,11 +35,11 @@ BASE=http://localhost:8000/api/v1
 
 STUDENT_TOKEN=$(curl -s -X POST $BASE/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"aisha.rahman@manchester.ac.uk","password":"ChangeMe123!"}' | jq -r .access_token)
+  -d '{"email":"priya.anand@manchester.ac.uk","password":"ChangeMe123!"}' | jq -r .access_token)
 
 BUSINESS_TOKEN=$(curl -s -X POST $BASE/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"hello@datacraft-analytics.com","password":"ChangeMe123!"}' | jq -r .access_token)
+  -d '{"email":"demo.business@example.com","password":"ChangeMe123!"}' | jq -r .access_token)
 
 ADMIN_TOKEN=$(curl -s -X POST $BASE/auth/login \
   -H "Content-Type: application/json" \
@@ -209,7 +210,7 @@ one-off lookup straight from the SQLite file (this is a local-dev-only trick;
 in a real deployment you wouldn't have file access):
 
 ```bash
-BUSINESS_USER_ID=$(sqlite3 caplink.db "select id from users where email='hello@datacraft-analytics.com';")
+BUSINESS_USER_ID=$(sqlite3 caplink.db "select id from users where email='demo.business@example.com';")
 ```
 
 ```bash
@@ -248,7 +249,7 @@ curl -s $BASE/mobile/home -H "Authorization: Bearer $STUDENT_TOKEN"
   inspect this table indirectly via the recommendation-feedback endpoint.
 - Register a second student in a different band (e.g. `year_1`) via
   `POST /auth/register/student` and confirm they *don't* see the churn project
-  in their feed — DataCraft's agreement only covers `year_2` and above.
+  in their feed — Northbridge's agreement only covers `year_2` and above.
 - Try `PATCH /students/me` to change skills, then re-check the feed — the
   match score/reasons change immediately since scoring is stateless and rules
   are re-evaluated on every read.

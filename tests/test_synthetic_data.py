@@ -1,3 +1,4 @@
+from app.models.enums import StudentBand
 from scripts import synthetic_data as sd
 
 
@@ -35,9 +36,6 @@ def test_unique_email_avoids_collisions():
     second = sd.unique_email(None, "Aisha", "Rahman", "manchester.ac.uk", used)
     assert first != second
     assert first in used and second in used
-
-
-from app.models.enums import StudentBand
 
 
 class _FakeUniversity:
@@ -88,7 +86,11 @@ def test_generate_businesses_returns_one_entry_per_template_with_at_least_one_ag
 
 def test_generate_businesses_favours_the_first_university_passed():
     rng = sd.random.Random(sd.RNG_SEED)
-    universities = [_FakeUniversity("uni-primary", "manchester.ac.uk"), _FakeUniversity("uni-2", "leeds.ac.uk"), _FakeUniversity("uni-3", "sheffield.ac.uk")]
+    universities = [
+        _FakeUniversity("uni-primary", "manchester.ac.uk"),
+        _FakeUniversity("uni-2", "leeds.ac.uk"),
+        _FakeUniversity("uni-3", "sheffield.ac.uk"),
+    ]
     businesses = sd.generate_businesses(rng, universities, used_emails=set())
     covering_primary = sum(
         1 for b in businesses if any(a["university_id"] == "uni-primary" for a in b["agreements"])

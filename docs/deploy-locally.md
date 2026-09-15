@@ -18,9 +18,10 @@ If you haven't got the backend installed yet, go do that first
 uvicorn app.main:app --reload
 ```
 
-On first run against an empty database, this auto-seeds a demo university
-(Manchester), student (Aisha Rahman), business (DataCraft Analytics), and one
-open project — see `scripts/seed_demo_data.py`. This only happens once: it
+On first run against an empty database, this auto-seeds a full synthetic demo
+dataset — 4 universities, ~80 students, 19 businesses (including the hand-crafted
+"hero" account, Northbridge Analytics) and ~25 open projects — see
+`scripts/seed_demo_data.py`. This only happens once: it
 checks whether any `University` row exists before seeding, so restarting the
 server won't reseed or duplicate anything. If you want a genuinely fresh
 database, stop the server, delete `caplink.db`, and start it again.
@@ -37,8 +38,8 @@ Login credentials (same for all three, seeded by `scripts/seed_demo_data.py`):
 
 | Role | Email | Password |
 |---|---|---|
-| Student | `aisha.rahman@manchester.ac.uk` | `ChangeMe123!` |
-| Business | `hello@datacraft-analytics.com` | `ChangeMe123!` |
+| Student | `priya.anand@manchester.ac.uk` | `ChangeMe123!` |
+| Business | `demo.business@example.com` | `ChangeMe123!` |
 | University admin | `admin@manchester.ac.uk` | `ChangeMe123!` |
 
 `/app`'s login screen has one-click buttons for all three — no need to type
@@ -60,9 +61,11 @@ these in by hand.
    "compose to anyone" box, since a message thread always needs a real
    counterpart relationship behind it.
 4. **Local Search tab** — degree-relevant businesses within N miles of your
-   campus. Works immediately for the seeded account (Manchester + DataCraft
-   are both pre-geocoded in the seed script) — you'll see DataCraft Analytics
-   show up at ~1 mile. If you ever see "campus location hasn't been set yet"
+   campus. Manchester's campus coordinates are pre-geocoded in the seed
+   script, so this works immediately for a seeded Manchester student — the
+   seeded businesses have no postcode set, so widen the radius (or set a
+   business postcode from the business portal) if the list comes back empty.
+   If you ever see "campus location hasn't been set yet"
    here, that means the university's admin hasn't set a postcode (see below)
    — it's an expected state for a *newly registered* university, not a bug.
 5. **My Ratings tab** — your rating history, both directions. A rating you

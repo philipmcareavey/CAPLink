@@ -125,15 +125,20 @@ database hits the next issue below).
 
 ---
 
-### Re-running the seed script fails with a duplicate email / slug conflict
+### Re-running the seed script — it's safe, and it wipes what was there
 
-The seed script always creates the same fixed accounts (`aisha.rahman@...`,
-`admin@...`, university slug `manchester`). Running it twice against the same
-database violates the `unique=True` constraints on those columns. Fix: delete
-the local SQLite file first.
+`python -m scripts.seed_demo_data` drops and recreates every table before
+reseeding, so running it repeatedly never hits a duplicate-email/slug
+conflict — but it also means **anything you created by hand in the local
+database is destroyed**. That's deliberate (the script exists to reset a
+demo to a known state before a pitch), not a bug. It's deterministic too:
+the same ~80 students / 19 businesses / ~25 projects every single run.
+
+Note this only applies when the script owns its own session (the normal
+`python -m scripts.seed_demo_data` path). Calling `run(db=...)` with an
+existing session — what the tests do — deliberately skips the reset.
 
 ```bash
-rm caplink.db
 python -m scripts.seed_demo_data
 ```
 

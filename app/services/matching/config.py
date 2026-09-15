@@ -34,6 +34,20 @@ DEFAULT_WEIGHTS = MatchWeights()
 # a cached semantic-embedding score over TF-IDF cosine similarity whenever
 # both sides of a comparison have one (Workstream 9.b) — every other
 # factor and the overall weighting scheme is unchanged.
+#
+# KNOWN LIMITATION, deliberately not fixed here: this one string is written
+# to every RecommendationLog row regardless of which mechanism actually
+# produced that score. "hybrid_v3" means "the engine is capable of the
+# embedding path", NOT "this row used it" — a row scored entirely on the
+# TF-IDF fallback (sentence-transformers not installed, or either side
+# missing a cached vector — the normal case on staging/Docker/CI today,
+# see README's "Optional semantic-embedding dependency") is logged
+# identically to one scored on real embeddings. So `algorithm_version`
+# cannot be used to segment logged recommendations by scoring mechanism.
+# A future workstream that needs that distinction (e.g. measuring whether
+# embeddings actually improve hire rates) should add a separate field to
+# RecommendationLog — e.g. `text_similarity_method` — rather than
+# overloading this version string with two orthogonal meanings.
 ALGORITHM_VERSION = "hybrid_v3"
 
 # Keywords used for degree/module <-> project category relevance. Expanded

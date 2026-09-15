@@ -148,8 +148,8 @@ around. Use these on the demo's login screen:
 
 | Who              | Email                            | Password       |
 |------------------|-----------------------------------|-----------------|
-| Student          | `aisha.rahman@manchester.ac.uk`  | `ChangeMe123!`  |
-| Business         | `hello@datacraft-analytics.com`  | `ChangeMe123!`  |
+| Student          | `priya.anand@manchester.ac.uk`   | `ChangeMe123!`  |
+| Business         | `demo.business@example.com`      | `ChangeMe123!`  |
 
 Try logging in as the student first and have a look at the projects it
 suggests for her.

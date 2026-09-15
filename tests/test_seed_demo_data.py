@@ -50,7 +50,7 @@ def test_seed_creates_the_hero_business_with_an_approved_manchester_agreement(db
 
 
 def test_seed_hand_crafted_students_have_differentiated_profiles_for_the_hero_scenario(db_session):
-    summary = seed_demo_data.run(db=db_session)
+    seed_demo_data.run(db=db_session)
     top_match = db_session.query(User).filter(User.email == "priya.anand@manchester.ac.uk").first()
     assert top_match is not None
     top_profile = db_session.query(StudentProfile).filter(StudentProfile.user_id == top_match.id).first()

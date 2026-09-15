@@ -51,6 +51,7 @@ def score_student_against_project(
     idf: Optional[dict[str, float]] = None,
     weights: MatchWeights = DEFAULT_WEIGHTS,
     collaborative_accepted_pairs: Optional[AcceptedPairs] = None,
+    use_embeddings: Optional[bool] = None,
 ) -> MatchResult:
     """
     Score one student against one project.
@@ -65,6 +66,13 @@ def score_student_against_project(
     collaborative.fetch_accepted_pairs_by_category) — leave it unset for a
     single-score call like this one; collaborative_score will run its own
     query exactly as before.
+
+    `use_embeddings` is likewise internal, and exists so a whole ranked
+    batch scores its text_similarity factor on ONE scale (see
+    _batch_uses_embeddings and rank_projects_for_student /
+    rank_students_for_project). Leave it unset (None) for a single-score
+    call: the decision is then made per-pair, exactly as before — use
+    embeddings if both this student and this project have one.
     """
     factors: list[ScoreFactor] = []
     weight_map = weights.as_dict()
@@ -77,11 +85,29 @@ def score_student_against_project(
     ))
 
     # --- Free-text similarity (project brief vs student's declared background) ---
-    # Prefers cached semantic embeddings (Workstream 9.b) when BOTH sides
-    # have one; falls back to the original TF-IDF cosine similarity
-    # otherwise (model unavailable when either row was saved, or a row
-    # predating this feature) — never a hard requirement, never a crash.
-    if student.embedding and project.embedding:
+    # Prefers cached semantic embeddings (Workstream 9.b); falls back to the
+    # original TF-IDF cosine similarity otherwise (model unavailable when
+    # either row was saved, or a row predating this feature) — never a hard
+    # requirement, never a crash.
+    #
+    # Embedding cosine and TF-IDF cosine are NOT on a comparable scale
+    # (related text lands ~0.3-0.6 under embeddings; TF-IDF over short skill
+    # lists clusters near 0 or near 1), so mixing them inside one ranked list
+    # would sort candidates against two different yardsticks. A batch caller
+    # therefore decides once for the whole batch and passes `use_embeddings`;
+    # only a standalone single-score call (use_embeddings=None) decides
+    # per-pair, where there's no other candidate to be inconsistent with.
+    pair_has_embeddings = bool(student.embedding and project.embedding)
+    if use_embeddings is None:
+        use_embeddings_here = pair_has_embeddings
+    else:
+        use_embeddings_here = use_embeddings and pair_has_embeddings
+    if use_embeddings_here:
+        # True by construction — use_embeddings_here can only be True via
+        # pair_has_embeddings, which is exactly this check. mypy can't follow
+        # that through the boolean indirection; same documented `assert x is
+        # not None` convention used across app/.
+        assert student.embedding is not None and project.embedding is not None, "guarded by pair_has_embeddings"
         text_raw = embeddings.embedding_similarity_score(student.embedding, project.embedding)
         text_detail = (
             "Project brief closely matches student's background (semantic match)"
@@ -163,6 +189,16 @@ def score_student_against_project(
     return MatchResult(score=round(min(overall_score, 1.0), 3), reasons=reasons, breakdown=factors)
 
 
+def _batch_uses_embeddings(students: list[StudentProfile], projects: list[Project]) -> bool:
+    """True only if EVERY row on both sides of the batch has a cached
+    embedding. One candidate without one drops the whole batch to TF-IDF,
+    rather than scoring that candidate on a different scale from its peers
+    — see the scale note in score_student_against_project. Conservative on
+    purpose: a consistently-ranked list matters more than squeezing the
+    better similarity measure out of the subset that happens to have one."""
+    return all(s.embedding for s in students) and all(p.embedding for p in projects)
+
+
 def rank_projects_for_student(
     student: StudentProfile,
     projects: list[Project],
@@ -175,6 +211,7 @@ def rank_projects_for_student(
     corpus = [embeddings.project_corpus_text(p) for p in projects] + [embeddings.student_corpus_text(student)]
     idf = text_similarity.build_idf(corpus)
     collab_cache = fetch_accepted_pairs_by_category(db, (p.category for p in projects)) if db is not None else {}
+    use_embeddings = _batch_uses_embeddings([student], projects)
 
     scored = [
         (
@@ -182,6 +219,7 @@ def rank_projects_for_student(
             score_student_against_project(
                 student, project, db=db, idf=idf, weights=weights,
                 collaborative_accepted_pairs=collab_cache.get(project.category),
+                use_embeddings=use_embeddings,
             ),
         )
         for project in projects
@@ -201,12 +239,14 @@ def rank_students_for_project(
     # Every candidate here shares the same project (and so the same
     # category) — one query up front instead of once per student.
     collab_pairs = fetch_accepted_pairs_by_category(db, [project.category]).get(project.category) if db is not None else None
+    use_embeddings = _batch_uses_embeddings(students, [project])
 
     scored = [
         (
             student,
             score_student_against_project(
                 student, project, db=db, idf=idf, weights=weights, collaborative_accepted_pairs=collab_pairs,
+                use_embeddings=use_embeddings,
             ),
         )
         for student in students
