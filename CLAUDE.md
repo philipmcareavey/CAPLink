@@ -2340,6 +2340,243 @@ Workstream 3 14/15, Workstream 8 10/10 (fully done); P0 51/54, P1 22/39,
 P2 5/11. A pre-edit backup sits at
 `/private/tmp/claude-501/.../scratchpad/tracker_update/CAPLink-Technical-Tracker.xlsx.backup`.
 
+## Marketing site build-out + mobile app started (Workstream 6) — real work done 2026-09-12, went undocumented until caught 2026-09-13
+
+A separate session, later the same day as the entry above, did two more
+chunks of real, committed, pushed work that **never got written up in
+either CLAUDE.md** (top-level or this file) or the tracker — caught a day
+later only because a routine "what's the next step" check compared
+`git log` against this file's own claims and found `git log` three commits
+ahead of what every doc described. Filed as feedback for next time: check
+`git log --oneline -20` against this file's claims at the *start* of a
+session, the same way `git status`/`git log` already gets checked for the
+opposite failure (work done but not pushed — see the 2026-09-07 entry
+above). This is that failure mode's mirror image.
+
+**1. Marketing site build-out** (`5d0b9a0`, `b21b4b3`) — `docs/`'s existing
+`index.html`/`prototype.html` no-build-step convention (inline `<style>`,
+same design tokens/fonts, no framework/CDN/analytics) extended to a full
+site: `about.html`, `how-it-works.html`, `faq.html`, `contact.html`,
+`privacy.html`/`terms.html`/`cookies.html` (UK GDPR/DPA 2018/PECR drafts
+grounded in what the codebase actually does — real retention periods, real
+processor list, a live check confirming zero cookies are set — with
+anything not yet legally settled, e.g. company registration, pricing, the
+payroll provider, left as a visible `<!-- TODO -->` rather than invented),
+and a `blog/` with two sample posts. Plus a shared scroll-reveal utility
+(IntersectionObserver, respects `prefers-reduced-motion`) applied across
+all 12 pages, and the home page's safeguarding band-control diagram made
+click-to-toggle (real `<button>`s with `aria-pressed`) instead of a static
+screenshot. This isn't in the 104-step tracker at all — there's no
+marketing-site workstream — so nothing there needed correcting, but it's
+real, shipped, no-regression work future sessions should know exists
+before assuming `docs/index.html` is still the whole site.
+
+**2. Mobile app started for real (`caplink/mobile/`)** (`f57eb95`,
+`e621383`) — this is the one that actually changes the tracker. Toolchain
+that the 2026-09-10 Workstream 6 scope decision (further below) assumed
+didn't exist now does: Android Studio, the Android SDK, a real AVD
+(`CAPLink_Test`), and a working `npm install` inside `mobile/` (564
+packages) are all present and were used to actually build and run the app
+in a real Android emulator — not left as an unverified draft the way that
+decision braced for. What got built: a real React Native 0.87.1 +
+TypeScript project (native `android/` and `ios/` projects generated, not
+just JS), JWT auth with tokens in Keychain/Keystore via
+`react-native-keychain` (not AsyncStorage — these are auth tokens) and a
+silent-refresh flow calling the existing `POST /auth/refresh` on near-
+expiry or a 401 (`src/context/AuthContext.tsx`), role-based root
+navigation (`src/navigation/RootNavigator.tsx` — student vs. business vs.
+an explicit "not supported in the mobile app yet" screen for university/
+platform admin, a deliberate call: an admin office workflow isn't a mobile
+one), and a real student Feed screen (`src/screens/student/FeedScreen.tsx`)
+plus an `ApplyModal` component wired to the actual live staging API
+(`API_BASE = 'https://caplink-api.onrender.com/api/v1'` in
+`src/api/client.ts` — a direct port of `static/app/js/api.js`'s pattern,
+not a mock server). Student `Contracts`/`Messages`/`Local`/`Ratings` tabs
+and the profile/application half of the student journey are still
+`PlaceholderScreen` stubs; all of business-side tabs (`BusinessTabs.tsx`)
+are placeholders too.
+
+**Tracker corrected 2026-09-13** (same XML-surgery approach as every prior
+tracker edit, no `openpyxl` available): `6.a.i` (project scaffold) and
+`6.a.ii` (secure token storage + silent refresh) → **Done**; `6.b.i`
+(student feed/profile/application flows) → **In Progress (~30%)**. Verified
+independently against raw Tracker rows, not delta arithmetic: Workstream 6
+now 2 Done / 1 In Progress / 9 Not Started (was 0/0/12); overall 80 Done /
+3 In Progress / 21 Not Started (was 78/2/24); P1 24/39 Done (was 22/39).
+Pre-edit backup at `CAPLink-Technical-Tracker.xlsx.backup6` (top-level
+folder). The 2026-09-10 "Workstream 6 blocked-in-practice" scope decision
+below is now stale for the same reason — see the top-level CLAUDE.md's
+corrected version of that paragraph for the full replacement text; not
+duplicated here to avoid the two files drifting differently next time.
+
+## Workstream 9 (Demo Realism & Matching Engine Uplift) — new workstream, 2026-09-13/15, 10/11 done, 1/11 in progress
+
+Phil asked, in a separate session from the mobile/marketing work above, for
+the demo to behave like a real, populated platform: synthetic data seeded
+across universities/students/businesses, a live "business posts a project,
+sees differentiated matches" walkthrough, a genuinely more sophisticated
+matching engine, and a public explainer on the marketing site. Scoped
+through the full brainstorming → spec → plan → subagent-driven-development
+process (this project's first use of that full pipeline) rather than done
+ad hoc, per his explicit invitation to track it as its own workstream.
+
+**Where everything lives**: design spec at
+`docs/superpowers/specs/2026-09-13-demo-realism-matching-uplift-design.md`
+(explicitly reconciles this with Workstream 4's deprioritization — this
+upgrades a similarity *measurement*, not a ranking model trained on
+outcome data, so the earlier reasoning still holds and isn't being
+quietly reopened). Implementation plan at
+`docs/superpowers/plans/2026-09-13-demo-realism-matching-uplift.md`, 13
+tasks. Execution is happening in an isolated git worktree —
+`.worktrees/workstream-9-demo-realism-matching-uplift`, branch
+`workstream-9-demo-realism-matching-uplift` — via
+`superpowers:subagent-driven-development` (a fresh implementer subagent
+per task, a fresh reviewer per task, findings fixed and re-reviewed before
+moving on). **Merged to `main` 2026-09-15** (fast-forward, `2d256fe`) after
+a final whole-branch review and one fix wave — see below. The worktree and
+branch have both been deleted post-merge, per this project's standing
+worktree-cleanup convention; this file's own copy of the codebase now
+genuinely contains all of this work.
+
+**Done (Tasks 1-10 and 12, all reviewed clean; Task 9 took 2 dispatch
+attempts for an unrelated tooling reason, see below; every other task 0-1
+fix rounds)**: the whole matching-engine embedding upgrade — a new
+`app/services/matching/embeddings.py` wrapping a local, offline
+`all-MiniLM-L6-v2` sentence-embedding model, gated behind a new
+`requirements-ml.txt` (never in `requirements.txt`, since it pulls in
+PyTorch — the heaviest dependency this repo has ever had); new nullable
+`embedding` columns on `StudentProfile`/`Project`, wired into every real
+write path (registration, SAML JIT provisioning, profile updates, project
+creation); `scorer.py`'s `text_similarity` factor swapped to prefer cached
+embedding cosine similarity with a TF-IDF fallback whenever either side
+lacks one; `ALGORITHM_VERSION` bumped `rules_v2` → `hybrid_v3`. A real bug
+was caught and fixed along the way (not by review — by the Task 3
+implementer itself, then independently re-verified by its reviewer):
+`StudentProfile.skills`/`.modules` use SQLAlchemy's `default=list`, which
+only applies at flush time, not at bare object construction — since every
+write path calls `refresh_student_embedding()` *before* `db.add()`
+(exactly as the plan specified), the corpus-text builder was hitting a
+`TypeError` on `None` skills/modules until a one-line guard fixed it.
+
+All three synthetic-data generator functions in the new
+`scripts/synthetic_data.py` (`generate_students`, `generate_businesses`,
+`generate_projects` — deterministic, ~80 students/18 businesses/~25
+projects, every generated project's target universities/bands
+independently verified to be a real subset of what its business is
+actually approved for, so nothing generated could ever 403 against the
+real safeguarding gate).
+
+The hand-crafted "Northbridge Analytics" hero business account (+ 3
+hand-crafted Manchester students — Priya Anand, Tom Whitfield, Ella
+Marsh) and the full rewrite of `scripts/seed_demo_data.py` (Task 9). This
+one genuinely needed a second dispatch attempt — not because the design
+was wrong, but because the first implementer got stuck in a tooling loop
+(backgrounding the (legitimately slow, real-embedding-computing) test
+suite and then waiting on an async notification subagents don't actually
+have access to; it never crashed, just never reported back — killed after
+~40 min of no progress and re-dispatched with explicit "run tests in the
+foreground, poll a specific PID directly if needed" instructions, which
+fixed it). The two fragility points the dispatch was specifically briefed
+on — total businesses is 19 not 18 (18 generated + the hero), and
+`generate_projects`'s `business_index` values only resolve correctly if
+the hero is appended to the business list *last*, after the 18-business
+sublist is sliced off for the generator — were both independently
+re-derived step-by-step by the task reviewer against the actual committed
+code, not accepted from the implementer's report, and both check out.
+The reviewer also caught and verified a second real bug beyond the
+brief's own literal code: `Base.metadata.drop_all()` doesn't remove
+`alembic_version` (it's not ORM-registered), so a naive drop-and-rerun
+left that table stamped at `head` — meaning the following
+`run_migrations()` call saw `existing_tables = {"alembic_version"}` and
+treated it as an already-migrated no-op, silently leaving every other
+table dropped and never recreated on a second run of the seed script.
+The implementer's `DROP TABLE IF EXISTS alembic_version` fix genuinely
+closes this; the plan's own written code would have shipped with a
+"safe to rerun" script that wasn't.
+
+A real end-to-end HTTP test (`tests/test_synthetic_dataset_matches_e2e.py`,
+Task 10) proving the whole pipeline actually works: it posts the hero's
+exact suggested project brief through the live `/api/v1/projects`
+endpoint against the freshly-seeded dataset, then confirms via
+`GET .../shortlist` that Priya Anand (the hand-crafted top-match student)
+ranks first with a real score >0.75 and a >0.15 gap over the weakest
+candidate — genuine proof this isn't a flat, undifferentiated list.
+
+The "The Secret Sauce (It's Just Maths)" marketing-page subsection
+(Task 12) on `docs/how-it-works.html` — six factor cards (skills,
+semantic fit, degree relevance, rate/availability, reputation,
+collaborative signal), the page's prior "stays internal" sentence
+softened so it no longer flatly contradicts the new section, no exact
+weights/formula disclosed, no "AI-powered" overclaiming.
+
+**Still open (Task 11)**: a live `claude-in-chrome` browser click-through
+of login → post project → view shortlist — the human-facing counterpart
+to Task 10's automated proof. Genuinely blocked, not skipped: the browser
+extension would not connect in this environment across multiple retries
+and a Chrome restart — the identical issue this project hit once before
+(see Workstream 5's 2026-09-09 entry above, "the claude-in-chrome browser
+extension was not connected... needed a full Chrome quit-and-reopen").
+Phil explicitly chose to defer rather than keep retrying, given Task 10
+already proves the underlying story is real; only the reference UI's own
+display of it (not touched by this workstream at all — the credential
+fix below did touch `static/app/js/main.js`'s login buttons, but that's
+credentials, not the shortlist UI itself) remains unverified by a
+human-observable pass. Now that the branch is merged, pick this up
+directly on `main`: run `python -m scripts.seed_demo_data` (drops and
+reseeds `caplink.db`), start `uvicorn app.main:app --reload`, then do the
+login (`demo.business@example.com` / `ChangeMe123!`) → post the suggested
+project brief the seed script prints → shortlist walkthrough, once the
+browser tool reconnects.
+
+**Documentation (Task 13)**: the tracker's 11 Workstream 9 rows and
+Dashboard rollups were kept in sync directly (not via the full subagent
+pipeline, given a session usage-budget constraint) across two passes —
+once reflecting the mid-Task-9-pause state, once reflecting the final
+10/11-done state — each independently recomputed against raw rows per
+this project's standing tracker-editing rule. The `.docx` Technical
+Implementation Plan also got a new "4.9 Workstream 9" section, same
+XML-surgery approach, matching the existing workstreams' formatting.
+
+**Final whole-branch review + merge (2026-09-15)**: dispatched on the
+most capable model, and it earned that — it didn't just read the diff, it
+actually ran the branch (three real reseeds against an on-disk SQLite
+database confirming the `alembic_version` idempotency fix genuinely
+works and produces stable counts each time, a real fresh-clone ASGI
+lifespan test, a simulated-CI run with `sentence-transformers` forcibly
+unimportable). Found 2 Critical + 5 Important findings, none of them
+things any single task's own reviewer could have seen: **CI would
+actually have gone red on merge** (ruff/mypy/bandit were never gated
+during Tasks 5-9, only Task 4's task review happened to run them), and
+**the Task 9 seed rewrite broke demo credentials still hardcoded in 6
+shipped files** — most importantly 2 of 3 quick-login buttons in
+`/demo`, discovered again independently in `static/app/js/main.js` (the
+*primary* `/app` UI, not just the lighter `/demo` one) during the fix
+itself. The 5 Important findings: the ML dependency isn't installed
+anywhere it's actually deployed while the new marketing copy implies it
+is (now documented in a new README section, not fixed — a deliberate
+memory-headroom choice); `DEMO_PASSWORD` was being bcrypt-hashed ~100
+times instead of once (fixed, ~4x faster test suite and dev startup); the
+embedding-vs-TF-IDF fallback decision was per-*pair* rather than
+per-*batch*, meaning a single shortlist could silently mix two
+non-comparable similarity scales (fixed — now decided once per batch,
+conservatively: one legacy un-embedded candidate drops the whole batch to
+TF-IDF); `requirements-ml.txt` wasn't in CI's `pip-audit` scan despite
+being the largest dependency tree this repo has ever pulled in (fixed);
+and `RecommendationLog.algorithm_version="hybrid_v3"` can't distinguish
+rows that actually used embeddings from ones that fell back to TF-IDF
+(documented as a known limitation, not fixed — inventing a new
+versioning scheme wasn't worth doing under fix-wave time pressure). One
+fix wave (opus) closed all of this plus 5 cheap Minor findings; a scoped
+re-review independently re-verified all of it. One residual survived:
+`docs/03-user-guide-demo-walkthrough.md` still says "Aisha" in two lines
+of prose (the credentials table in the same file was correctly fixed to
+Priya) — parked rather than triggering a second fix wave, purely
+cosmetic, easy to fix whenever convenient. Merged to `main` as a clean
+fast-forward; tests re-verified independently in a fresh venv against the
+merged result, both with and without the optional ML dependency
+installed (190 passed + 5 correctly skipped without it, 195 passed with
+it) — 0 failures either way.
+
 ## Dependency pinning — read this before touching requirements.txt
 
 `requirements.txt` intentionally uses `>=` floors, not `==` exact pins. The
