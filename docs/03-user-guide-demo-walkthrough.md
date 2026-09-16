@@ -44,37 +44,54 @@ BUSINESS_TOKEN=$(curl -s -X POST $BASE/auth/login \
 ADMIN_TOKEN=$(curl -s -X POST $BASE/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@manchester.ac.uk","password":"ChangeMe123!"}' | jq -r .access_token)
+
+# Northbridge's own university id — needed to post its project below.
+UNI_ID=$(sqlite3 caplink.db "select id from universities where slug='manchester';")
 ```
 
 Every authenticated request below sends `-H "Authorization: Bearer $TOKEN"`.
 Access tokens expire after 30 minutes (`ACCESS_TOKEN_EXPIRE_MINUTES` in
 `.env`) — if commands start 401ing partway through, just log in again.
 
-## 1. See the world from the student's side
+## 1. Post the business's project, then see it from the student's side
 
-**Their profile:**
+Northbridge Analytics (the seeded hero business) deliberately has no project
+of its own yet — post the one `python -m scripts.seed_demo_data` suggested:
+
+```bash
+PROJECT=$(curl -s -X POST $BASE/projects \
+  -H "Authorization: Bearer $BUSINESS_TOKEN" -H "Content-Type: application/json" \
+  -d "{\"title\":\"Build a customer analytics dashboard\",
+       \"description\":\"We need an interactive dashboard that visualises customer engagement, retention and revenue trends from our subscription data, so our team can make faster, data-informed decisions without waiting on manual reports.\",
+       \"category\":\"data_analytics\",\"required_skills\":[\"Python\",\"SQL\",\"Data Visualisation\",\"React\"],
+       \"duration_label\":\"2-3 weeks\",\"estimated_hours\":20,\"hourly_rate_gbp\":22,
+       \"target_university_ids\":[\"$UNI_ID\"],
+       \"target_bands\":[\"year_3\",\"year_4_plus\",\"postgrad_taught\"]}")
+PROJECT_ID=$(echo "$PROJECT" | jq -r .id)
+```
+
+**Priya's profile:**
 ```bash
 curl -s $BASE/students/me -H "Authorization: Bearer $STUDENT_TOKEN"
 ```
 
-**Their suggested-projects feed** (this runs the matching engine and logs a
+**Priya's suggested-projects feed** (this runs the matching engine and logs a
 `RecommendationLog` row for each result):
 ```bash
-curl -s "$BASE/projects/feed?page=1&page_size=20" -H "Authorization: Bearer $STUDENT_TOKEN"
+curl -s "$BASE/projects/feed?page=1&page_size=30" -H "Authorization: Bearer $STUDENT_TOKEN"
 ```
-You should see "Customer Churn Analysis" with a `match_score` and
-`match_reasons` like `["Skill match: python, sql", "Within budget", ...]` —
-this is because Aisha's seeded skills (Python, SQL, Data Visualisation) and
-rate (£19/hr) line up with the project's requirements.
+You should see "Build a customer analytics dashboard" ranked **first** (a real
+~0.86 `match_score`, well clear of the next result), with `match_reasons`
+including `"Matched skills: python, sql, data visualisation, react"` — Priya
+was hand-crafted specifically to be this project's strongest match, so this
+result and its ranking are deterministic, not luck.
 
 ## 2. Apply to the project
 
 ```bash
-PROJECT_ID=$(curl -s "$BASE/projects/feed" -H "Authorization: Bearer $STUDENT_TOKEN" | jq -r '.[0].id')
-
 APPLICATION_ID=$(curl -s -X POST $BASE/applications \
   -H "Authorization: Bearer $STUDENT_TOKEN" -H "Content-Type: application/json" \
-  -d "{\"project_id\":\"$PROJECT_ID\",\"cover_note\":\"I've done a churn analysis for a class project — happy to share it.\",\"proposed_rate_gbp\":19}" \
+  -d "{\"project_id\":\"$PROJECT_ID\",\"cover_note\":\"I've built dashboards with Python and React before — happy to share examples.\",\"proposed_rate_gbp\":22}" \
   | jq -r .id)
 ```
 This also fires a "new application" push-notification stub to the business
@@ -89,7 +106,7 @@ need to re-apply.
 ```bash
 curl -s $BASE/projects/$PROJECT_ID/shortlist -H "Authorization: Bearer $BUSINESS_TOKEN"
 ```
-Aisha appears here *only* because the university↔business agreement is
+Priya appears here *only* because the university↔business agreement is
 `APPROVED` and her band (`year_3`) is inside `allowed_bands`. Try
 [step 7](#7-see-safeguarding-actually-block-something) below to see what
 happens when that isn't true.
@@ -107,8 +124,8 @@ curl -s -X PATCH $BASE/applications/$APPLICATION_ID \
 CONTRACT=$(curl -s -X POST $BASE/contracts \
   -H "Authorization: Bearer $BUSINESS_TOKEN" -H "Content-Type: application/json" \
   -d "{\"application_id\":\"$APPLICATION_ID\",\"milestones\":[
-        {\"description\":\"Data cleaning + exploratory analysis\",\"payment_amount_gbp\":80},
-        {\"description\":\"Final report + churn drivers\",\"payment_amount_gbp\":120}
+        {\"description\":\"Data integration + dashboard prototype\",\"payment_amount_gbp\":200},
+        {\"description\":\"Final dashboard build + handover\",\"payment_amount_gbp\":240}
       ]}")
 echo "$CONTRACT" | jq .
 CONTRACT_ID=$(echo "$CONTRACT" | jq -r .id)
@@ -157,12 +174,9 @@ access to any student until a university explicitly approves it:
 
 The public branding endpoint (`GET /universities/{slug}/public`) deliberately
 returns only name/colour/logo — no `id` — since it's unauthenticated and meant
-for a public landing page. For this walkthrough, grab the university's id the
-same local-dev way as the messaging step above:
-
-```bash
-UNI_ID=$(sqlite3 caplink.db "select id from universities where slug='manchester';")
-```
+for a public landing page: `$UNI_ID` (already grabbed the same local-dev,
+SQLite-file way back in [step 0](#0-log-in-and-grab-tokens)) is what a real
+integration would need to get some other way.
 
 ```bash
 # Register a brand-new, unapproved business:
@@ -244,12 +258,14 @@ curl -s $BASE/mobile/home -H "Authorization: Bearer $STUDENT_TOKEN"
 
 ## What to try next
 
-- Re-run [step 1](#1-see-the-world-from-the-students-side)'s feed call and
-  notice the `RecommendationLog` entries accumulating — `GET /docs` lets you
-  inspect this table indirectly via the recommendation-feedback endpoint.
+- Re-run [step 1](#1-post-the-businesss-project-then-see-it-from-the-students-side)'s
+  feed call and notice the `RecommendationLog` entries accumulating —
+  `GET /docs` lets you inspect this table indirectly via the
+  recommendation-feedback endpoint.
 - Register a second student in a different band (e.g. `year_1`) via
-  `POST /auth/register/student` and confirm they *don't* see the churn project
-  in their feed — Northbridge's agreement only covers `year_2` and above.
+  `POST /auth/register/student` and confirm they *don't* see the dashboard
+  project in their feed — Northbridge's agreement only covers `year_3` and
+  above.
 - Try `PATCH /students/me` to change skills, then re-check the feed — the
   match score/reasons change immediately since scoring is stateless and rules
   are re-evaluated on every read.
