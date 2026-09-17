@@ -112,6 +112,8 @@ def get_local_businesses(
                 company_name=business.company_name,
                 industry=business.industry,
                 postcode=business.postcode,
+                latitude=business.latitude,
+                longitude=business.longitude,
                 distance_miles=round(distance, 1),
                 degree_relevance_score=round(best_score, 2),
                 degree_relevance_label=best_label,
@@ -147,6 +149,8 @@ def get_local_search_meta(
     return LocalSearchMeta(
         campus_name=university.name,
         campus_postcode=university.postcode,
+        campus_latitude=university.latitude,
+        campus_longitude=university.longitude,
         radius_miles=radius_miles,
         total_results=len(results),
     )

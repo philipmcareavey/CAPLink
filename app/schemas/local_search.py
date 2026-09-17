@@ -8,6 +8,8 @@ class LocalBusinessResult(BaseModel):
     company_name: str
     industry: Optional[str]
     postcode: Optional[str]
+    latitude: float
+    longitude: float
     distance_miles: float
     degree_relevance_score: float = Field(description="0-1, from the same degree-relevance scorer used in project matching")
     degree_relevance_label: str
@@ -19,5 +21,7 @@ class LocalBusinessResult(BaseModel):
 class LocalSearchMeta(BaseModel):
     campus_name: str
     campus_postcode: Optional[str]
+    campus_latitude: float
+    campus_longitude: float
     radius_miles: float
     total_results: int

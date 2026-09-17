@@ -152,3 +152,41 @@ def test_local_search_400s_when_campus_location_not_set(client):
 
     resp = client.get(f"/api/v1/universities/{university_id}/local-businesses", headers=_auth(student_token))
     assert resp.status_code == 400, resp.text
+
+
+def test_local_search_results_include_coordinates_for_map_rendering(client):
+    university_id = _seed_university(client, slug="mapcoorduni", domain="mapcoorduni.ac.uk")
+    _set_campus_location(client, university_id, MANCHESTER_LAT, MANCHESTER_LON)
+
+    _register_business(client, email="mapped-business@example.com")
+    _seed_approved_business(
+        client,
+        business_user_email="mapped-business@example.com",
+        university_id=university_id,
+        bands=[StudentBand.YEAR_3.value],
+        categories=[ProjectCategory.SOFTWARE_ENGINEERING.value],
+        lat=MANCHESTER_LAT,
+        lon=MANCHESTER_LON,
+    )
+
+    student_token = _register_student(
+        client, university_slug="mapcoorduni", email="map-searcher@mapcoorduni.ac.uk"
+    )
+
+    search = client.get(
+        f"/api/v1/universities/{university_id}/local-businesses?radius_miles=10",
+        headers=_auth(student_token),
+    )
+    assert search.status_code == 200, search.text
+    results = search.json()
+    assert len(results) == 1
+    assert results[0]["latitude"] == MANCHESTER_LAT
+    assert results[0]["longitude"] == MANCHESTER_LON
+
+    meta = client.get(
+        f"/api/v1/universities/{university_id}/local-businesses/meta?radius_miles=10",
+        headers=_auth(student_token),
+    )
+    assert meta.status_code == 200, meta.text
+    assert meta.json()["campus_latitude"] == MANCHESTER_LAT
+    assert meta.json()["campus_longitude"] == MANCHESTER_LON
