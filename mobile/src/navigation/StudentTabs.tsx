@@ -4,6 +4,7 @@ import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 import { FeedScreen } from '../screens/student/FeedScreen';
 import { ProfileScreen } from '../screens/student/ProfileScreen';
 import { MessagesStack } from '../navigation/MessagesStack';
+import { ContractsStack } from '../navigation/ContractsStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -15,7 +16,7 @@ export function StudentTabs() {
     <Tab.Navigator>
       <Tab.Screen name="Feed" component={FeedScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
-      <Tab.Screen name="Contracts" children={() => <PlaceholderScreen title="Contracts" />} />
+      <Tab.Screen name="Contracts" component={ContractsStack} options={{ headerShown: false }} />
       <Tab.Screen name="Messages" component={MessagesStack} options={{ headerShown: false }} />
       <Tab.Screen name="Local" children={() => <PlaceholderScreen title="Local Search" />} />
       <Tab.Screen name="Ratings" children={() => <PlaceholderScreen title="My Ratings" />} />
