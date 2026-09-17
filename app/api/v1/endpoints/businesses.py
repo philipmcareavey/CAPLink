@@ -3,7 +3,10 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import require_business
 from app.db.session import get_db
+from app.models.policy import UniversityBusinessAgreement
+from app.models.university import University
 from app.models.user import BusinessProfile, User
+from app.schemas.policy import AgreementWithUniversityOut
 from app.schemas.user import BusinessProfileOut, BusinessProfileUpdate
 from app.services import geo
 
@@ -58,3 +61,33 @@ def update_my_profile(
     db.commit()
     db.refresh(profile)
     return profile
+
+
+@router.get("/me/agreements", response_model=list[AgreementWithUniversityOut])
+def get_my_agreements(db: Session = Depends(get_db), business_user: User = Depends(require_business)):
+    """Every agreement this business holds, across every university —
+    lets the mobile/web post-project flow show real, valid targets
+    instead of guessing a university id from a slug lookup."""
+    business = db.query(BusinessProfile).filter(BusinessProfile.user_id == business_user.id).first()
+    assert business is not None, "require_business guarantees a BusinessProfile row exists"
+
+    rows = (
+        db.query(UniversityBusinessAgreement, University.name)
+        .join(University, University.id == UniversityBusinessAgreement.university_id)
+        .filter(UniversityBusinessAgreement.business_id == business.id)
+        .all()
+    )
+    return [
+        AgreementWithUniversityOut(
+            id=agreement.id,
+            university_id=agreement.university_id,
+            business_id=agreement.business_id,
+            status=agreement.status,
+            allowed_bands=agreement.allowed_bands,
+            allowed_categories=agreement.allowed_categories,
+            max_active_projects=agreement.max_active_projects,
+            requires_university_project_review=agreement.requires_university_project_review,
+            university_name=university_name,
+        )
+        for agreement, university_name in rows
+    ]

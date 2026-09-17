@@ -31,3 +31,11 @@ class AgreementOut(BaseModel):
     allowed_categories: List[str]
     max_active_projects: Optional[int]
     requires_university_project_review: bool
+
+
+class AgreementWithUniversityOut(AgreementOut):
+    """AgreementOut plus the university's name, so a business browsing its
+    own agreements (e.g. to pick a target for a new project) doesn't need
+    a second round trip per agreement — same pattern as
+    ContractWithCounterpart in app/schemas/contract.py."""
+    university_name: str

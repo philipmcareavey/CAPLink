@@ -21,7 +21,7 @@ from app.models.enums import (
 from app.models.university import University
 from app.models.user import User
 
-from tests.test_golden_path_e2e import _auth, _register_business
+from tests.test_golden_path_e2e import _approve_agreement, _auth, _register_business, _seed_university
 
 ADMIN_PASSWORD = "Correct-Horse-Battery-Admin-1"
 PLATFORM_ADMIN_PASSWORD = "Correct-Horse-Battery-Platform-1"
@@ -163,3 +163,41 @@ def test_admin_cannot_decide_another_universitys_agreement(client):
         json={"status": AgreementStatus.APPROVED.value, "allowed_bands": [], "allowed_categories": []},
     )
     assert forbidden.status_code == 403, forbidden.text
+
+
+def test_business_can_list_its_own_agreements_with_university_names(client):
+    university_id = _seed_university(client, slug="myagreementsuni", domain="myagreementsuni.ac.uk")
+    business_token = _register_business(client, email="my-agreements-business@example.com")
+
+    _approve_agreement(
+        client,
+        business_user_email="my-agreements-business@example.com",
+        university_id=university_id,
+        bands=["year_3"],
+        categories=["data_analytics"],
+    )
+
+    resp = client.get("/api/v1/businesses/me/agreements", headers=_auth(business_token))
+    assert resp.status_code == 200, resp.text
+    agreements = resp.json()
+    assert len(agreements) == 1
+    assert agreements[0]["university_id"] == university_id
+    # _seed_university always names the row "Test University" regardless of
+    # the slug/domain passed in — confirmed by reading the helper itself.
+    assert agreements[0]["university_name"] == "Test University"
+    assert agreements[0]["status"] == "approved"
+    assert agreements[0]["allowed_categories"] == ["data_analytics"]
+
+
+def test_business_agreements_list_only_shows_its_own(client):
+    university_id = _seed_university(client, slug="otherbizuni", domain="otherbizuni.ac.uk")
+    _register_business(client, email="business-a@example.com")
+    _approve_agreement(
+        client, business_user_email="business-a@example.com", university_id=university_id,
+        bands=["year_3"], categories=["data_analytics"],
+    )
+    business_b_token = _register_business(client, email="business-b@example.com")
+
+    resp = client.get("/api/v1/businesses/me/agreements", headers=_auth(business_b_token))
+    assert resp.status_code == 200, resp.text
+    assert resp.json() == []
