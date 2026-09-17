@@ -4,13 +4,12 @@ import { useAuth } from '../../context/AuthContext';
 import { ApiError } from '../../api/client';
 import { AgreementWithUniversityOut } from '../../api/types';
 
-const BANDS = ['foundation_year', 'year_1', 'year_2', 'year_3', 'year_4_plus', 'postgrad_taught', 'postgrad_research', 'recent_alumni'];
-
 export function PostProjectScreen({ navigation }: { navigation: { goBack: () => void } }) {
   const { authedApi } = useAuth();
   const [agreements, setAgreements] = useState<AgreementWithUniversityOut[] | null>(null);
   const [selectedAgreement, setSelectedAgreement] = useState<AgreementWithUniversityOut | null>(null);
   const [selectedBands, setSelectedBands] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [requiredSkills, setRequiredSkills] = useState('');
@@ -47,6 +46,10 @@ export function PostProjectScreen({ navigation }: { navigation: { goBack: () => 
       setError('Choose a target university first.');
       return;
     }
+    if (!selectedCategory) {
+      setError('Choose a project category first.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -55,7 +58,7 @@ export function PostProjectScreen({ navigation }: { navigation: { goBack: () => 
         body: {
           title,
           description,
-          category: selectedAgreement.allowed_categories[0],
+          category: selectedCategory,
           required_skills: requiredSkills.split(',').map((s) => s.trim()).filter(Boolean),
           duration_label: durationLabel,
           hourly_rate_gbp: Number(rate),
@@ -114,6 +117,9 @@ export function PostProjectScreen({ navigation }: { navigation: { goBack: () => 
               onPress={() => {
                 setSelectedAgreement(a);
                 setSelectedBands([]);
+                // Default-select when there's only one choice; otherwise make
+                // the business pick, rather than silently posting the first.
+                setSelectedCategory(a.allowed_categories.length === 1 ? a.allowed_categories[0] : null);
               }}
             >
               <Text style={styles.optionText}>{a.university_name}</Text>
@@ -123,6 +129,18 @@ export function PostProjectScreen({ navigation }: { navigation: { goBack: () => 
 
         {selectedAgreement ? (
           <>
+            <Text style={styles.label}>Category</Text>
+            {selectedAgreement.allowed_categories.map((category) => (
+              <TouchableOpacity
+                key={category}
+                style={[styles.optionRow, selectedCategory === category && styles.optionRowSelected]}
+                onPress={() => setSelectedCategory(category)}
+                testID={`category-${category}`}
+              >
+                <Text style={styles.optionText}>{category}</Text>
+              </TouchableOpacity>
+            ))}
+
             <Text style={styles.label}>Target bands</Text>
             {selectedAgreement.allowed_bands.map((band) => (
               <TouchableOpacity

@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { ProjectDetailScreen } from '../ProjectDetailScreen';
 import { useAuth } from '../../../context/AuthContext';
+import { ApiError } from '../../../api/client';
 
 jest.mock('../../../context/AuthContext');
 const mockedUseAuth = useAuth as jest.Mock;
@@ -49,4 +50,25 @@ test('shows applicants by default, toggles to shortlist, and can advance an appl
   await waitFor(() => screen.getByTestId('advance-app-1'));
   await fireEvent.press(screen.getByTestId('advance-app-1'));
   await waitFor(() => expect(authedApi).toHaveBeenCalledWith('/applications/app-1', { method: 'PATCH', body: { status: 'shortlisted' } }));
+});
+
+test('shows empty states on both lists when the project has no applicants or shortlist', async () => {
+  mockedUseAuth.mockReturnValue({ authedApi: jest.fn(async () => []) });
+  await render(<ProjectDetailScreen route={routeWith(PROJECT)} navigation={{ navigate: jest.fn() } as any} />);
+  await waitFor(() => expect(screen.getByText('No applicants yet.', { exact: false })).toBeTruthy());
+  await fireEvent.press(screen.getByText('Shortlist'));
+  await waitFor(() => expect(screen.getByText('No shortlisted candidates yet.')).toBeTruthy());
+});
+
+// Representative error-path test for the DETAIL screen family.
+test('renders the error card when the load fails', async () => {
+  mockedUseAuth.mockReturnValue({
+    authedApi: jest.fn(async () => {
+      throw new ApiError('You do not have access to this project.', 403);
+    }),
+  });
+  await render(<ProjectDetailScreen route={routeWith(PROJECT)} navigation={{ navigate: jest.fn() } as any} />);
+  await waitFor(() => expect(screen.getByText('You do not have access to this project.')).toBeTruthy());
+  // The toggle is still there — the error doesn't replace the whole screen.
+  expect(screen.getByText('Applicants')).toBeTruthy();
 });

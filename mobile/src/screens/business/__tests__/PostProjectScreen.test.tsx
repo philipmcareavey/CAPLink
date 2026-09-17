@@ -30,6 +30,7 @@ test('loads approved agreements and posts a project targeting the selected one',
   await fireEvent.changeText(screen.getByTestId('post-description'), 'Description text');
   await fireEvent.changeText(screen.getByTestId('post-rate'), '25');
   await fireEvent.press(screen.getByText('University of Manchester'));
+  // Exactly one allowed category, so it is default-selected — no press needed.
   await fireEvent.press(screen.getByText('year_3'));
   await fireEvent.press(screen.getByTestId('post-submit'));
 
@@ -43,4 +44,31 @@ test('loads approved agreements and posts a project targeting the selected one',
     }),
   }));
   expect(goBack).toHaveBeenCalled();
+});
+
+test('a multi-category agreement lets the business pick which category to post under', async () => {
+  const multi = { ...AGREEMENT, allowed_categories: ['data_analytics', 'software_engineering'] };
+  const authedApi = jest.fn(async (path: string, opts?: any) => {
+    if (path === '/businesses/me/agreements') return [multi];
+    if (path === '/projects' && opts?.method === 'POST') return { id: 'p-new', ...opts.body, status: 'open' };
+    throw new Error(`unexpected call: ${path}`);
+  });
+  mockedUseAuth.mockReturnValue({ authedApi });
+
+  await render(<PostProjectScreen navigation={{ goBack: jest.fn() } as any} />);
+  await waitFor(() => expect(screen.getByText('University of Manchester')).toBeTruthy());
+  await fireEvent.press(screen.getByText('University of Manchester'));
+
+  // With more than one allowed category nothing is preselected — submitting
+  // now must not silently fall back to the first one.
+  await fireEvent.press(screen.getByTestId('post-submit'));
+  await waitFor(() => expect(screen.getByText('Choose a project category first.')).toBeTruthy());
+  expect(authedApi).not.toHaveBeenCalledWith('/projects', expect.anything());
+
+  await fireEvent.press(screen.getByTestId('category-software_engineering'));
+  await fireEvent.press(screen.getByTestId('post-submit'));
+  await waitFor(() => expect(authedApi).toHaveBeenCalledWith('/projects', {
+    method: 'POST',
+    body: expect.objectContaining({ category: 'software_engineering' }),
+  }));
 });

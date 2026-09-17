@@ -7,7 +7,11 @@ import { RatingHistoryEntry } from '../../api/types';
 function RatingRow({ entry }: { entry: RatingHistoryEntry }) {
   return (
     <View style={styles.row}>
-      {entry.is_released && entry.overall_score != null ? (
+      {/* The server has already made the visibility decision (ratings.py:
+          `reveal = given or rating.is_released`) — a rating you GAVE always
+          carries its real score, released or not. A null score is the only
+          thing that actually means hidden. */}
+      {entry.overall_score != null ? (
         <Text style={styles.score}>{entry.overall_score.toFixed(1)}</Text>
       ) : (
         <Text style={styles.hidden}>Hidden until both sides rate</Text>

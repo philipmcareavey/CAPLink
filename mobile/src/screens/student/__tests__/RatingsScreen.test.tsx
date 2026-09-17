@@ -19,3 +19,13 @@ test('splits ratings into Given and Received sections, hiding an unreleased rece
   expect(screen.getByText('5.0')).toBeTruthy();
   expect(screen.getByText('Hidden until both sides rate')).toBeTruthy();
 });
+
+test('shows a rating you gave even before it is released — the server only blinds RECEIVED ones', async () => {
+  const givenUnreleased = [
+    { id: 'r-3', contract_id: 'c-2', counterpart_user_id: 'u-3', direction: 'given', is_released: false, overall_score: 4, sub_scores: null, visibility: 'public' },
+  ];
+  mockedUseAuth.mockReturnValue({ authedApi: jest.fn(async () => givenUnreleased) });
+  await render(<RatingsScreen />);
+  await waitFor(() => expect(screen.getByText('4.0')).toBeTruthy());
+  expect(screen.queryByText('Hidden until both sides rate')).toBeNull();
+});

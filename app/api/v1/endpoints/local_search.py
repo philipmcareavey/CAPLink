@@ -146,6 +146,9 @@ def get_local_search_meta(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "University not found")
 
     results = get_local_businesses(university_id, radius_miles, 0.0, db, student_user)
+    # get_local_businesses 400s above if the campus location isn't set, so by
+    # here both coordinates are guaranteed present.
+    assert university.latitude is not None and university.longitude is not None
     return LocalSearchMeta(
         campus_name=university.name,
         campus_postcode=university.postcode,

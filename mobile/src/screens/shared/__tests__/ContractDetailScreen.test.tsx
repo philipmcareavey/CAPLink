@@ -33,9 +33,18 @@ test('a student sees Submit on a pending milestone and it calls the submit endpo
   await waitFor(() => expect(authedApi).toHaveBeenCalledWith('/contracts/milestones/m-1/submit', { method: 'POST' }));
 });
 
-test('a business sees Approve & pay on a submitted milestone, not a student', async () => {
-  const submittedContract = { ...CONTRACT, milestones: [{ ...PENDING_MILESTONE, status: 'submitted' }] };
+const SUBMITTED_CONTRACT = { ...CONTRACT, milestones: [{ ...PENDING_MILESTONE, status: 'submitted' }] };
+
+test('a business sees Approve & pay on a submitted milestone', async () => {
   mockedUseAuth.mockReturnValue({ authedApi: jest.fn(), state: { status: 'signedIn', claims: { role: 'business' } } });
-  await render(<ContractDetailScreen route={routeWith(submittedContract)} navigation={{ navigate: jest.fn() } as any} />);
+  await render(<ContractDetailScreen route={routeWith(SUBMITTED_CONTRACT)} navigation={{ navigate: jest.fn() } as any} />);
   expect(screen.getByTestId('approve-pay-m-1')).toBeTruthy();
+});
+
+// The negative half the test above used to only claim in its name: the same
+// submitted milestone must NOT offer approve-and-pay to the student.
+test('a student does not see Approve & pay on the same submitted milestone', async () => {
+  mockedUseAuth.mockReturnValue({ authedApi: jest.fn(), state: { status: 'signedIn', claims: { role: 'student' } } });
+  await render(<ContractDetailScreen route={routeWith(SUBMITTED_CONTRACT)} navigation={{ navigate: jest.fn() } as any} />);
+  expect(screen.queryByTestId('approve-pay-m-1')).toBeNull();
 });

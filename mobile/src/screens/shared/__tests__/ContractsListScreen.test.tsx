@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { ContractsListScreen } from '../ContractsListScreen';
 import { useAuth } from '../../../context/AuthContext';
+import { ApiError } from '../../../api/client';
 
 jest.mock('../../../context/AuthContext');
 const mockedUseAuth = useAuth as jest.Mock;
@@ -20,4 +21,17 @@ test('lists contracts and navigates to detail on tap', async () => {
   await waitFor(() => expect(screen.getByText('Build a customer analytics dashboard')).toBeTruthy());
   await fireEvent.press(screen.getByText('Build a customer analytics dashboard'));
   expect(navigate).toHaveBeenCalledWith('Detail', { contract: CONTRACT });
+});
+
+// Representative error-path test for the LIST screen family.
+test('renders the error card and the empty state when the load fails', async () => {
+  mockedUseAuth.mockReturnValue({
+    authedApi: jest.fn(async () => {
+      throw new ApiError('Could not reach the server.', 503);
+    }),
+    state: { status: 'signedIn', claims: { role: 'student' } },
+  });
+  await render(<ContractsListScreen navigation={{ navigate: jest.fn() } as any} />);
+  await waitFor(() => expect(screen.getByText('Could not reach the server.')).toBeTruthy());
+  expect(screen.getByText('No contracts yet.', { exact: false })).toBeTruthy();
 });

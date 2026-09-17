@@ -1,9 +1,19 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { useAuth } from '../../context/AuthContext';
 import { ApiError } from '../../api/client';
 import { LocalBusinessResult, LocalSearchMeta } from '../../api/types';
+
+function regionFor(meta: LocalSearchMeta, radiusMiles: number) {
+  const delta = Math.max(0.05, (radiusMiles / 69) * 2);
+  return {
+    latitude: meta.campus_latitude,
+    longitude: meta.campus_longitude,
+    latitudeDelta: delta,
+    longitudeDelta: delta,
+  };
+}
 
 export function LocalSearchMapScreen() {
   const { authedApi, state } = useAuth();
@@ -14,6 +24,11 @@ export function LocalSearchMapScreen() {
   const [minRelevance, setMinRelevance] = useState('0');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // The 400 case is the one error with genuinely nothing else to show — no
+  // radius makes a campus-less search work — so it keeps the full-screen
+  // treatment; every other error renders as a card above usable controls.
+  const [campusUnset, setCampusUnset] = useState(false);
+  const mapRef = useRef<MapView>(null);
 
   const search = useCallback(async () => {
     if (!universityId) return;
@@ -25,9 +40,16 @@ export function LocalSearchMapScreen() {
       ]);
       setMeta(metaData);
       setResults(resultsData);
+      setCampusUnset(false);
+      // initialRegion only applies at mount, and this map effectively never
+      // remounts — without this, a wider radius fetches markers that render
+      // outside the visible viewport and the control looks broken.
+      mapRef.current?.animateToRegion(regionFor(metaData, Number(radius)));
     } catch (e) {
+      const isCampusUnset = e instanceof ApiError && e.status === 400;
+      setCampusUnset(isCampusUnset);
       setError(
-        e instanceof ApiError && e.status === 400
+        isCampusUnset
           ? "Your university's campus location hasn't been set yet — ask a university admin to add a campus postcode."
           : e instanceof ApiError
             ? e.message
@@ -53,7 +75,7 @@ export function LocalSearchMapScreen() {
     );
   }
 
-  if (error) {
+  if (campusUnset) {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorText}>{error}</Text>
@@ -63,15 +85,17 @@ export function LocalSearchMapScreen() {
 
   return (
     <View style={styles.container}>
+      {error ? (
+        <View style={styles.card}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : null}
+
       {meta ? (
         <MapView
+          ref={mapRef}
           style={styles.map}
-          initialRegion={{
-            latitude: meta.campus_latitude,
-            longitude: meta.campus_longitude,
-            latitudeDelta: Math.max(0.05, (Number(radius) / 69) * 2),
-            longitudeDelta: Math.max(0.05, (Number(radius) / 69) * 2),
-          }}
+          initialRegion={regionFor(meta, Number(radius))}
         >
           {results.map((r) => (
             <Marker
@@ -101,6 +125,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F6F3EC' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F6F3EC', padding: 24 },
   errorText: { color: '#A6452F', textAlign: 'center' },
+  card: { backgroundColor: '#FFFDF8', borderRadius: 6, borderWidth: 1, borderColor: '#DDD6C7', padding: 16, margin: 12 },
   map: { flex: 1 },
   controls: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFDF8', borderTopWidth: 1, borderTopColor: '#DDD6C7', padding: 10, gap: 8 },
   label: { fontSize: 11, color: '#3C4B68' },

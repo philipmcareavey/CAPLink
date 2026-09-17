@@ -88,6 +88,24 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  mobile-test:
+    # Technical Implementation Plan Workstream 6.b — the React Native app's
+    # own Jest suite (mobile/jest.config.js). Separate from frontend-test
+    # above: that one runs Vitest at the repo root against static/app/js,
+    # which never touches mobile/. Without this job, a mobile change can
+    # break every one of these tests and CI still goes green.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npm test
+
   docker-build:
     # Technical Implementation Plan step 1.b.ii — was blocked until 1.d.i's
     # Dockerfile existed; it now does, so this job both closes out 1.b.ii and

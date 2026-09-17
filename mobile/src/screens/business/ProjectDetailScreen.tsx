@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { ApiError } from '../../api/client';
 import { ApplicantOut, ApplicationStatus, MatchExplanationOut, ProjectOut, StudentShortlistEntry } from '../../api/types';
@@ -26,6 +26,7 @@ export function ProjectDetailScreen({
   const [shortlist, setShortlist] = useState<StudentShortlistEntry[] | null>(null);
   const [explanation, setExplanation] = useState<MatchExplanationOut | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -81,6 +82,12 @@ export function ProjectDetailScreen({
     }
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -110,6 +117,8 @@ export function ProjectDetailScreen({
         <FlatList
           data={applicants ?? []}
           keyExtractor={(a) => a.application_id}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          ListEmptyComponent={<Text style={styles.emptyText}>No applicants yet. Students who apply to this project appear here.</Text>}
           renderItem={({ item }) => (
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
@@ -140,6 +149,8 @@ export function ProjectDetailScreen({
         <FlatList
           data={shortlist ?? []}
           keyExtractor={(s) => s.student_id}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          ListEmptyComponent={<Text style={styles.emptyText}>No shortlisted candidates yet.</Text>}
           renderItem={({ item }) => (
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
@@ -165,6 +176,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F6F3EC' },
   card: { backgroundColor: '#FFFDF8', borderRadius: 6, borderWidth: 1, borderColor: '#DDD6C7', padding: 16, margin: 12 },
   errorText: { color: '#A6452F' },
+  emptyText: { color: '#3C4B68', textAlign: 'center', margin: 24, fontSize: 13 },
   toggleRow: { flexDirection: 'row', margin: 12, backgroundColor: '#FFFDF8', borderRadius: 6, borderWidth: 1, borderColor: '#DDD6C7' },
   toggle: { flex: 1, paddingVertical: 10, alignItems: 'center' },
   toggleActive: { backgroundColor: '#1B2A45', borderRadius: 5 },

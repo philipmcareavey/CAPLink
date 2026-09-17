@@ -26,6 +26,16 @@ export function ContractFormScreen({
   const removeRow = (index: number) => setRows((prev) => prev.filter((_, i) => i !== index));
 
   const submit = async () => {
+    // Number('') is 0, not NaN, and the backend's `ge=0` validator accepts it —
+    // so without this a blank amount silently becomes a real, chargeable £0
+    // milestone with a live PaymentIntent behind it.
+    const invalid = rows.some(
+      (r) => r.description.trim() === '' || r.payment_amount_gbp.trim() === '' || !(Number(r.payment_amount_gbp) > 0),
+    );
+    if (invalid) {
+      setError('Every milestone needs a description and an amount greater than £0.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
