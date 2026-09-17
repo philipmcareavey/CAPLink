@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+import { MessagesStack } from '../navigation/MessagesStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -11,7 +12,7 @@ export function BusinessTabs() {
     <Tab.Navigator>
       <Tab.Screen name="Projects" children={() => <PlaceholderScreen title="My Projects" />} />
       <Tab.Screen name="Contracts" children={() => <PlaceholderScreen title="Contracts" />} />
-      <Tab.Screen name="Messages" children={() => <PlaceholderScreen title="Messages" />} />
+      <Tab.Screen name="Messages" component={MessagesStack} options={{ headerShown: false }} />
     </Tab.Navigator>
   );
 }
