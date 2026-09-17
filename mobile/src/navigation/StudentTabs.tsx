@@ -5,6 +5,7 @@ import { FeedScreen } from '../screens/student/FeedScreen';
 import { ProfileScreen } from '../screens/student/ProfileScreen';
 import { MessagesStack } from '../navigation/MessagesStack';
 import { ContractsStack } from '../navigation/ContractsStack';
+import { RatingsScreen } from '../screens/student/RatingsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,7 +20,7 @@ export function StudentTabs() {
       <Tab.Screen name="Contracts" component={ContractsStack} options={{ headerShown: false }} />
       <Tab.Screen name="Messages" component={MessagesStack} options={{ headerShown: false }} />
       <Tab.Screen name="Local" children={() => <PlaceholderScreen title="Local Search" />} />
-      <Tab.Screen name="Ratings" children={() => <PlaceholderScreen title="My Ratings" />} />
+      <Tab.Screen name="Ratings" component={RatingsScreen} />
     </Tab.Navigator>
   );
 }
