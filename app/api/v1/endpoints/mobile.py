@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -8,6 +8,12 @@ from app.models.enums import UserRole
 from app.models.recommendation import RecommendationLog
 from app.models.user import BusinessProfile, StudentProfile, User
 from app.schemas.device import DeviceRegister
+from app.schemas.notification_preferences import (
+    NotificationPreferenceItem,
+    NotificationPreferencesOut,
+    NotificationPreferencesUpdate,
+)
+from app.services.notifications import NOTIFICATION_TEMPLATES
 
 router = APIRouter(prefix="/mobile", tags=["mobile"])
 
@@ -80,3 +86,36 @@ def mobile_home(db: Session = Depends(get_db), user: User = Depends(get_current_
         }
 
     return {"role": user.role.value}
+
+
+@router.get("/notification-preferences", response_model=NotificationPreferencesOut)
+def get_notification_preferences(user: User = Depends(get_current_user)):
+    """Which push notification types this user currently receives."""
+    return NotificationPreferencesOut(
+        preferences=[
+            NotificationPreferenceItem(
+                template_key=key,
+                label=title,
+                enabled=key not in user.notification_opt_outs,
+            )
+            for key, (title, _body) in NOTIFICATION_TEMPLATES.items()
+        ]
+    )
+
+
+@router.patch("/notification-preferences", response_model=NotificationPreferencesOut)
+def update_notification_preferences(
+    payload: NotificationPreferencesUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
+    """Replaces the full set of muted notification types with `opted_out`."""
+    unknown = set(payload.opted_out) - set(NOTIFICATION_TEMPLATES.keys())
+    if unknown:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unknown notification type(s): {sorted(unknown)}")
+    user.notification_opt_outs = payload.opted_out
+    db.commit()
+    return NotificationPreferencesOut(
+        preferences=[
+            NotificationPreferenceItem(template_key=key, label=title, enabled=key not in user.notification_opt_outs)
+            for key, (title, _body) in NOTIFICATION_TEMPLATES.items()
+        ]
+    )

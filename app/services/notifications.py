@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models.device import Device
+from app.models.user import User
 
 logger = logging.getLogger("caplink.notifications")
 
@@ -95,5 +96,8 @@ NOTIFICATION_TEMPLATES = {
 
 
 def notify_from_template(db: Session, user_id: str, template_key: str, **kwargs) -> None:
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is not None and template_key in user.notification_opt_outs:
+        return
     title, body_template = NOTIFICATION_TEMPLATES[template_key]
     notify_user(db, user_id, title, body_template.format(**kwargs))

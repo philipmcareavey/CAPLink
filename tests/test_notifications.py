@@ -82,6 +82,27 @@ def test_send_push_with_fcm_configured_delivers_and_leaves_device_active(db_sess
     assert captured_cert_arg["arg"] == "/tmp/fake-firebase-creds.json"
 
 
+def test_notify_from_template_skips_opted_out_template_but_still_sends_others(db_session, monkeypatch):
+    """A user who has opted out of a specific template must get zero
+    _send_push calls (no Device query, no send at all) for that template,
+    while a non-opted-out template still delivers normally — the two
+    template keys used by the real event sites in messages.py/ratings.py,
+    per the real NOTIFICATION_TEMPLATES dict."""
+    calls = []
+    monkeypatch.setattr(notifications, "_send_push", lambda *a, **kw: calls.append(a))
+
+    device = _make_device(db_session)
+    user = db_session.query(User).filter(User.id == device.user_id).first()
+    user.notification_opt_outs = ["new_message"]
+    db_session.commit()
+
+    notifications.notify_from_template(db_session, user.id, "new_message", sender_name="X")
+    assert calls == [], "opted-out template must never reach _send_push"
+
+    notifications.notify_from_template(db_session, user.id, "rating_released")
+    assert len(calls) == 1, "a non-opted-out template must still deliver normally"
+
+
 def test_send_push_deactivates_device_on_unregistered_token(db_session, monkeypatch):
     if not notifications.is_available():
         pytest.skip("firebase_admin not installed")

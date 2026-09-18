@@ -49,6 +49,11 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     mfa_backup_codes: Mapped[list] = mapped_column(JSON, default=list)
 
+    # Notification preferences — a list of NOTIFICATION_TEMPLATES keys
+    # (app/services/notifications.py) this user has muted. Empty list
+    # (the default) means receiving everything.
+    notification_opt_outs: Mapped[list] = mapped_column(JSON, default=list)
+
     # --- Data protection & privacy engineering (Technical Implementation
     # Plan Workstream 7) ---
 
