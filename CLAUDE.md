@@ -2601,6 +2601,243 @@ requirements.txt — grep confirms none are actually imported anywhere in
 They live in `requirements-integrations.txt` / `requirements-postgres.txt`
 instead, installed only when those integrations get built out for real.
 
+## Workstream 6.b (Mobile Student & Business Flows) — started 2026-09-17, 3/13 tasks done
+
+A new, larger sub-plan for the mobile app, executing via
+`superpowers:subagent-driven-development` in a fresh worktree
+(`.worktrees/workstream-6b-mobile-student-business-flows`, branch
+`workstream-6b-mobile-student-business-flows`, off `main`). Design spec at
+`docs/superpowers/specs/2026-09-17-mobile-student-business-flows-design.md`,
+13-task plan at
+`docs/superpowers/plans/2026-09-17-mobile-student-business-flows.md`. Scope,
+agreed via brainstorming before the spec was written: both student and
+business tabs together (Phil's explicit call — rejected splitting into two
+separate cycles), straight-port the Ratings screen and post-project form,
+redesign Messaging/Profile/Contracts/Business-Projects and — the one new
+addition beyond the original screen list — Local Search as a real map view
+(`react-native-maps`, needing a real Google Maps API key, which Phil
+supplied directly in chat and which is stored **only** in the git-ignored
+`mobile/android/local.properties`, wired into the Android build via a
+Gradle `manifestPlaceholders` entry — never hardcoded, never printed back).
+
+**Pre-flight, before Task 1**: the mobile app's Jest config was discovered
+genuinely broken during worktree setup — `npx jest` failed outright on the
+one pre-existing test, first with a `SyntaxError` (the RN jest-preset's
+default `transformIgnorePatterns` only exempts `react-native`/
+`@react-native(-community)` packages, not the other RN libraries this app
+depends on), then a native-TurboModule invariant failure
+(`react-native-gesture-handler` needs its own officially-shipped
+`jestSetup.js`, not present in `setupFiles`). This predates this plan
+entirely — no earlier session had ever actually run `npx jest` to
+completion, only `npm run android` in a real emulator. Fixed directly (not
+as a dispatched task — baseline infra, same class as installing the venv):
+`mobile/jest.config.js` now explicitly re-lists the preset's own
+`transformIgnorePatterns`/`setupFiles` values plus the libraries this app
+actually needs (`@react-navigation`, `react-native-gesture-handler`,
+`-safe-area-context`, `-screens`, `-keychain`, `-maps`) — the key gotcha
+worth remembering if this ever needs touching again: **Jest config arrays
+don't merge with a preset's own values when overridden in a project's own
+`jest.config.js`** — you have to explicitly re-list the preset's base
+values or they're silently dropped, the same trap for both
+`transformIgnorePatterns` and `setupFiles`. Committed `2d99d40`.
+
+**Tasks 1-3, all reviewed clean, 0 real fix rounds**:
+- **Task 1** (`1b84c85`) — exposed `latitude`/`longitude` on
+  `LocalBusinessResult` and `campus_latitude`/`campus_longitude` on
+  `LocalSearchMeta` (`app/schemas/local_search.py`,
+  `app/api/v1/endpoints/local_search.py`) — the backend already computes
+  these via `haversine_distance_miles` but never returned them; a map
+  screen can't place a marker from a distance alone. Pure additive schema
+  change, no migration.
+- **Task 2** (`522aa40`) — new `GET /businesses/me/agreements` →
+  `list[AgreementWithUniversityOut]`. Found and worked around a real,
+  pre-existing bug during plan-writing, not fixed in place (out of scope
+  for this plan): the web app's `wirePostProjectForm()`
+  (`static/app/js/business.js`) resolves a target university via
+  `api('/universities/${slug}/public').then(uni => uni.id)`, but that
+  endpoint's schema (`UniversityPublicBranding`) has **no `id` field at
+  all** — `uni.id` is genuinely `undefined` there today. The new mobile
+  post-project screen (Task 11) will use this new endpoint instead of
+  copying that bug forward.
+- **Task 3** (`2baaf28`) — 18 new TypeScript interfaces added to
+  `mobile/src/api/types.ts`, mirroring every backend schema this plan's
+  remaining screens need, field-for-field. Pure additive, nothing consumes
+  them yet. **One real process finding from this task's review, worth
+  remembering for future dispatches**: the implementer was run on the
+  `haiku` model, and its commit used `Co-Authored-By: Claude Haiku 4.5
+  <noreply@anthropic.com>` instead of the exact trailer text its brief
+  specified (`Claude Sonnet 5`) — it self-attributed by its own running
+  model rather than copying the given text verbatim. A cheap model
+  dispatch's commit trailer needs to be checked, not assumed correct, even
+  when the brief spells out the exact text to use. Fixed directly via
+  `git commit --amend` (pure metadata, zero code risk, not counted as a
+  real fix round) rather than a full fix-round redispatch.
+
+Both backend tasks (1, 2) are the entirety of this plan's non-mobile
+scope — Tasks 4-13 are mobile-only (testing infra, 5 redesigned screens,
+2 straight-ported ones, the Maps dependency wiring, business-side
+screens). Full task log and the pre-flight conflict scan (which files
+multiple sequential tasks touch, and the rulings on each) are in the SDD
+ledger:
+`.worktrees/workstream-6b-mobile-student-business-flows/.superpowers/sdd/2026-09-17-mobile-student-business-flows/progress.md`.
+
+**All 9 student-side tasks (Tasks 1, 3-10) done and reviewed clean as of
+2026-09-17 — `6.b.i` now marked Done in the tracker.** Beyond Tasks 1-3
+above:
+- **Task 4** (`0c214f3`) — `@testing-library/react-native` added as a
+  dev dependency, proven against `Chip.tsx` via a smoke test. Surfaced
+  the single most consequential finding of this whole plan: this app's
+  installed version (14.0.1) makes **both `render()` and every
+  `fireEvent`/`fireEvent.changeText`/`fireEvent.press` call
+  asynchronous** — confirmed twice independently by reading the
+  library's own compiled source, not assumed. Every subsequent screen
+  test in this plan had to `await` these calls, a deviation from what
+  every task brief's example snippets show (the plan predates this
+  discovery) — carried forward explicitly into every Task 5-13 dispatch.
+- **Task 5** (`080392e`) — student `ProfileScreen`, split into its own
+  tab (the web app embeds profile inside Feed; a dedicated screen reads
+  better on mobile per the design spec). First task to touch
+  `StudentTabs.tsx`.
+- **Task 6** (`f2c7248`) — shared `ThreadsListScreen`/`ChatScreen`
+  messaging, one component tree wired into both `StudentTabs.tsx` and
+  `BusinessTabs.tsx` (first task to touch the latter). The off-platform-
+  contact flag renders inline in the chat bubble rather than being
+  hidden.
+- **Task 7** (`bce9e59`) — shared Contracts `List`/`Detail` + a
+  `RateModal`, also wired into both tab trees. Role-gating (student sees
+  Submit on pending milestones, business sees Approve & pay on submitted
+  ones) verified against the actual conditional code, and confirmed to
+  match the production web app's identical two-condition gate in
+  `static/app/js/shared/contracts.js:36-37` — a faithful port, not a new
+  invention.
+- **Task 8** (`6f60983`) — student-only `RatingsScreen` (Given/Received),
+  not wired into `BusinessTabs` — matches the web app's own tab parity
+  (business has no ratings tab either). One dispatch of this task was
+  interrupted mid-way by an unrelated session-wide API rate limit after
+  only a test file had been written; the re-dispatch verified that
+  partial file was correct and reused it rather than redoing the work.
+- **Task 9** (`37ee6f6`) — `react-native-maps` installed, the real
+  Google Maps API key (supplied earlier by Phil, stored only in the
+  git-ignored `mobile/android/local.properties`) wired into the Android
+  build via a Gradle `manifestPlaceholders` entry consumed by
+  `AndroidManifest.xml`. Both the implementer and the reviewer
+  independently confirmed — using only presence-checking commands, never
+  reading the key's contents — that the key never appeared in the diff
+  and the file remains git-ignored. Real `./gradlew
+  :app:processDebugManifest` build succeeded.
+- **Task 10** (`edcac72`) — `LocalSearchMapScreen`, a real `MapView` with
+  per-business markers, replacing the Local Search placeholder. Found
+  and fixed a real bug in the plan's own test-mock code (a prop-spread
+  ordering bug that would have silently clobbered a computed `testID`);
+  added a Jest manual mock for `react-native-maps` since it has no native
+  module in the test environment. **Real manual emulator verification**
+  confirmed the actual Google Maps SDK renders correctly (a genuine
+  Google logo watermark, not a blank grey placeholder — proof Task 9's
+  key wiring works end-to-end), then crashed on a missing `longitude`
+  field. Root-caused, not just observed: the live staging API this app's
+  `API_BASE` points at (`caplink-api.onrender.com`) doesn't yet have this
+  plan's own Task 1 backend commit deployed, since the whole plan still
+  lives on an unmerged branch — confirmed by diffing `git log main`. Also
+  confirmed the seeded hero student account (`priya.anand@...`, from
+  Workstream 9) doesn't exist on the live staging database either — that
+  seed data was only ever verified locally, never pushed to the shared
+  staging Postgres. **Ruling carried forward to Task 13's own
+  end-of-plan manual verification step**: full data-level emulator
+  verification isn't possible until this branch's backend commits are
+  merged to `main`, deployed, and staging is reseeded — expect Task 13 to
+  hit the same root cause if attempted as-is; that's confirmation, not a
+  new bug, and the actual merge/deploy/reseed decision belongs to this
+  plan's final whole-branch review stage.
+
+**Tasks 11-13 (business-side, all reviewed clean), completing the plan:**
+- **Task 11** (`ecce377`) — business `ProjectsListScreen`/`PostProjectScreen`/
+  `ProjectsStack`. Post-project picks a target university from the
+  business's own real approved agreements (Task 2's endpoint), not the
+  broken slug-lookup pattern the web app uses. First task to touch
+  `BusinessTabs.tsx`'s `Projects` placeholder — its review specifically
+  confirmed removing the now-fully-unused `PlaceholderScreen` import from
+  that file was safe (it was used exactly once, for this tab).
+- **Task 12** (`d511ae0`) — business `ProjectDetailScreen` (Applicants/
+  Shortlist toggle, application-status pipeline advancement, messaging,
+  a `MatchExplanationModal` "why this match?" drill-down reusing the same
+  `MatchExplanationOut` breakdown the web app already shows) plus adding
+  the `Detail` route to Task 11's `ProjectsStack`. Found a **third** real
+  testing-library quirk this plan (beyond Tasks 4/5's async `render`/
+  `fireEvent` findings): RNTL 14's `getByText` defaults to exact
+  whole-node-text matching after joining a host `<Text>` node's children
+  into one string, so a brief's assertion against text actually rendered
+  as `{degree_title} · {university_name}` in one combined node needed
+  `{ exact: false }` — confirmed by reading the library's own matcher
+  source directly, not assumed.
+- **Task 13** (`ce0c847`) — business `ContractFormScreen` (add/remove
+  milestone rows, `POST /contracts`), completing `ProjectsStack`'s route
+  set and this whole plan. Re-ran the full backend suite one more time
+  (193 passed/5 skipped, confirming Tasks 1-2's backend changes are still
+  solid under everything built on top) and attempted the final
+  whole-loop manual emulator walkthrough — which reproduced Task 10's
+  already-documented staging-deployment-lag finding exactly (login
+  against live staging failed, since this branch's backend/seed data was
+  never deployed there), stopping immediately rather than attempting any
+  workaround against shared infrastructure, per the ruling Task 10's
+  review had already carried forward.
+
+**All 13 individual tasks were reviewed clean with 0 real fix rounds each**
+(one trivial commit-metadata amend for Task 3's wrong attribution
+trailer, not a code fix) — but the **final whole-branch review that
+follows all 13 tasks did find real issues**, exactly the pattern
+Workstream 9 hit once before: per-task reviews consistently run tests
+but not the type/lint gates, and consistently can't see whole-branch
+concerns no single task's diff exposes. **1 Critical (a `mypy` failure
+that would have gone straight to CI red — `local_search.py`'s new
+`campus_latitude`/`longitude` fields accepted an `Optional[float]`
+without narrowing it) and 8 Important findings** (three real user-facing/
+money-path bugs: `RatingsScreen` hid a rating the student themselves
+gave; `PostProjectScreen` hardcoded the project category with no picker,
+a real spec deviation; `ContractFormScreen` silently turned a blank
+milestone amount into a real £0 payment. Plus five consistency gaps —
+missing empty-state/refresh on `ProjectDetailScreen`, a dead-end error
+state and no map re-zoom on `LocalSearchMapScreen`, the mobile Jest suite
+never wired into CI despite this plan fixing and extending it, and zero
+error-path tests across the 18 tests this plan had added). One fix wave
+(commit `9062ed9`, needed one resume after an unrelated session-wide API
+rate limit interrupted it mid-way) fixed all of C1 and I1-I8 plus one
+free-to-bundle dead-code Minor; a scoped re-review independently
+confirmed all ten findings genuinely resolved, re-ran the full
+verification gate itself (ruff/mypy/bandit/pytest/tsc/jest all clean,
+mobile suite now 28 tests up from 18), and found no reason for a second
+fix round. Full detail of every finding and its fix, including three
+implementer-flagged deviations the re-review examined and accepted, in
+the SDD ledger. **This branch is now genuinely ready to merge** — this
+is the corrected, final status; an earlier draft of this entry
+prematurely claimed "0 real fix rounds needed anywhere in the plan"
+before the final review had actually run, which was wrong the moment it
+was written and is corrected here rather than left standing.
+
+Tracker updated to match: **both `6.b.i` and `6.b.ii` are Done (100%)** —
+the entire Workstream 6.b sub-plan is complete. Dashboard rollups
+(Workstream 6's Done/In-Progress split, the overall totals, the
+P1/P2-priority tables) independently recomputed from all 115 raw tracker
+rows and reverified after every edit — zero mismatches throughout.
+Backups at `../CAPLink-Technical-Tracker.xlsx.backup9` through
+`.backup12`.
+
+**Next, and requiring Phil's explicit decision, not something to do
+unprompted**: `superpowers:finishing-a-development-branch`'s standard
+menu (merge locally / push + PR / keep as-is). That merge is also the
+natural point to resolve the staging-deployment-lag limitation flagged
+throughout Tasks 10 and 13 above (this branch's own backend commits
+aren't deployed to the live staging API yet, so full data-level emulator
+verification has been blocked twice) — worth a real live-data walkthrough
+once merged and deployed. **One more thing surfaced during the final
+review, unrelated to this plan's own code, worth raising separately**:
+the `uni.id`-is-`undefined` bug this plan's Task 2 correctly avoided
+copying into mobile turns out to affect `static/app/js/business.js` in a
+second place too (`wireRequestAccess`, not just `wirePostProjectForm`) —
+requesting university access from the web app is broken the same way
+posting a project was. Not fixed here (out of scope for a mobile-only
+plan), but a real, previously-undocumented web-app bug worth its own
+small fix whenever convenient.
+
 ## If you're picking this up mid-troubleshooting
 
 The account owner's dad (Windows machine, unrelated hardware/OS from this dev
