@@ -12,7 +12,6 @@ so it's imported lazily and `is_available()` mirrors
 app/services/matching/embeddings.py's is_available() pattern for the same
 reason: CI's `test` job never installs it.
 """
-import json
 import logging
 from typing import Any, Iterable, Optional
 
@@ -44,7 +43,7 @@ def _get_firebase_app() -> Any:
         import firebase_admin
         from firebase_admin import credentials
 
-        cert = credentials.Certificate(json.loads(settings.FIREBASE_CREDENTIALS_JSON))
+        cert = credentials.Certificate(settings.FIREBASE_CREDENTIALS_JSON)
         _firebase_app = firebase_admin.initialize_app(cert)
     return _firebase_app
 

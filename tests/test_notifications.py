@@ -53,9 +53,10 @@ def test_send_push_with_fcm_configured_delivers_and_leaves_device_active(db_sess
     import firebase_admin.credentials as credentials
     import firebase_admin.messaging as messaging
 
-    monkeypatch.setattr(settings, "FIREBASE_CREDENTIALS_JSON", '{"type": "service_account"}')
+    monkeypatch.setattr(settings, "FIREBASE_CREDENTIALS_JSON", "/tmp/fake-firebase-creds.json")
     monkeypatch.setattr(notifications, "_firebase_app", None)
-    monkeypatch.setattr(credentials, "Certificate", lambda cert: object())
+    captured_cert_arg = {}
+    monkeypatch.setattr(credentials, "Certificate", lambda cert: (captured_cert_arg.update(arg=cert), object())[1])
     monkeypatch.setattr("firebase_admin.initialize_app", lambda cred: object())
 
     sent = {}
@@ -75,6 +76,10 @@ def test_send_push_with_fcm_configured_delivers_and_leaves_device_active(db_sess
     assert sent["title"] == "Hello"
     assert sent["body"] == "World"
     assert device.is_active is True
+    # Proves the fix: the raw setting value reaches Certificate() unmodified,
+    # with no json.loads() in between (the setting is a file path, per the
+    # pre-existing .env.example convention, not inline JSON content).
+    assert captured_cert_arg["arg"] == "/tmp/fake-firebase-creds.json"
 
 
 def test_send_push_deactivates_device_on_unregistered_token(db_session, monkeypatch):
@@ -83,9 +88,10 @@ def test_send_push_deactivates_device_on_unregistered_token(db_session, monkeypa
     import firebase_admin.credentials as credentials
     import firebase_admin.messaging as messaging
 
-    monkeypatch.setattr(settings, "FIREBASE_CREDENTIALS_JSON", '{"type": "service_account"}')
+    monkeypatch.setattr(settings, "FIREBASE_CREDENTIALS_JSON", "/tmp/fake-firebase-creds.json")
     monkeypatch.setattr(notifications, "_firebase_app", None)
-    monkeypatch.setattr(credentials, "Certificate", lambda cert: object())
+    captured_cert_arg = {}
+    monkeypatch.setattr(credentials, "Certificate", lambda cert: (captured_cert_arg.update(arg=cert), object())[1])
     monkeypatch.setattr("firebase_admin.initialize_app", lambda cred: object())
 
     def fake_send(message, app=None):
@@ -102,3 +108,7 @@ def test_send_push_deactivates_device_on_unregistered_token(db_session, monkeypa
     # not just mutated the in-memory object this test already holds.
     refreshed = db_session.query(Device).filter(Device.id == device_id).first()
     assert refreshed.is_active is False
+    # Proves the fix: the raw setting value reaches Certificate() unmodified,
+    # with no json.loads() in between (the setting is a file path, per the
+    # pre-existing .env.example convention, not inline JSON content).
+    assert captured_cert_arg["arg"] == "/tmp/fake-firebase-creds.json"
