@@ -48,6 +48,7 @@ class UniversityPublicBranding(BaseModel):
     """Safe-to-expose subset for the public/unauthenticated landing page (subdomain)."""
     model_config = ConfigDict(from_attributes=True)
 
+    id: str
     name: str
     slug: str
     primary_color: str

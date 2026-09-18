@@ -230,6 +230,9 @@ def test_universities_list_is_platform_admin_only_and_public_branding_is_open(cl
     public = client.get("/api/v1/universities/listeduni/public")
     assert public.status_code == 200, public.text
     assert public.json()["name"]
+    # id must be present and match the real university id: static/app/js/business.js's
+    # wirePostProjectForm/wireRequestAccessForm both read `.id` off this response.
+    assert public.json()["id"] == university_id
 
     public_missing = client.get("/api/v1/universities/does-not-exist/public")
     assert public_missing.status_code == 404, public_missing.text
