@@ -2821,15 +2821,24 @@ rows and reverified after every edit — zero mismatches throughout.
 Backups at `../CAPLink-Technical-Tracker.xlsx.backup9` through
 `.backup12`.
 
-**Next, and requiring Phil's explicit decision, not something to do
-unprompted**: `superpowers:finishing-a-development-branch`'s standard
-menu (merge locally / push + PR / keep as-is). That merge is also the
-natural point to resolve the staging-deployment-lag limitation flagged
-throughout Tasks 10 and 13 above (this branch's own backend commits
-aren't deployed to the live staging API yet, so full data-level emulator
-verification has been blocked twice) — worth a real live-data walkthrough
-once merged and deployed. **One more thing surfaced during the final
-review, unrelated to this plan's own code, worth raising separately**:
+**Merged to `main` locally, 2026-09-18** (Phil's explicit choice — merge
+locally, via `superpowers:finishing-a-development-branch`'s standard
+menu). Fast-forward merge (`9062ed9` → `5418e83`, the latter being this
+same documentation commit), both suites reverified green on `main` itself
+after merging (193 backend passed/5 skipped, 13 mobile suites/28 tests —
+the mobile run needed a fresh `npm install` in this checkout first, and
+its very first `npx jest` run showed 7 spurious failures that vanished on
+a second run, consistent with normal Jest haste-map cold-start flakiness
+right after a fresh `node_modules`, not a real regression). Worktree and
+branch both cleaned up per the skill's process. **`main` is not yet
+pushed to `origin`** (currently 18 commits ahead) — pushing is a
+separate decision, not assumed just because the merge was approved.
+Resolving the staging-deployment-lag limitation flagged throughout
+Tasks 10 and 13 above (this branch's own backend commits aren't deployed
+to the live staging API yet, so full data-level emulator verification
+has been blocked twice) needs a real deploy + reseed, which itself needs
+a push first. **One more thing surfaced during the final review,
+unrelated to this plan's own code, worth raising separately**:
 the `uni.id`-is-`undefined` bug this plan's Task 2 correctly avoided
 copying into mobile turns out to affect `static/app/js/business.js` in a
 second place too (`wireRequestAccess`, not just `wirePostProjectForm`) —
@@ -2837,6 +2846,91 @@ requesting university access from the web app is broken the same way
 posting a project was. Not fixed here (out of scope for a mobile-only
 plan), but a real, previously-undocumented web-app bug worth its own
 small fix whenever convenient.
+
+## iOS build brought up for the first time — 2026-09-18
+
+Straight after the merge above, Phil asked to continue mobile work on
+both Android and iOS. iOS had never actually been built in this project
+before — a real gap, since `mobile/ios/` has existed since the app was
+first scaffolded (Workstream 6.a) but nobody had ever run `pod install`
+against it (no `Podfile.lock` existed). Classified as a bounded task
+(the iOS project already exists, this is completing an existing flow,
+not building something new), a short design was presented and approved
+before touching anything.
+
+**Genuinely new capability, not previously true**: Xcode 26.6 and real
+iOS 26.5 simulators are now installed on this Mac (checked directly via
+`xcodebuild -version`/`xcrun simctl list devices`) — the original
+Workstream 6 scope decision (2026-09-10, see the top-level `CLAUDE.md`)
+explicitly named "no Xcode" as part of why iOS was out of scope; that's
+no longer true and should not be re-asserted without checking again.
+
+**What was actually blocking a first build, and how each was fixed,
+worth knowing if this Mac's toolchain ever needs rebuilding**:
+1. **CocoaPods needs a modern Ruby; this Mac only had the deprecated
+   system Ruby (2.6.10), which CocoaPods' own dependency chain (`ffi`)
+   won't install against** (needs Ruby ≥3.0). No Homebrew existed
+   either. Fixed by installing `rbenv`+`ruby-build` via a plain git
+   clone into `~/.rbenv` (no `sudo`, no Homebrew needed) and compiling
+   Ruby 3.4.10 from source.
+2. **The first Ruby compile failed too** — `psych` (Ruby's YAML
+   extension, which CocoaPods needs since Podfiles/`Podfile.lock` are
+   YAML) couldn't find `libyaml` anywhere on the system, and this
+   `ruby-build` version doesn't auto-vendor it. Fixed by compiling
+   `libyaml` 0.2.5 from source into `~/.local/libyaml` and re-running
+   the Ruby build with `RUBY_CONFIGURE_OPTS="--with-libyaml-dir=..."`.
+   Both fixes are pure user-directory installs — nothing system-wide,
+   nothing needing `sudo`, consistent with this project's general
+   preference for reversible, low-blast-radius environment changes.
+3. **After `pod install` succeeded (90 pods) and the first real
+   `xcodebuild` compiled and installed the app**, the simulator showed a
+   real Metro red-screen error — `Unable to resolve module ./index`
+   from a path under `.worktrees/workstream-6b-mobile-student-business-flows/mobile/`,
+   a worktree this session had already deleted as part of finishing
+   that branch. Root cause: a Metro bundler process from the *previous*
+   session's mobile-testing work had been left running in the
+   background since the night before, still bound to port 8081 and
+   still serving from the now-gone worktree path — the new
+   `react-native run-ios` command's own bundler start silently no-op'd
+   because the port was already taken, so the app talked to the stale
+   process instead. Fixed by killing the stale PID, starting a fresh
+   Metro rooted at the real `mobile/` checkout, and relaunching the app
+   — it then bundled and rendered the real login screen correctly,
+   matching Android's already-verified visual state exactly (same
+   design tokens, same layout). **Lesson for next time a mobile dev
+   server behaves confusingly**: check `lsof -i :8081` for a stale
+   process before assuming the current code is broken — a port
+   collision with an old session's leftover server looks identical to a
+   real bundling failure at first glance.
+
+**Verified, not just built**: `npx jest` in `mobile/` still shows 13
+suites/28 tests passing after all of the above (the toolchain changes
+touched nothing app-level). Committed: `mobile/.ruby-version` (pins
+Ruby 3.4.10 for this project, so a future `rbenv`-aware shell picks it
+up automatically), `mobile/ios/Podfile.lock` and
+`mobile/ios/CAPLinkMobile.xcworkspace/contents.xcworkspacedata` (both
+new — `Podfile.lock` locks exact pod versions the way
+`package-lock.json` does for npm, and the `.xcworkspace` is what Xcode
+must be opened from now on, never the bare `.xcodeproj`, once
+CocoaPods is integrated), and CocoaPods' own small, expected
+integration diffs to `project.pbxproj`/`Info.plist`/
+`PrivacyInfo.xcprivacy` (adds `RCTNewArchEnabled`, aggregates pods'
+privacy-manifest entries — all standard first-`pod install` output, not
+hand-edited). `mobile/ios/Pods/` itself (the actual downloaded pod
+source) is already correctly git-ignored (`**/Pods/` in
+`mobile/.gitignore`), so it's regenerated by `pod install`, never
+committed.
+
+**Not yet done**: no tracker row exists specifically for "iOS builds
+locally" (Workstream 6's tracker steps are scoped at a coarser grain —
+`6.a.i`'s "cross-platform app project" is already marked Done and
+doesn't distinguish platform), so this doesn't move any tracker
+percentage on its own — it's environment/tooling groundwork that makes
+the rest of Workstream 6's remaining iOS-relevant work (push
+notifications' APNs half, iOS app-store submission) actually
+attemptable for the first time. A real click-through of the iOS app's
+actual screens (beyond the login screen) hasn't been done yet — next
+natural step if continuing this thread.
 
 ## If you're picking this up mid-troubleshooting
 
