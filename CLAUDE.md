@@ -3123,6 +3123,40 @@ overall totals, the P2-priority table) independently recomputed from
 all 115 raw rows and reverified — zero mismatches. Backup at
 `../CAPLink-Technical-Tracker.xlsx.backup14`.
 
+**Same session, immediately after — the `UniversityPublicBranding`
+missing-`id` bug (flagged twice, once during Task 2's planning and
+again in the final review) closed out for real (`cf45db9`).** The fix
+was smaller than either flag implied: `get_public_branding` already
+returns the raw ORM `University` object and the schema already used
+`from_attributes=True`, so adding one field (`id: str`) was the whole
+fix — zero frontend changes needed, since `business.js`'s two broken
+call sites were already correctly reading `.id`, just against a
+response that never had it. `business.test.js`'s existing mocks had
+already assumed an `id` would come back, which is exactly why this
+shipped unnoticed on the frontend side — confirmed accurate now rather
+than changed. Independently reverified: `pytest` 203/5, `npm test`
+102/102, `ruff`/`mypy` clean.
+
+**Also confirmed this session: Render's `autoDeploy` is genuinely
+active, not just declared.** After pushing, live
+`caplink-api.onrender.com` started returning `401` (not `404`) for
+`/api/v1/mobile/notification-preferences` — a route that only exists
+in code from this session — without any manual Render dashboard
+action. **What staging still needs, and can't be done from this
+workspace**: a reseed with the Workstream 9 synthetic dataset. The
+live database predates that dataset entirely (this is the same root
+cause Tasks 10/13 hit twice during Workstream 6.b — `priya.anand@...`
+and `demo.business@...` don't exist there), and reseeding needs
+staging's real database connection string, which lives only in
+Render's dashboard (`sync: false` in `render.yaml`) and has never been
+given to this workspace — correctly, per this project's own standing
+caution about secrets pasted into chat (see the GitHub/Sentry
+recovery-codes incident earlier in this file). Whoever picks this up:
+run `python -m scripts.seed_demo_data` with `DATABASE_URL` set to
+staging's External Database URL (visible in Render's dashboard),
+either from a local shell or Render's own Shell feature if available —
+not by pasting the connection string into a chat session.
+
 ## If you're picking this up mid-troubleshooting
 
 The account owner's dad (Windows machine, unrelated hardware/OS from this dev
