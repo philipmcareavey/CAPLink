@@ -3068,6 +3068,61 @@ deprecation warning in its own dependencies (e.g. the many pre-existing
 treated as blocking). Worth a look whenever `firebase-admin` next gets
 bumped, not urgent now.
 
+## In-app notification preferences (6.c.iii) — 2026-09-18, and a real missing-logout bug found and fixed
+
+Same session, continued. Scoping this small tracker item (opt-out
+preferences per notification type) surfaced something more important
+than the feature itself: **the mobile app had no way to log out at
+all**, for either role. Logout had only ever lived on
+`PlaceholderScreen` (its own comment said so explicitly — "temporary...
+until its feature area is built for real"), and across Workstream
+6.b's 13 tasks every real tab replaced its placeholder one at a time;
+nobody added logout a permanent home. `PlaceholderScreen` is now only
+reachable for the one "role not supported on mobile" fallback in
+`RootNavigator.tsx` — students and businesses, the only two roles with
+real tab navigators, genuinely could not sign out. No single task's own
+reviewer could have caught this; it only became visible scoping the
+*next* piece of work and asking "where would this new screen's entry
+point live." Also confirmed: `BusinessTabs` had no Profile/Settings
+screen at all (students did), and neither preferences nor push exist
+anywhere on the web app either (it has no push channel to have
+preferences for).
+
+**Fix, and the first real test of the newly-adopted delegate-then-
+verify workflow with two units running in parallel**: one new shared
+`SettingsScreen` — logout (now permanent) plus a notification-
+preferences toggle list — solves both problems with one small screen,
+not two. Decomposed into two independent units (different languages,
+zero shared files, dispatched together): backend
+(`app/models/user.py`'s new `notification_opt_outs` JSON column,
+migration `eb329ac42d79` matching the `mfa_backup_codes` precedent
+exactly including removing the same known SQLite-only enum-diff false
+positive documented twice before, `GET`/`PATCH /mobile/notification-
+preferences`, and `notify_from_template` now skipping delivery
+entirely — no `Device` query, no send — when the target user has muted
+that template) and mobile (`SettingsScreen.tsx`, rendering whatever
+preference list the API actually returns rather than any hardcoded
+set, wired as a new tab into both `StudentTabs.tsx`/`BusinessTabs.tsx`).
+Both workers were given the exact same API contract (field names:
+`preferences`, `template_key`, `label`, `enabled`, `opted_out`) up
+front since they couldn't coordinate live — the backend worker,
+noticing on its own that HEAD had moved to include the mobile
+worker's already-landed commit, read that diff and confirmed its field
+names matched before writing a line of code, rather than assuming.
+
+Both units independently reverified by the controller afterward — not
+just the reports: reran the full backend suite (203 passed/5 skipped)
+and mobile suite (14 suites/31 tests) directly, read the actual
+`notify_from_template` diff, the migration file, `SettingsScreen.tsx`'s
+toggle-computation logic, and both `Tab.Navigator` edits. Everything
+held up exactly as specified — no second fix wave needed this time,
+unlike the FCM work earlier the same session.
+
+Tracker: `6.c.iii` → **Done** (100%). Dashboard rollups (Workstream 6,
+overall totals, the P2-priority table) independently recomputed from
+all 115 raw rows and reverified — zero mismatches. Backup at
+`../CAPLink-Technical-Tracker.xlsx.backup14`.
+
 ## If you're picking this up mid-troubleshooting
 
 The account owner's dad (Windows machine, unrelated hardware/OS from this dev
