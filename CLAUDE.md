@@ -13,6 +13,43 @@ This file exists so a new session doesn't have to re-derive context by
 reading every file. Read this first; it links to the deeper docs instead of
 repeating them.
 
+**Standing rule, added 2026-09-18 — the delegate-then-verify loop.** For
+any task broken into discrete units of implementation work, work this
+way rather than writing implementation code directly:
+
+- The controller (main agent/session) owns decomposition, architecture
+  decisions, interface design, and final sign-off — and does **not**
+  write implementation code itself.
+- **Delegate** to a worker subagent: file search, mechanical edits, test
+  writing, refactors, boilerplate — anything where the approach is
+  already decided. For each unit: write the spec yourself first (exact
+  files, exact expected behaviour, the interface contract, the
+  acceptance test) — if that spec can't be written precisely, the task
+  is too vague to delegate and needs decomposing further. Spawn the
+  worker with that full spec; subagents start cold and can't see the
+  surrounding conversation, so every file path, convention, and
+  constraint the worker needs must be inline in the dispatch, not
+  assumed.
+- **Verify, don't trust.** When a worker returns, a reported success is
+  a claim, not evidence — read the actual changed files and run the
+  tests yourself before accepting the result. Check: does it meet the
+  spec, does it break anything adjacent, does it match this codebase's
+  existing patterns, are edge cases handled, did it silently widen
+  scope beyond what was asked.
+- If a result is wrong: re-spec and re-delegate (cheap, when the fault
+  was in the spec) or fix it directly yourself (when the task turned
+  out to need more judgement than the spec gave the worker credit for).
+- Run independent units in parallel; serialise anything sharing files
+  or with a real dependency between units.
+- **Before spawning anything**, show the decomposition and which units
+  will be delegated, and wait for approval — this applies per task, not
+  once for the project.
+
+This formalizes and names the pattern this project's larger workstreams
+(9, 6.b) already used under `superpowers:subagent-driven-development` —
+apply the same discipline even for smaller units of work that don't
+warrant that skill's full ledger/pre-flight-scan ceremony.
+
 ## What this project is
 
 CAPLink — a licensed, multi-tenant FastAPI backend connecting university
@@ -2931,6 +2968,105 @@ notifications' APNs half, iOS app-store submission) actually
 attemptable for the first time. A real click-through of the iOS app's
 actual screens (beyond the login screen) hasn't been done yet — next
 natural step if continuing this thread.
+
+## Real push notification delivery (6.c.i/6.c.ii) — 2026-09-18
+
+Same session, straight after the iOS build. Phil asked to continue
+mobile work and, separately, gave a standing process instruction (now
+recorded at the top of this file): work in a delegate-then-verify
+loop — the controlling session designs the interface and writes a
+precise spec, a worker subagent implements it, and the controller
+independently re-verifies the actual diff and reruns the tests itself
+rather than trusting the worker's report. This section is also the
+loop's first real test in this project, including a genuine catch.
+
+**Scoping finding, before any code was touched**: the tracker step
+6.c.ii ("wire existing notification templates to real push delivery")
+turned out to already be half-true — `app/services/notifications.py`'s
+five templates (new-match, application-status, new-message,
+milestone-paid, rating-released) were already called from every real
+event site (`applications.py`, `messages.py`, `payments.py`,
+`ratings.py`, `contracts.py`). The only missing piece was that
+`_send_push` just logged instead of actually sending — and
+`firebase-admin>=7.5.0` was already sitting in
+`requirements-integrations.txt`, uninstalled, with a comment
+explaining exactly why (heavy compiled dependency tree, kept out of
+`requirements.txt`). `POST /mobile/devices` (device-token
+registration) also already existed and worked; nothing on the mobile
+app calls it yet, on either platform.
+
+**What shipped** (`847e390`, then a follow-up fix `7763e98` — see
+below): `_send_push`'s signature changed to take `db`/`device` (not
+just the raw token string) so it can deactivate a device on a dead
+token; it stays exactly logging-only in every environment when
+`FIREBASE_CREDENTIALS_JSON` is empty (matching Sentry/hCaptcha's
+no-op-until-configured pattern, not Stripe's fail-closed one — a
+missing push credential should never break the request that triggered
+the notification), and delivers via a real
+`firebase_admin.messaging.send()` call once configured, catching
+`messaging.UnregisteredError` specifically to deactivate a dead
+device. `firebase_admin` is imported lazily inside the functions that
+need it, and `is_available()` mirrors
+`app/services/matching/embeddings.py`'s exact pattern, since CI's
+`test` job never installs `requirements-integrations.txt` either — the
+new Firebase-dependent tests genuinely skip in CI, not fail. Verified
+against the real installed SDK (`pip install -r
+requirements-integrations.txt`, then read the actual package to find
+the real exception class), same accepted bar this project already used
+for Stripe, since no free/test Firebase credential path exists either.
+
+Also fixed, found while touching this code: the Stripe
+`charge.dispute.created` webhook handler was notifying a student with
+the `"milestone_paid"` template and a hardcoded `amount=0` — a dispute
+is not a payment release. Added a proper `"milestone_disputed"`
+template and, in the same commit, the first-ever HTTP-level test
+covering the webhook endpoint at all (scoped to just the dispute path,
+not every event type — a real, separately-existing test gap, not
+something to fix wholesale in passing).
+
+**The delegate-then-verify loop's first real catch**: independently
+checking the worker's claimed deviation (it found `FIREBASE_CREDENTIALS_JSON`
+already declared in `config.py`/`render.yaml` and reused it rather than
+adding a duplicate `FCM_CREDENTIALS_JSON` as originally spec'd — correct,
+confirmed by grepping for it) led to actually reading the `.env*.example`
+files' own documentation of that setting, which revealed a real bug the
+worker's own tests had mocked past: the code did `json.loads()` on the
+setting before passing it to `credentials.Certificate()`, but all three
+`.env*.example` files already document this setting as a **file path**
+(`FIREBASE_CREDENTIALS_JSON=./firebase-service-account.json`), not inline
+JSON — and Firebase Admin SDK's real `Certificate.__init__` only accepts a
+path string or a dict, never raw JSON text, so this would have thrown
+`ValueError` the first time anyone actually configured it. The fault was
+in the original spec (written without knowing that pre-existing convention
+existed), not the implementation — re-spec'd and re-delegated per the
+loop's own decision rule, fixed in `7763e98`. The two tests that let this
+ship both mocked `credentials.Certificate` with a lambda that ignored its
+argument entirely; both now capture and assert on the real value passed
+through, closing the reason the bug was invisible to begin with.
+
+**Tracker updated**: `6.c.ii` → **Done** (100%) — the templates-to-real-
+sends gap this step names is genuinely closed. `6.c.i` → **In Progress
+(~50%)** — the backend delivery mechanism is real and tested for both
+platforms in principle (Firebase Cloud Messaging is a unified layer;
+the same `messaging.send()` call reaches Android and iOS devices alike
+once each is configured), but nothing has been verified against a real
+Firebase project, no device on either platform has ever called
+`POST /mobile/devices`, and iOS specifically also needs an Apple
+Developer Program enrollment (for the APNs auth key Firebase's console
+requires) before it can deliver at all. Dashboard rollups (Workstream
+6, the overall totals, the P1-priority table) independently recomputed
+from all 115 raw rows and reverified — zero mismatches. Backup at
+`../CAPLink-Technical-Tracker.xlsx.backup13`.
+
+**One cosmetic, non-blocking finding from the controller's own
+independent test run, not chased further**: `messaging.Message`'s
+`token=` parameter emits a `DeprecationWarning` ("use `fid` instead")
+against the currently-installed `firebase_admin` version — still fully
+functional, and this project has repeatedly chosen not to chase every
+deprecation warning in its own dependencies (e.g. the many pre-existing
+`datetime.utcnow()` warnings scattered through this codebase, never
+treated as blocking). Worth a look whenever `firebase-admin` next gets
+bumped, not urgent now.
 
 ## If you're picking this up mid-troubleshooting
 
