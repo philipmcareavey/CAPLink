@@ -16,7 +16,7 @@ import stripe
 
 from app.core import config
 from app.models.contract import Contract, Milestone
-from app.models.enums import MilestoneStatus, PaymentRail, StudentBand, UserRole
+from app.models.enums import MilestoneStatus, PaymentRail, ProjectCategory, StudentBand, UserRole
 from app.models.university import University
 from app.models.user import BusinessProfile, StudentProfile, User
 from app.services import stripe_payments
@@ -250,3 +250,97 @@ def test_dev_mode_simulates_full_lifecycle_when_unconfigured(db_session, monkeyp
     assert stripe_payments.capture_milestone_payment(milestone) == "succeeded"
     assert stripe_payments.refund_milestone_payment(milestone).startswith("re_dev_")
     assert milestone.stripe_payment_intent_status == "refunded"
+
+
+def test_webhook_dispute_marks_milestone_disputed_and_notifies_with_correct_template(client, monkeypatch):
+    """Real, pre-existing bug fix: the charge.dispute.created handler in
+    app/api/v1/endpoints/payments.py used to notify with the "milestone_paid"
+    template and a hardcoded amount=0 — a dispute is not a payment release.
+    Goes through the real POST /api/v1/payments/webhook route (never covered
+    by any test before this), with stripe.Webhook.construct_event
+    monkeypatched to return a fake event, matching this file's established
+    SDK-monkeypatching convention rather than real HMAC signing.
+    """
+    from app.core import config
+    from app.models.contract import Milestone
+
+    # This file's own autouse `stripe_configured` fixture sets a real-looking
+    # STRIPE_SECRET_KEY for the unit tests above (which each monkeypatch the
+    # specific SDK call they exercise) — but this test drives the full HTTP
+    # golden path through several unmonkeypatched Stripe calls (Connect
+    # onboarding, setup-intent, contract creation), so it needs dev-mode
+    # simulation (app/services/stripe_dev_mode.py) instead, same as every
+    # other e2e test file's use of the `client` fixture.
+    monkeypatch.setattr(config.settings, "STRIPE_SECRET_KEY", "")
+
+    from tests.test_golden_path_e2e import (
+        _approve_agreement,
+        _auth,
+        _create_single_milestone_contract,
+        _post_project_and_apply,
+        _register_business,
+        _register_student,
+        _seed_university,
+    )
+
+    university_id = _seed_university(client, slug="disputeuni", domain="disputeuni.ac.uk")
+    business_token = _register_business(client, email="dispute-business@example.com")
+    _approve_agreement(
+        client,
+        business_user_email="dispute-business@example.com",
+        university_id=university_id,
+        bands=[StudentBand.YEAR_3.value],
+        categories=[ProjectCategory.SOFTWARE_ENGINEERING.value],
+    )
+    student_token = _register_student(client, university_slug="disputeuni", email="dispute-student@disputeuni.ac.uk")
+    project, application = _post_project_and_apply(
+        client, business_token=business_token, student_token=student_token,
+        university_id=university_id, title="Dispute test project",
+    )
+    contract = _create_single_milestone_contract(
+        client, business_token=business_token, student_token=student_token, application_id=application["id"], amount=60,
+    )
+    milestone_id = contract["milestones"][0]["id"]
+    client.post(f"/api/v1/contracts/milestones/{milestone_id}/submit", headers=_auth(student_token))
+    paid = client.post(f"/api/v1/contracts/milestones/{milestone_id}/approve-and-pay", headers=_auth(business_token))
+    assert paid.status_code == 200, paid.text
+
+    db = client.db_sessionmaker()
+    try:
+        milestone = db.query(Milestone).filter(Milestone.id == milestone_id).first()
+        payment_intent_id = milestone.stripe_payment_intent_id
+    finally:
+        db.close()
+    assert payment_intent_id
+
+    fake_event = types.SimpleNamespace(
+        id="evt_dispute_1",
+        type="charge.dispute.created",
+        data=types.SimpleNamespace(object=types.SimpleNamespace(payment_intent=payment_intent_id)),
+    )
+    monkeypatch.setattr(config.settings, "STRIPE_WEBHOOK_SECRET", "whsec_test")
+    monkeypatch.setattr(stripe.Webhook, "construct_event", lambda payload, sig, secret: fake_event)
+
+    notify_calls = []
+    monkeypatch.setattr(
+        "app.api.v1.endpoints.payments.notify_from_template",
+        lambda db, user_id, template_key, **kwargs: notify_calls.append((template_key, kwargs)),
+    )
+
+    resp = client.post(
+        "/api/v1/payments/webhook", content=b"{}", headers={"stripe-signature": "t=1,v1=fake"},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json() == {"status": "processed"}
+
+    db = client.db_sessionmaker()
+    try:
+        milestone = db.query(Milestone).filter(Milestone.id == milestone_id).first()
+        assert milestone.status == MilestoneStatus.DISPUTED
+    finally:
+        db.close()
+
+    assert len(notify_calls) == 1
+    template_key, kwargs = notify_calls[0]
+    assert template_key == "milestone_disputed"
+    assert "amount" not in kwargs

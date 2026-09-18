@@ -152,7 +152,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             student_user_id = (
                 db.query(StudentProfile.user_id).filter(StudentProfile.id == contract.student_id).scalar()
             )
-            notify_from_template(db, student_user_id, "milestone_paid", amount=0, milestone=milestone.description)
+            notify_from_template(db, student_user_id, "milestone_disputed", milestone=milestone.description)
             logger.warning(
                 "stripe_dispute_created",
                 extra={"milestone_id": milestone.id, "payment_intent_id": payment_intent_id},
