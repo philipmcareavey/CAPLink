@@ -216,3 +216,13 @@ export interface AgreementWithUniversityOut {
   max_active_projects: number | null;
   requires_university_project_review: boolean;
 }
+
+export interface NotificationPreferenceItem {
+  template_key: string;
+  label: string;
+  enabled: boolean;
+}
+
+export interface NotificationPreferencesOut {
+  preferences: NotificationPreferenceItem[];
+}

@@ -6,6 +6,7 @@ import { MessagesStack } from '../navigation/MessagesStack';
 import { ContractsStack } from '../navigation/ContractsStack';
 import { RatingsScreen } from '../screens/student/RatingsScreen';
 import { LocalSearchMapScreen } from '../screens/student/LocalSearchMapScreen';
+import { SettingsScreen } from '../screens/shared/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -21,6 +22,7 @@ export function StudentTabs() {
       <Tab.Screen name="Messages" component={MessagesStack} options={{ headerShown: false }} />
       <Tab.Screen name="Local" component={LocalSearchMapScreen} />
       <Tab.Screen name="Ratings" component={RatingsScreen} />
+      <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );
 }
