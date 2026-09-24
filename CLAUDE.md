@@ -3157,6 +3157,51 @@ staging's External Database URL (visible in Render's dashboard),
 either from a local shell or Render's own Shell feature if available —
 not by pasting the connection string into a chat session.
 
+## `9.c.i` retried, still blocked — 2026-09-23, and a new variant of the extension issue
+
+Picked up as the single most concretely-actionable open item across the whole
+tracker (nothing else was both unblocked and near completion). Rebuilt a
+clean local environment first, since `caplink.db` had gone back to empty
+(just a stray `alembic_version` row) — reran `python -m scripts.seed_demo_data`
+(4 universities/80 students/19 businesses/25 projects, deterministic) and
+started `uvicorn app.main:app --port 8000` locally. `sentence-transformers`
+is not installed in this venv, so this run took the TF-IDF fallback path for
+text similarity — incidentally the same path staging runs today (see
+"Optional semantic-embedding dependency" in the README), so if anything this
+made the check *more* representative of production than a from-scratch
+installed-embeddings run would have been.
+
+**The claude-in-chrome extension would not connect** — but this time it was a
+new failure shape, not the 2026-09-09 one. The documented fix from last time
+(a full Chrome quit-and-relaunch) was tried first and did **not** clear it.
+Phil then checked `chrome://extensions` and the extension's own popup
+directly and confirmed it showed connected and logged into the right
+account — `tabs_context_mcp` still returned "not connected" regardless. So
+this is now a genuine client/tool-side mismatch, not a browser-side one; not
+something retrying differently in this environment was going to fix, so it
+was flagged as a product bug via `SendFeedback` rather than looped on
+further. Worth checking whether this recurs next time before assuming a
+plain restart will clear it.
+
+**Fallback taken, per Phil's explicit choice**: a live HTTP walkthrough
+against the freshly-reseeded local server, following
+`docs/03-user-guide-demo-walkthrough.md`'s own steps exactly (not the pytest
+`TestClient` path `tests/test_synthetic_dataset_matches_e2e.py` already
+covers) — posted Northbridge's hero project for real, confirmed it ranks #1
+in Priya's live feed (`0.863`, next result `0.732`), applied as Priya, and
+confirmed Northbridge's live shortlist ranks Priya #1 (`0.862`, next result
+Ben Nguyen at `0.668` — a `0.194` gap, comfortably over the `>0.15` the
+automated test asserts). This reconfirms the matching pipeline end-to-end
+against genuinely-served data on a freshly-rebuilt database, which the
+pinned pytest assertions alone don't prove (they run against a test fixture,
+not a full reseed). **It does not close the gap `9.c.i` actually names**:
+the literal browser-rendered `/app` UI — whether the shortlist screen
+*displays* these scores correctly — remains unverified by a human-observable
+pass. Tracker: `9.c.i` left at **In Progress, 80%**, unchanged; Notes cell
+appended (not replaced) with this session's finding. Backup at
+`../CAPLink-Technical-Tracker.xlsx.backup15`. No code changed this session —
+verification only.
+
 ## If you're picking this up mid-troubleshooting
 
 The account owner's dad (Windows machine, unrelated hardware/OS from this dev
