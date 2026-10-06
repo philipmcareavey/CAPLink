@@ -880,13 +880,15 @@ already catches everything and returns a clean JSON error response — a well-be
 error handler like that means an exception never "escapes" in the way generic
 auto-instrumentation typically looks for.
 
-**Uptime monitoring** — not configured; this is 100% an external step, there's nothing to
-add to this repo for it. Recommended: a free monitor (e.g. [UptimeRobot](https://uptimerobot.com))
-polling `https://<your-render-url>/health` every 5 minutes with email/SMS alerting on a
-non-200 response. `/health` deliberately does nothing but confirm the process is up and
-responding — it doesn't check the database connection, so a monitor on it alone won't
-catch "app is up but the database is unreachable"; that failure mode currently only shows
-up as request-level 500s in the logs/Sentry above.
+**Uptime monitoring** (step 1.c.iii) — `.github/workflows/uptime.yml` runs every 30
+minutes on GitHub Actions (no extra account needed): it checks `/health` (process up) and
+`/api/v1/universities/manchester/public` (a public read that needs the database, since
+`/health` deliberately doesn't touch it). A failed run emails whoever last edited the
+workflow's cron line. Run it on demand from the repo's Actions tab → Uptime → "Run
+workflow". Limits: GitHub's cron is best-effort (runs can be 5–15 minutes late) and is
+disabled after 60 days with no repo activity. Before a real pilot, move to a dedicated
+monitor (e.g. [UptimeRobot](https://uptimerobot.com), every 5 minutes, SMS alerts) pointed
+at the same two URLs.
 
 **Latency dashboard** (step 1.c.iv, added 2026-09-12) — no real APM/dashboarding tool
 exists for this project, but `app/core/latency_metrics.py` computes a genuinely usable

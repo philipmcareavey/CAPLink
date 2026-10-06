@@ -1,0 +1,28 @@
+name: Uptime
+
+# Technical Implementation Plan step 1.c.iii: uptime monitoring without a
+# new third-party account. A failed run emails whoever last edited this
+# file's cron line (GitHub's default "failed workflows" notification).
+# Two checks: /health (process is up) and a public DB-backed read (the
+# database is reachable too — /health deliberately doesn't touch it).
+# ponytail: GitHub cron is best-effort (often 5-15 min late) and disabled
+# after 60 days without repo activity; move to UptimeRobot/Better Stack
+# once there's a real pilot and an SLA to hold.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: https://caplink-api.onrender.com
+    steps:
+      # --retry with a long max-time rides out Render free-tier cold starts
+      # (~1 min to wake), so a sleeping-but-healthy service doesn't alert.
+      - name: API process up
+        run: curl -fsS --retry 3 --retry-all-errors --retry-delay 20 --max-time 120 "$BASE_URL/health"
+      - name: Database reachable
+        run: curl -fsS --retry 3 --retry-all-errors --retry-delay 20 --max-time 120 "$BASE_URL/api/v1/universities/manchester/public"
