@@ -58,3 +58,37 @@ test('pressing the logout button calls logout from useAuth', async () => {
   await fireEvent.press(screen.getByTestId('logout-button'));
   expect(logout).toHaveBeenCalledTimes(1);
 });
+
+test('deleting the account sends the password to DELETE /privacy/account, then logs out', async () => {
+  const authedApi = jest.fn(async (path: string) => (path === '/privacy/account' ? { message: 'ok' } : { preferences: PREFERENCES }));
+  const logout = jest.fn();
+  mockedUseAuth.mockReturnValue({ authedApi, logout });
+  await render(<SettingsScreen />);
+  await waitFor(() => expect(screen.getByTestId('delete-account-button')).toBeTruthy());
+
+  await fireEvent.press(screen.getByTestId('delete-account-button'));
+  await fireEvent.changeText(screen.getByTestId('delete-password'), 'hunter2');
+  await fireEvent.press(screen.getByTestId('delete-confirm'));
+
+  await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
+  expect(authedApi).toHaveBeenCalledWith('/privacy/account', { method: 'DELETE', body: { current_password: 'hunter2' } });
+});
+
+test('a wrong password shows the error and does not log out', async () => {
+  const { ApiError } = jest.requireActual('../../../api/client');
+  const authedApi = jest.fn(async (path: string) => {
+    if (path === '/privacy/account') throw new ApiError('Current password is incorrect', 400);
+    return { preferences: PREFERENCES };
+  });
+  const logout = jest.fn();
+  mockedUseAuth.mockReturnValue({ authedApi, logout });
+  await render(<SettingsScreen />);
+  await waitFor(() => expect(screen.getByTestId('delete-account-button')).toBeTruthy());
+
+  await fireEvent.press(screen.getByTestId('delete-account-button'));
+  await fireEvent.changeText(screen.getByTestId('delete-password'), 'wrong');
+  await fireEvent.press(screen.getByTestId('delete-confirm'));
+
+  await waitFor(() => expect(screen.getByText('Current password is incorrect')).toBeTruthy());
+  expect(logout).not.toHaveBeenCalled();
+});

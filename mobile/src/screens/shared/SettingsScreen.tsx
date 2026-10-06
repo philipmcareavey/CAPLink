@@ -1,5 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { ApiError } from '../../api/client';
 import { NotificationPreferenceItem, NotificationPreferencesOut } from '../../api/types';
@@ -10,6 +20,8 @@ export function SettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [password, setPassword] = useState('');
 
   const load = useCallback(async () => {
     setError(null);
@@ -52,6 +64,19 @@ export function SettingsScreen() {
     }
   };
 
+  // App Store guideline 5.1.1(v) / Google Play's account-deletion policy:
+  // users must be able to delete their account from inside the app. Same
+  // DELETE /privacy/account endpoint (and password reauth) as the web app.
+  const deleteAccount = async () => {
+    setError(null);
+    try {
+      await authedApi('/privacy/account', { method: 'DELETE', body: { current_password: password } });
+      await logout();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Could not delete your account.');
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -87,6 +112,33 @@ export function SettingsScreen() {
         <TouchableOpacity style={styles.logoutButton} onPress={logout} testID="logout-button">
           <Text style={styles.logoutButtonText}>Log out</Text>
         </TouchableOpacity>
+        {deleting ? (
+          <View style={styles.deleteBox}>
+            <Text style={styles.rowLabel}>
+              This permanently deletes your account and anonymises your personal data. Enter your password to confirm.
+            </Text>
+            <TextInput
+              style={styles.input}
+              secureTextEntry
+              placeholder="Current password"
+              value={password}
+              onChangeText={setPassword}
+              testID="delete-password"
+            />
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={deleteAccount}
+              disabled={!password}
+              testID="delete-confirm"
+            >
+              <Text style={styles.logoutButtonText}>Permanently delete account</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.logoutButton} onPress={() => setDeleting(true)} testID="delete-account-button">
+            <Text style={styles.logoutButtonText}>Delete account</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </ScrollView>
   );
@@ -109,4 +161,6 @@ const styles = StyleSheet.create({
   rowLabel: { fontSize: 14, color: '#1B2A45', flex: 1, marginRight: 12 },
   logoutButton: { padding: 16, alignItems: 'center' },
   logoutButtonText: { color: '#A6452F', fontWeight: '700', fontSize: 15 },
+  deleteBox: { padding: 16, borderTopWidth: 1, borderTopColor: '#DDD6C7' },
+  input: { borderWidth: 1, borderColor: '#DDD6C7', borderRadius: 6, padding: 10, marginTop: 12, color: '#1B2A45' },
 });
