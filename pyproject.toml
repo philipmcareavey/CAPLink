@@ -22,7 +22,6 @@ select = ["E", "F"]
 
 [tool.mypy]
 python_version = "3.13"
-plugins = ["sqlalchemy.ext.mypy.plugin"]
 # First pass at type-checking a previously-unchecked codebase: catch real
 # errors (wrong types, missing attributes) without demanding full annotation
 # coverage everywhere on day one — see the CI workflow for how this is used.

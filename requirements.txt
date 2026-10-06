@@ -49,8 +49,11 @@ python3-saml>=1.16.0
 # usage in app/services/stripe_*.py — no test-account-free path exists to
 # exercise the real Stripe API automatically, so a breaking change in a
 # major bump wouldn't be caught until staging. Revisit deliberately, not
-# as part of a routine dependency sweep.
-stripe>=10.12.0
+# as part of a routine dependency sweep. The <11 cap enforces that hold:
+# a bare floor let fresh installs (CI, every Render deploy) resolve to
+# stripe 16, whose SetupIntent.create() no longer accepts
+# payment_method_types (caught by mypy, 2026-10-06).
+stripe>=10.12.0,<11
 # Invoice/receipt PDF generation (Technical Implementation Plan 3.d.iii) —
 # pure Python (py3-none-any wheel, confirmed before adding), no C-extension
 # build risk, unlike weasyprint (needs system cairo/pango) or reportlab

@@ -56,6 +56,11 @@ jobs:
     # HS256 (see app/core/config.py's ALGORITHM setting) — the vulnerable
     # ECDSA-signing code path in python-jose's ecdsa dependency is never
     # actually exercised. Revisit this ignore if ALGORITHM ever changes.
+    # python-jose's HMAC/asymmetric-key confusion (CVE-2026-85394, no fixed
+    # release yet) needs the verification key to be a public key an
+    # attacker holds; CAPLink's is a random symmetric SECRET_KEY and
+    # app/core/security.py always pins algorithms=[ALGORITHM]. Same
+    # revisit condition; long-term fix is moving to PyJWT.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -69,6 +74,7 @@ jobs:
           -r requirements-integrations.txt -r requirements-postgres.txt
           -r requirements-ml.txt
           --ignore-vuln PYSEC-2026-1325
+          --ignore-vuln CVE-2026-85394
 
   frontend-test:
     # Technical Implementation Plan step 8.a.ii — unit tests for

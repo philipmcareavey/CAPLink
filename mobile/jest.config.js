@@ -1,5 +1,8 @@
 module.exports = {
   preset: '@react-native/jest-preset',
+  // A cold transform cache (every CI run) makes each file's first test pay
+  // React Native's load cost, which overran Jest's 5s default.
+  testTimeout: 30000,
   // The preset's own default only exempts react-native/@react-native(-community)
   // packages from Jest's node_modules transform-skip — every other RN library
   // this app depends on ships untranspiled ESM and needs the same exemption,
