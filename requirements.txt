@@ -1,12 +1,12 @@
-fastapi>=0.141.1
-uvicorn[standard]>=0.52.4
-SQLAlchemy>=2.0.52
+fastapi>=0.142.2
+uvicorn[standard]>=0.54.0
+SQLAlchemy>=2.1.3
 pydantic[email]>=2.13.5
 pydantic-settings>=2.15.0
 python-jose[cryptography]>=3.5.0
 passlib[bcrypt]>=1.7.4
 # passlib 1.7.4 (unmaintained since ~2020) can't detect bcrypt>=4.1's version
-# info and crashes at startup; bcrypt<4.1 is unaffected and its wheel covers
+# info and crashes at startup; bcrypt<5.1 is unaffected and its wheel covers
 # every Python 3.6+ release (it's built for the stable "abi3" ABI), so this
 # doesn't reintroduce the wheel-availability problem this file exists to avoid.
 # Confirmed 2026-09-11: bcrypt 5.0.0 reproduces the crash directly (passlib's
@@ -16,17 +16,17 @@ passlib[bcrypt]>=1.7.4
 # error) — Dependabot's grouped update PR #3 tried to widen this to <5.1 and
 # its own CI test job failed as a direct result. Do not raise this bound
 # without upgrading passlib (or replacing it) first, and re-verifying.
-bcrypt<4.1
+bcrypt<5.1
 python-multipart>=0.0.32
-alembic>=1.19.2
+alembic>=1.20.0
 slowapi>=0.1.10
 httpx>=0.28.1
-python-dotenv>=1.2.3
+python-dotenv>=1.2.4
 # Inactive until SENTRY_DSN is set (see app/core/observability.py) — a real
 # Sentry account/project is a manual step (Technical Implementation Plan
 # step 1.c.ii). Pure-Python-ish SDK, no wheel-build risk like firebase-admin,
 # so unlike that one it's fine to always install rather than keep separate.
-sentry-sdk[fastapi]>=2.68.1
+sentry-sdk[fastapi]>=2.71.0
 # TOTP MFA for admin roles (Technical Implementation Plan step 2.a.iv) —
 # pure Python, RFC 6238, no compiled deps, no external account needed.
 pyotp>=2.10.0
@@ -53,9 +53,9 @@ python3-saml>=1.16.0
 # a bare floor let fresh installs (CI, every Render deploy) resolve to
 # stripe 16, whose SetupIntent.create() no longer accepts
 # payment_method_types (caught by mypy, 2026-10-06).
-stripe>=10.12.0,<11
+stripe>=16.0.0,<17
 # Invoice/receipt PDF generation (Technical Implementation Plan 3.d.iii) —
 # pure Python (py3-none-any wheel, confirmed before adding), no C-extension
 # build risk, unlike weasyprint (needs system cairo/pango) or reportlab
 # (heavier, less actively maintained for this use case).
-fpdf2>=2.8.8
+fpdf2>=2.8.9
