@@ -7,4 +7,4 @@
 # optional, not a silent requirement.
 #
 # Install with: pip install -r requirements.txt -r requirements-ml.txt
-sentence-transformers>=3.0.0
+sentence-transformers>=6.1.0
